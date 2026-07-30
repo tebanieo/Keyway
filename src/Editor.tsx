@@ -18,18 +18,21 @@ import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 
-// Snippets with tabstops: pick one, then Tab through the fields (label -> PK ->
-// SK -> attr -> value -> ...). ${} placeholders become Tab stops.
+// Snippets with tabstops: pick one, then Tab through the fields. ${} become Tab
+// stops. `item` scaffolds a whole row; `gsi` is ADDITIVE — it inserts just the
+// GSI1 key attributes to append to the item you're already writing (they're
+// attributes, not a new row).
 const SNIPPETS = [
   snippetCompletion("${label}: PK=${PK}  SK=${SK}  ${attr}=${value}", {
     label: "item",
-    detail: "new base item",
+    detail: "new base item (whole row)",
     type: "keyword",
   }),
-  snippetCompletion(
-    "${label}: PK=${PK}  SK=${SK}  GSI1PK=${GSI1PK}  GSI1SK=${GSI1SK}",
-    { label: "gsi", detail: "item indexed on GSI1", type: "keyword" },
-  ),
+  snippetCompletion("GSI1PK=${GSI1PK}  GSI1SK=${GSI1SK}", {
+    label: "gsi",
+    detail: "add GSI1 keys to this item",
+    type: "property",
+  }),
   snippetCompletion("delete ${label}", {
     label: "delete",
     detail: "delete an item",
