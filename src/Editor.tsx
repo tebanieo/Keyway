@@ -9,6 +9,7 @@ import {
   completionKeymap,
   nextSnippetField,
   prevSnippetField,
+  snippet,
   snippetCompletion,
 } from "@codemirror/autocomplete";
 import type { CompletionContext } from "@codemirror/autocomplete";
@@ -37,40 +38,64 @@ const SNIPPETS = [
 ];
 
 /**
- * Tab as a form-field jump: select the next `attr=` value on the line (or the
- * next line's). This is what "Tab = next attribute" means for authoring — it
- * neither inserts a space nor lets focus escape to the page.
+ * Tab as a form-field jump, scoped to the current line. Two leading spaces are
+ * built via char code so no literal space sits inside a string source.
  */
-function jumpField(dir: 1 | -1): Command {
-  return (view) => {
-    const { state } = view;
-    const text = state.doc.toString();
-    const sel = state.selection.main;
-    const eq =
-      dir > 0
-        ? text.indexOf("=", sel.head)
-        : text.lastIndexOf("=", Math.max(0, sel.from - 2));
-    if (eq === -1) return false; // nothing ahead/behind — allow default (exit)
-    const valStart = eq + 1;
-    const rest = text.slice(valStart);
-    const boundary = /\s+\w+=|\n|$/.exec(rest);
-    const valEnd = valStart + (boundary ? boundary.index : rest.length);
-    view.dispatch({
-      selection: EditorSelection.range(valStart, valEnd),
-      scrollIntoView: true,
-    });
-    return true;
-  };
+const addAttr = snippet(String.fromCharCode(32, 32) + "${attr}=${value}");
+
+/** Select the value that starts just after the `=` at absolute offset `eq`. */
+function selectValue(view: EditorView, eq: number): void {
+  const line = view.state.doc.lineAt(eq);
+  const valStart = eq + 1;
+  const rest = line.text.slice(valStart - line.from);
+  const boundary = /\s+\w+=|$/.exec(rest);
+  const valEnd = valStart + (boundary ? boundary.index : rest.length);
+  view.dispatch({
+    selection: EditorSelection.range(valStart, valEnd),
+    scrollIntoView: true,
+  });
 }
 
-// Tab: accept a completion, else advance a snippet field, else jump to the next
-// attribute. Shift-Tab goes back. Escape is the explicit way out of the editor.
+// Tab: move to the next `attr=` value on this line; at the end of an item line,
+// append a fresh `attr=value` slot (so you keep adding attributes and never get
+// ejected). Returns false only on a non-item line, letting Tab exit normally.
+const tabForward: Command = (view) => {
+  const { state } = view;
+  const sel = state.selection.main;
+  const line = state.doc.lineAt(sel.head);
+  const eqRel = line.text.indexOf("=", sel.head - line.from);
+  if (eqRel !== -1) {
+    selectValue(view, line.from + eqRel);
+    return true;
+  }
+  if (line.text.includes("=")) {
+    addAttr(view, null, line.to, line.to); // new attribute tabstop
+    return true;
+  }
+  return false;
+};
+
+// Shift-Tab: back to the previous `attr=` value on this line.
+const tabBackward: Command = (view) => {
+  const { state } = view;
+  const sel = state.selection.main;
+  const line = state.doc.lineAt(sel.from);
+  const eqRel = line.text.lastIndexOf("=", Math.max(0, sel.from - line.from - 2));
+  if (eqRel !== -1) {
+    selectValue(view, line.from + eqRel);
+    return true;
+  }
+  return false;
+};
+
+// Tab: accept a completion, else advance a snippet field, else the field jump.
+// Shift-Tab goes back. Escape is the explicit way out of the editor.
 const authoringKeys = Prec.highest(
   keymap.of([
     {
       key: "Tab",
-      run: (v) => acceptCompletion(v) || nextSnippetField(v) || jumpField(1)(v),
-      shift: (v) => prevSnippetField(v) || jumpField(-1)(v),
+      run: (v) => acceptCompletion(v) || nextSnippetField(v) || tabForward(v),
+      shift: (v) => prevSnippetField(v) || tabBackward(v),
     },
     {
       key: "Escape",
