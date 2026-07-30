@@ -12,7 +12,7 @@ import {
   snippetCompletion,
 } from "@codemirror/autocomplete";
 import type { CompletionContext } from "@codemirror/autocomplete";
-import { linter, lintGutter } from "@codemirror/lint";
+import { forceLinting, linter, lintGutter } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
@@ -88,13 +88,18 @@ function completeDsl(ctx: CompletionContext) {
   return { from: word.from, options: SNIPPETS };
 }
 
-// Run the same pure parser the app uses, surface its diagnostics inline.
+// Run the same pure parser the app uses, surface its diagnostics inline — but
+// never nag the line the cursor is on, so a half-typed `o5: PK=` stays quiet
+// until you move off it.
 const dslLinter = linter((view): CmDiagnostic[] => {
+  const activeLine = view.state.doc.lineAt(view.state.selection.main.head).number;
   const { diagnostics } = parseDoc(view.state.doc.toString(), BASE_INDEX);
-  return diagnostics.map((d) => {
-    const l = view.state.doc.line(d.line + 1);
-    return { from: l.from, to: l.to, severity: d.severity, message: d.message };
-  });
+  return diagnostics
+    .filter((d) => d.line + 1 !== activeLine)
+    .map((d) => {
+      const l = view.state.doc.line(d.line + 1);
+      return { from: l.from, to: l.to, severity: d.severity, message: d.message };
+    });
 });
 
 const theme = EditorView.theme(
@@ -127,6 +132,7 @@ export function Editor({
 
   useEffect(() => {
     if (!host.current) return;
+    let lastLine = 0; // re-lint when the cursor changes lines
     const view = new EditorView({
       parent: host.current,
       state: EditorState.create({
@@ -143,6 +149,11 @@ export function Editor({
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => {
             if (u.docChanged) cb.current(u.state.doc.toString());
+            const line = u.state.doc.lineAt(u.state.selection.main.head).number;
+            if (line !== lastLine) {
+              lastLine = line;
+              forceLinting(u.view); // refresh so the line you just left re-lints
+            }
           }),
         ],
       }),
