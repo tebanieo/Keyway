@@ -158,15 +158,12 @@ export function App() {
     return writeCost(prevState, ops[curStep - 1], BASE_INDEX, [GSI1_INDEX]);
   }, [prevState, ops, curStep]);
 
-  // Backfill suggestion — only at the head of the log (the latest edit).
+  // Backfill suggestion — schema drift within an entity, at the head of the log.
   const backfill = useMemo(
-    () =>
-      curStep === ops.length
-        ? computeBackfill(prevState, state, ops[curStep - 1], BASE_INDEX)
-        : null,
-    [prevState, state, ops, curStep],
+    () => (curStep === ops.length ? computeBackfill(state, BASE_INDEX) : null),
+    [state, curStep, ops.length],
   );
-  const backfillSig = backfill ? `${backfill.type}.${backfill.attr}.${ops.length}` : null;
+  const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
 
   const applyBackfill = () => {
@@ -272,9 +269,9 @@ export function App() {
       {showBackfill && backfill && (
         <div className="backfill">
           <span className="msg">
-            added <code>{backfill.attr}</code> to a <b>{backfill.type}</b> &mdash; add it
-            to the other {backfill.targets.length} <b>{backfill.type}</b> item
-            {backfill.targets.length === 1 ? "" : "s"}?
+            <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but
+            not all &mdash; add it to the {backfill.targets.length} without
+            {backfill.targets.length === 1 ? "" : ""} it?
           </span>
           <button className="do" onClick={applyBackfill}>
             backfill {backfill.targets.length}
