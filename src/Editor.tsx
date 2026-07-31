@@ -7,6 +7,8 @@ import {
   acceptCompletion,
   autocompletion,
   completionKeymap,
+  hasNextSnippetField,
+  hasPrevSnippetField,
   nextSnippetField,
   prevSnippetField,
   snippet,
@@ -130,8 +132,15 @@ const authoringKeys = Prec.highest(
   keymap.of([
     {
       key: "Tab",
-      run: (v) => acceptCompletion(v) || nextSnippetField(v) || tabForward(v),
-      shift: (v) => prevSnippetField(v) || tabBackward(v),
+      // Inside a snippet with another field, advance the field first — so the
+      // open autocomplete popup can't hijack Tab. Otherwise accept a completion
+      // if the popup is open, else jump to the next attribute on the line.
+      run: (v) =>
+        (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
+        acceptCompletion(v) ||
+        tabForward(v),
+      shift: (v) =>
+        (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v),
     },
     {
       key: "Escape",
