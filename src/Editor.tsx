@@ -20,6 +20,7 @@ import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 import { allAttrNames, deriveEntities, TYPE_ATTR } from "./model/entities";
 import type { EntityTemplate } from "./model/entities";
+import type { IndexSpec } from "./engine/types";
 
 // Two-space separator built via char code so no literal space sits in a string.
 const SP2 = String.fromCharCode(32, 32);
@@ -31,10 +32,17 @@ const ITEM_SNIPPET = snippetCompletion(
   `${ph("label")}: PK=${ph("PK")}${SP2}SK=${ph("SK")}${SP2}${ph("attr")}=${ph("value")}`,
   { label: "item", detail: "new base item (whole row)", type: "keyword" },
 );
-const GSI_SNIPPET = snippetCompletion(
-  `GSI1PK=${ph("GSI1PK")}${SP2}GSI1SK=${ph("GSI1SK")}`,
-  { label: "gsi", detail: "add GSI1 keys to this item", type: "property" },
-);
+/** Inserts one declared GSI's key attributes to add to the current item. */
+function gsiKeysSnippet(g: IndexSpec) {
+  const parts = [`${g.pk}=${ph(g.pk)}`];
+  if (g.sk) parts.push(`${g.sk}=${ph(g.sk)}`);
+  return snippetCompletion(parts.join(SP2), {
+    label: g.name,
+    detail: `${g.name} keys — ${g.pk}${g.sk ? ` / ${g.sk}` : ""}`,
+    type: "property",
+  });
+}
+
 const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   label: "delete",
   detail: "delete an item",
@@ -45,8 +53,13 @@ const LEAD = [BASE_INDEX.pk, BASE_INDEX.sk].filter((k): k is string => Boolean(k
 
 /** Parse the live doc into entity templates + known attribute names. */
 function liveModel(doc: string) {
-  const items = [...fold(parseDoc(doc, BASE_INDEX).ops, BASE_INDEX).values()];
-  return { entities: deriveEntities(items, LEAD), attrs: allAttrNames(items) };
+  const parsed = parseDoc(doc, BASE_INDEX);
+  const items = [...fold(parsed.ops, BASE_INDEX).values()];
+  return {
+    entities: deriveEntities(items, LEAD),
+    attrs: allAttrNames(items),
+    gsis: parsed.gsis,
+  };
 }
 
 /** A whole-row scaffold prefilled with an entity's attributes, tagged _type. */
@@ -151,23 +164,32 @@ function completeDsl(ctx: CompletionContext) {
   const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
 
-  const { entities, attrs } = liveModel(ctx.state.doc.toString());
+  const { entities, attrs, gsis } = liveModel(ctx.state.doc.toString());
   const started = /^\s*[\w-]+\s*:/.test(before); // line already has `label:`
 
-  const options = started
-    ? // mid-item: add GSI keys or a known attribute
-      [
-        GSI_SNIPPET,
-        ...attrs.map((a) =>
-          snippetCompletion(`${a}=${ph("value")}`, {
-            label: a,
-            detail: "attribute",
-            type: "property",
-          }),
-        ),
-      ]
-    : // line start: scaffold a fresh item — blank, or from an entity template
-      [ITEM_SNIPPET, DELETE_SNIPPET, ...entities.map(entityScaffold)];
+  let options;
+  if (started) {
+    // mid-item: add a whole GSI's keys, or any known attribute name — including
+    // the key attributes of declared GSIs even before any item uses them.
+    const names = new Set(attrs);
+    for (const g of gsis) {
+      names.add(g.pk);
+      if (g.sk) names.add(g.sk);
+    }
+    options = [
+      ...gsis.map(gsiKeysSnippet),
+      ...[...names].map((a) =>
+        snippetCompletion(`${a}=${ph("value")}`, {
+          label: a,
+          detail: "attribute",
+          type: "property",
+        }),
+      ),
+    ];
+  } else {
+    // line start: scaffold a fresh item — blank, or from an entity template
+    options = [ITEM_SNIPPET, DELETE_SNIPPET, ...entities.map(entityScaffold)];
+  }
 
   return { from: word.from, options };
 }
