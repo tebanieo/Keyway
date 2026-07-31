@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { fold, project } from "./engine/engine";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
@@ -8,7 +8,9 @@ import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX, GSI1_INDEX, SEED_OPS } from "./model/seed";
 import { parseDoc, serializeOps } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
+import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
+import type { EditorHandle } from "./Editor";
 
 type Pane = "base" | "GSI1" | "split";
 type Mode = "canvas" | "editor";
@@ -88,6 +90,8 @@ export function App() {
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
+  const editorRef = useRef<EditorHandle>(null);
 
   const editing = mode === "editor";
   const curStep = Math.min(step, ops.length);
@@ -153,6 +157,27 @@ export function App() {
     if (curStep < 1) return null;
     return writeCost(prevState, ops[curStep - 1], BASE_INDEX, [GSI1_INDEX]);
   }, [prevState, ops, curStep]);
+
+  // Backfill suggestion — only at the head of the log (the latest edit).
+  const backfill = useMemo(
+    () =>
+      curStep === ops.length
+        ? computeBackfill(prevState, state, ops[curStep - 1], BASE_INDEX)
+        : null,
+    [prevState, state, ops, curStep],
+  );
+  const backfillSig = backfill ? `${backfill.type}.${backfill.attr}.${ops.length}` : null;
+  const showBackfill = backfill && backfillSig !== dismissedBackfill;
+
+  const applyBackfill = () => {
+    if (!backfill) return;
+    const puts: Op[] = backfill.targets.map((it) => ({
+      kind: "put",
+      item: { id: it.id, attrs: { ...it.attrs, [backfill.attr]: backfill.value } },
+    }));
+    if (editing) editorRef.current?.appendLines(serializeOps(puts, BASE_INDEX));
+    else commit(puts);
+  };
 
   const op = describe(ops[curStep - 1]);
   const link: LinkProps = {
@@ -240,7 +265,23 @@ export function App() {
           <div className="editor-head">
             model script <span className="muted">— one line per step, edits apply live</span>
           </div>
-          <Editor initialDoc={docText} onChange={onDoc} />
+          <Editor ref={editorRef} initialDoc={docText} onChange={onDoc} />
+        </div>
+      )}
+
+      {showBackfill && backfill && (
+        <div className="backfill">
+          <span className="msg">
+            added <code>{backfill.attr}</code> to a <b>{backfill.type}</b> &mdash; add it
+            to the other {backfill.targets.length} <b>{backfill.type}</b> item
+            {backfill.targets.length === 1 ? "" : "s"}?
+          </span>
+          <button className="do" onClick={applyBackfill}>
+            backfill {backfill.targets.length}
+          </button>
+          <button className="ghost" onClick={() => setDismissedBackfill(backfillSig)}>
+            dismiss
+          </button>
         </div>
       )}
 

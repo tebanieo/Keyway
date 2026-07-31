@@ -132,6 +132,52 @@ body {
   overflow: auto;
 }
 
+.backfill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: rgba(91, 157, 255, 0.1);
+  font-size: 13px;
+}
+
+.backfill .msg {
+  flex: 1;
+}
+
+.backfill code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--key);
+}
+
+.backfill .do {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #06101f;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.backfill .ghost {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.backfill .ghost:hover {
+  color: var(--text);
+}
+
 .costbar {
   display: flex;
   align-items: center;

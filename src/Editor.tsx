@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import type { Command } from "@codemirror/view";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
@@ -202,17 +202,30 @@ const theme = EditorView.theme(
   { dark: true },
 );
 
-export function Editor({
-  initialDoc,
-  onChange,
-}: {
-  initialDoc: string;
-  onChange: (text: string) => void;
-}) {
+/** Imperative handle so the app can push text in (e.g. a backfill). */
+export interface EditorHandle {
+  appendLines: (text: string) => void;
+}
+
+export const Editor = forwardRef<
+  EditorHandle,
+  { initialDoc: string; onChange: (text: string) => void }
+>(function Editor({ initialDoc, onChange }, ref) {
   const host = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
   // Keep the latest onChange without re-creating the editor.
   const cb = useRef(onChange);
   cb.current = onChange;
+
+  useImperativeHandle(ref, () => ({
+    appendLines: (text: string) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const end = view.state.doc.length;
+      const needsNL = end > 0 && view.state.doc.sliceString(end - 1) !== "\n";
+      view.dispatch({ changes: { from: end, insert: (needsNL ? "\n" : "") + text } });
+    },
+  }), []);
 
   useEffect(() => {
     if (!host.current) return;
@@ -242,10 +255,14 @@ export function Editor({
         ],
       }),
     });
-    return () => view.destroy();
+    viewRef.current = view;
+    return () => {
+      view.destroy();
+      viewRef.current = null;
+    };
     // Mount once; the doc is uncontrolled from here (editor owns its text).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <div className="editor" ref={host} />;
-}
+});
