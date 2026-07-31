@@ -35,17 +35,17 @@ export interface OpCost {
 
 /** Does this index carry an attribute that changed between prev and next? */
 function projectedChanged(prev: Item, next: Item, index: IndexSpec): boolean {
-  const carried = index.project
-    ? new Set<string>([
-        index.pk,
-        ...(index.sk ? [index.sk] : []),
-        ...index.project,
-      ])
-    : null; // null == projects ALL attributes
-  const keys = carried
-    ? [...carried]
-    : [...new Set([...Object.keys(prev.attrs), ...Object.keys(next.attrs)])];
-  return keys.some((k) => prev.attrs[k] !== next.attrs[k]);
+  const proj = index.projection;
+  if (proj === undefined || proj === "ALL") {
+    const keys = new Set([...Object.keys(prev.attrs), ...Object.keys(next.attrs)]);
+    return [...keys].some((k) => prev.attrs[k] !== next.attrs[k]);
+  }
+  // KEYS_ONLY / INCLUDE: only the index keys and included attributes are carried
+  // (base keys are identity and change only via a reindex, handled separately).
+  const carried = new Set<string>([index.pk]);
+  if (index.sk) carried.add(index.sk);
+  if (Array.isArray(proj)) for (const a of proj) carried.add(a);
+  return [...carried].some((k) => prev.attrs[k] !== next.attrs[k]);
 }
 
 /** Cost on one index of moving an item from `prev` (maybe absent) to `next`. */

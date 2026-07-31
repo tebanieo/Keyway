@@ -105,13 +105,22 @@ describe("project", () => {
     expect(allIds).not.toContain("nogsi");
   });
 
-  it("trims attributes to the projection set", () => {
-    const projected: IndexSpec = { ...GSI1, project: ["SK"] };
-    const view = project(fold(ops, BASE), projected);
+  it("INCLUDE keeps index keys, base keys, and the listed attributes", () => {
+    const projected: IndexSpec = { ...GSI1, projection: ["GSI1SK"] };
+    const view = project(fold(ops, BASE), projected, BASE);
     const anyItem = view.partitions[0].items[0];
-    // keeps index keys + projected attrs, drops PK
+    // GSI keys + base keys (PK, SK) + the include — but not name/total/etc.
     expect(Object.keys(anyItem.attrs).sort()).toEqual(
-      ["GSI1PK", "GSI1SK", "SK"].sort(),
+      ["GSI1PK", "GSI1SK", "PK", "SK"].sort(),
+    );
+  });
+
+  it("KEYS_ONLY keeps only the index keys and base keys", () => {
+    const projected: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
+    const view = project(fold(ops, BASE), projected, BASE);
+    const anyItem = view.partitions[0].items[0];
+    expect(Object.keys(anyItem.attrs).sort()).toEqual(
+      ["GSI1PK", "GSI1SK", "PK", "SK"].sort(),
     );
   });
 });

@@ -69,12 +69,21 @@ export function fold(ops: readonly Op[], baseIndex: IndexSpec): Map<string, Item
   return state;
 }
 
-/** Apply an index's projection filter to an item's visible attributes. */
-function projectAttrs(item: Item, index: IndexSpec): Item {
-  if (!index.project) return item;
-  const keep = new Set<string>(index.project);
-  keep.add(index.pk);
+/**
+ * Apply an index's projection to an item's visible attributes. The index's own
+ * keys and the base table's keys are always kept (a GSI can always point back to
+ * the base row); "ALL" keeps everything, "KEYS_ONLY" keeps only those keys, and
+ * a string[] additionally keeps the listed INCLUDE attributes.
+ */
+function projectAttrs(item: Item, index: IndexSpec, baseIndex: IndexSpec): Item {
+  const proj = index.projection;
+  if (proj === undefined || proj === "ALL") return item;
+
+  const keep = new Set<string>([index.pk, baseIndex.pk]);
   if (index.sk) keep.add(index.sk);
+  if (baseIndex.sk) keep.add(baseIndex.sk);
+  if (Array.isArray(proj)) for (const a of proj) keep.add(a);
+
   const attrs: Record<string, string> = {};
   for (const k of Object.keys(item.attrs)) {
     if (keep.has(k)) attrs[k] = item.attrs[k];
@@ -97,7 +106,11 @@ function projectAttrs(item: Item, index: IndexSpec): Item {
  *
  * Pure: same (state, index) always yields the same View.
  */
-export function project(state: Map<string, Item>, index: IndexSpec): View {
+export function project(
+  state: Map<string, Item>,
+  index: IndexSpec,
+  baseIndex: IndexSpec = index,
+): View {
   const groups = new Map<string, Item[]>();
 
   for (const item of state.values()) {
@@ -108,7 +121,7 @@ export function project(state: Map<string, Item>, index: IndexSpec): View {
       bucket = [];
       groups.set(pkValue, bucket);
     }
-    bucket.push(projectAttrs(item, index));
+    bucket.push(projectAttrs(item, index, baseIndex));
   }
 
   const partitions: Partition[] = [];

@@ -66,6 +66,24 @@ describe("writeCost — put", () => {
     expect(cost.totalWrites).toBe(2);
   });
 
+  it("a non-key change does not rewrite a KEYS_ONLY GSI", () => {
+    const KEYS_GSI = { ...GSI1, projection: "KEYS_ONLY" as const };
+    const prior = fold(
+      [put("o1", { PK: "U#1", SK: "ORDER#1", GSI1PK: "STATUS#pending", GSI1SK: "d", total: "1" })],
+      BASE,
+    );
+    const edit = put("o1", {
+      PK: "U#1",
+      SK: "ORDER#1",
+      GSI1PK: "STATUS#pending",
+      GSI1SK: "d",
+      total: "2", // not projected into a KEYS_ONLY index
+    });
+    const cost = writeCost(prior, edit, BASE, [KEYS_GSI]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "none", writes: 0 });
+    expect(cost.totalWrites).toBe(1); // base put only
+  });
+
   it("rewriting an item with no projected change touches only the base table", () => {
     const attrs = { PK: "U#1", SK: "ORDER#1", GSI1PK: "STATUS#pending", GSI1SK: "d" };
     const prior = fold([put("o1", attrs)], BASE);

@@ -22,12 +22,19 @@ export interface Item {
  * key for this index. `project`, when set, limits which attributes the index
  * carries (KEYS_ONLY / INCLUDE / ALL in DynamoDB terms).
  */
+/**
+ * What a secondary index projects. "ALL" (default) copies every attribute;
+ * "KEYS_ONLY" copies only keys; a string[] is INCLUDE — those extra attributes.
+ * The index's own keys AND the base table's keys are always projected on top,
+ * regardless of this setting (that's how DynamoDB GSIs work).
+ */
+export type ProjectionSpec = "ALL" | "KEYS_ONLY" | string[];
+
 export interface IndexSpec {
   name: string;
   pk: string;
   sk?: string;
-  /** When set, only these attributes (plus the index keys) are projected. */
-  project?: string[];
+  projection?: ProjectionSpec;
 }
 
 /** A single write against the table. The atoms a transaction is built from. */
