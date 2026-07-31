@@ -22,9 +22,9 @@ body {
 }
 
 .app {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
+  max-width: none;
+  margin: 0;
+  padding: 18px 28px 40px;
 }
 
 .toolbar {
