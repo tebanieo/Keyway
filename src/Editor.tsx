@@ -15,30 +15,50 @@ import {
 import type { CompletionContext } from "@codemirror/autocomplete";
 import { forceLinting, linter, lintGutter } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
+import { fold } from "./engine/engine";
 import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
+import { allAttrNames, deriveEntities, TYPE_ATTR } from "./model/entities";
+import type { EntityTemplate } from "./model/entities";
 
-// Snippets with tabstops: pick one, then Tab through the fields. ${} become Tab
-// stops. `item` scaffolds a whole row; `gsi` is ADDITIVE — it inserts just the
-// GSI1 key attributes to append to the item you're already writing (they're
-// attributes, not a new row).
-const SNIPPETS = [
-  snippetCompletion("${label}: PK=${PK}  SK=${SK}  ${attr}=${value}", {
-    label: "item",
-    detail: "new base item (whole row)",
-    type: "keyword",
-  }),
-  snippetCompletion("GSI1PK=${GSI1PK}  GSI1SK=${GSI1SK}", {
-    label: "gsi",
-    detail: "add GSI1 keys to this item",
-    type: "property",
-  }),
-  snippetCompletion("delete ${label}", {
-    label: "delete",
-    detail: "delete an item",
-    type: "keyword",
-  }),
-];
+// Two-space separator built via char code so no literal space sits in a string.
+const SP2 = String.fromCharCode(32, 32);
+const ph = (name: string) => "${" + name + "}"; // a snippet tabstop
+
+// Static completions. `item` scaffolds a whole row; `gsi` is ADDITIVE (just the
+// GSI1 keys, appended to the item you're writing); `delete` removes one.
+const ITEM_SNIPPET = snippetCompletion(
+  `${ph("label")}: PK=${ph("PK")}${SP2}SK=${ph("SK")}${SP2}${ph("attr")}=${ph("value")}`,
+  { label: "item", detail: "new base item (whole row)", type: "keyword" },
+);
+const GSI_SNIPPET = snippetCompletion(
+  `GSI1PK=${ph("GSI1PK")}${SP2}GSI1SK=${ph("GSI1SK")}`,
+  { label: "gsi", detail: "add GSI1 keys to this item", type: "property" },
+);
+const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
+  label: "delete",
+  detail: "delete an item",
+  type: "keyword",
+});
+
+const LEAD = [BASE_INDEX.pk, BASE_INDEX.sk].filter((k): k is string => Boolean(k));
+
+/** Parse the live doc into entity templates + known attribute names. */
+function liveModel(doc: string) {
+  const items = [...fold(parseDoc(doc, BASE_INDEX).ops, BASE_INDEX).values()];
+  return { entities: deriveEntities(items, LEAD), attrs: allAttrNames(items) };
+}
+
+/** A whole-row scaffold prefilled with an entity's attributes, tagged _type. */
+function entityScaffold(e: EntityTemplate) {
+  const body = e.attrs.map((a) => `${a}=${ph(a)}`).join(SP2);
+  const template = `${ph("label")}: ${body}${SP2}${TYPE_ATTR}=${e.type}`;
+  return snippetCompletion(template, {
+    label: e.type,
+    detail: `scaffold ${e.type} (${e.count}×)`,
+    type: "class",
+  });
+}
 
 /**
  * Tab as a form-field jump, scoped to the current line. Two leading spaces are
@@ -111,9 +131,45 @@ const authoringKeys = Prec.highest(
 );
 
 function completeDsl(ctx: CompletionContext) {
-  const word = ctx.matchBefore(/\w*/);
+  const line = ctx.state.doc.lineAt(ctx.pos);
+  const before = ctx.state.sliceDoc(line.from, ctx.pos);
+
+  // After `_type=` → offer the entity types already defined in the model.
+  const typeVal = /_type=([\w-]*)$/.exec(before);
+  if (typeVal) {
+    const { entities } = liveModel(ctx.state.doc.toString());
+    return {
+      from: ctx.pos - typeVal[1].length,
+      options: entities.map((e) => ({
+        label: e.type,
+        detail: `${e.count}×`,
+        type: "constant",
+      })),
+    };
+  }
+
+  const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
-  return { from: word.from, options: SNIPPETS };
+
+  const { entities, attrs } = liveModel(ctx.state.doc.toString());
+  const started = /^\s*[\w-]+\s*:/.test(before); // line already has `label:`
+
+  const options = started
+    ? // mid-item: add GSI keys or a known attribute
+      [
+        GSI_SNIPPET,
+        ...attrs.map((a) =>
+          snippetCompletion(`${a}=${ph("value")}`, {
+            label: a,
+            detail: "attribute",
+            type: "property",
+          }),
+        ),
+      ]
+    : // line start: scaffold a fresh item — blank, or from an entity template
+      [ITEM_SNIPPET, DELETE_SNIPPET, ...entities.map(entityScaffold)];
+
+  return { from: word.from, options };
 }
 
 // Run the same pure parser the app uses, surface its diagnostics inline — but
