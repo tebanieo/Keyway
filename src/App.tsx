@@ -4,7 +4,7 @@ import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
 import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
-import type { IndexSpec, Item, Op, View } from "./engine/types";
+import type { IndexSpec, Item, Op, ProjectionSpec, View } from "./engine/types";
 import { BASE_INDEX, GSI1_INDEX, SEED_OPS } from "./model/seed";
 import { parseDoc, serializeOps } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
@@ -91,7 +91,20 @@ export function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
+  const [projMode, setProjMode] = useState<"ALL" | "KEYS_ONLY" | "INCLUDE">("ALL");
+  const [includeText, setIncludeText] = useState("status");
   const editorRef = useRef<EditorHandle>(null);
+
+  // GSI1 with the chosen projection applied.
+  const gsiIndex = useMemo<IndexSpec>(() => {
+    const projection: ProjectionSpec | undefined =
+      projMode === "ALL"
+        ? undefined
+        : projMode === "KEYS_ONLY"
+          ? "KEYS_ONLY"
+          : includeText.split(",").map((s) => s.trim()).filter(Boolean);
+    return { ...GSI1_INDEX, projection };
+  }, [projMode, includeText]);
 
   const editing = mode === "editor";
   const curStep = Math.min(step, ops.length);
@@ -149,14 +162,17 @@ export function App() {
     [ops, curStep],
   );
   const baseView = useMemo(() => project(state, BASE_INDEX), [state]);
-  const gsiView = useMemo(() => project(state, GSI1_INDEX), [state]);
+  const gsiView = useMemo(() => project(state, gsiIndex, BASE_INDEX), [state, gsiIndex]);
   const prevBaseView = useMemo(() => project(prevState, BASE_INDEX), [prevState]);
-  const prevGsiView = useMemo(() => project(prevState, GSI1_INDEX), [prevState]);
+  const prevGsiView = useMemo(
+    () => project(prevState, gsiIndex, BASE_INDEX),
+    [prevState, gsiIndex],
+  );
 
   const cost = useMemo<OpCost | null>(() => {
     if (curStep < 1) return null;
-    return writeCost(prevState, ops[curStep - 1], BASE_INDEX, [GSI1_INDEX]);
-  }, [prevState, ops, curStep]);
+    return writeCost(prevState, ops[curStep - 1], BASE_INDEX, [gsiIndex]);
+  }, [prevState, ops, curStep, gsiIndex]);
 
   // Backfill suggestion — schema drift within an entity, at the head of the log.
   const backfill = useMemo(
@@ -224,6 +240,28 @@ export function App() {
             diff
           </button>
         </div>
+
+        <span className="seg-label">GSI1</span>
+        <div className="seg">
+          {(["ALL", "KEYS_ONLY", "INCLUDE"] as const).map((m) => (
+            <button
+              key={m}
+              className={m === projMode ? "active" : ""}
+              onClick={() => setProjMode(m)}
+              title={`GSI1 projection: ${m}`}
+            >
+              {m === "KEYS_ONLY" ? "keys" : m === "INCLUDE" ? "include" : "all"}
+            </button>
+          ))}
+        </div>
+        {projMode === "INCLUDE" && (
+          <input
+            className="include-input"
+            value={includeText}
+            placeholder="attrs, comma-sep"
+            onChange={(e) => setIncludeText(e.target.value)}
+          />
+        )}
 
         {dirty && (
           <button className="reset" onClick={reset}>
@@ -299,7 +337,7 @@ export function App() {
             prev={prevGsiView}
             diffOn={diffOn}
             link={link}
-            subtitle="index updates live · read-only"
+            subtitle={`read-only · projects ${projMode}`}
           />
         </div>
       ) : (

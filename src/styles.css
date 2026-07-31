@@ -72,6 +72,28 @@ body {
   font-weight: 600;
 }
 
+.seg-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+
+.include-input {
+  width: 150px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+
+.include-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .stepper {
   display: flex;
   align-items: center;
