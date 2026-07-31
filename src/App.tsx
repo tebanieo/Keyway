@@ -184,12 +184,22 @@ export function App() {
 
   const applyBackfill = () => {
     if (!backfill) return;
-    const puts: Op[] = backfill.targets.map((it) => ({
-      kind: "put",
-      item: { id: it.id, attrs: { ...it.attrs, [backfill.attr]: backfill.value } },
-    }));
-    if (editing) editorRef.current?.appendLines(serializeOps(puts, BASE_INDEX));
-    else commit(puts);
+    if (editing) {
+      // edit each target's line in place — no duplicate rows appended
+      editorRef.current?.patchItems(
+        backfill.targets.map((t) => ({
+          label: t.id,
+          append: `${backfill.attr}=${backfill.value}`,
+        })),
+      );
+    } else {
+      commit(
+        backfill.targets.map((it) => ({
+          kind: "put",
+          item: { id: it.id, attrs: { ...it.attrs, [backfill.attr]: backfill.value } },
+        })),
+      );
+    }
   };
 
   const op = describe(ops[curStep - 1]);

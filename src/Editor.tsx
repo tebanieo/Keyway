@@ -205,6 +205,8 @@ const theme = EditorView.theme(
 /** Imperative handle so the app can push text in (e.g. a backfill). */
 export interface EditorHandle {
   appendLines: (text: string) => void;
+  /** Append ` attr=value` to the last line defining each label, in place. */
+  patchItems: (patches: { label: string; append: string }[]) => void;
 }
 
 export const Editor = forwardRef<
@@ -224,6 +226,24 @@ export const Editor = forwardRef<
       const end = view.state.doc.length;
       const needsNL = end > 0 && view.state.doc.sliceString(end - 1) !== "\n";
       view.dispatch({ changes: { from: end, insert: (needsNL ? "\n" : "") + text } });
+    },
+    patchItems: (patches) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const doc = view.state.doc;
+      const sep = String.fromCharCode(32, 32);
+      const changes: { from: number; insert: string }[] = [];
+      for (const { label, append } of patches) {
+        // the LAST line for this label determines the item's final state
+        let target: { to: number } | null = null;
+        for (let i = 1; i <= doc.lines; i++) {
+          const line = doc.line(i);
+          const m = /^\s*([\w-]+)\s*:/.exec(line.text);
+          if (m && m[1] === label) target = line;
+        }
+        if (target) changes.push({ from: target.to, insert: sep + append });
+      }
+      if (changes.length) view.dispatch({ changes });
     },
   }), []);
 
