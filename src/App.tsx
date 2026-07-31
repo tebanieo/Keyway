@@ -4,16 +4,23 @@ import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
 import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
-import type { IndexSpec, Item, Op, ProjectionSpec, View } from "./engine/types";
-import { BASE_INDEX, GSI1_INDEX, SEED_OPS } from "./model/seed";
-import { parseDoc, serializeOps } from "./model/dsl";
+import type { IndexSpec, Item, Op, View } from "./engine/types";
+import { BASE_INDEX, SEED_OPS } from "./model/seed";
+import { parseDoc, serializeGsis, serializeOps } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
 import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
 
-type Pane = "base" | "GSI1" | "split";
 type Mode = "canvas" | "editor";
+
+/** Short label for an index's projection, shown in the pane subtitle. */
+function projLabel(index: IndexSpec): string {
+  const p = index.projection;
+  if (p === undefined || p === "ALL") return "ALL";
+  if (p === "KEYS_ONLY") return "KEYS_ONLY";
+  return `INCLUDE(${p.join(",")})`;
+}
 
 const MARKER: Record<string, string> = {
   added: "+",
@@ -86,25 +93,16 @@ export function App() {
   const [docText, setDocText] = useState(DEFAULT_DOC);
   const [mode, setMode] = useState<Mode>("canvas");
   const [step, setStep] = useState(SEED_OPS.length);
-  const [pane, setPane] = useState<Pane>("split");
+  const [pane, setPane] = useState<string>("split"); // "base" | "split" | gsi name
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
-  const [projMode, setProjMode] = useState<"ALL" | "KEYS_ONLY" | "INCLUDE">("ALL");
-  const [includeText, setIncludeText] = useState("status");
+  // Secondary indexes, declared in the DSL (`@gsi …`). Default: a single GSI1.
+  const [gsis, setGsis] = useState<IndexSpec[]>(
+    () => parseDoc(DEFAULT_DOC, BASE_INDEX).gsis,
+  );
   const editorRef = useRef<EditorHandle>(null);
-
-  // GSI1 with the chosen projection applied.
-  const gsiIndex = useMemo<IndexSpec>(() => {
-    const projection: ProjectionSpec | undefined =
-      projMode === "ALL"
-        ? undefined
-        : projMode === "KEYS_ONLY"
-          ? "KEYS_ONLY"
-          : includeText.split(",").map((s) => s.trim()).filter(Boolean);
-    return { ...GSI1_INDEX, projection };
-  }, [projMode, includeText]);
 
   const editing = mode === "editor";
   const curStep = Math.min(step, ops.length);
@@ -123,13 +121,15 @@ export function App() {
 
   const onDoc = useCallback((text: string) => {
     setDocText(text);
-    const parsed = parseDoc(text, BASE_INDEX).ops;
-    setOps(parsed);
-    setStep(parsed.length); // typing shows the whole script
+    const parsed = parseDoc(text, BASE_INDEX);
+    setOps(parsed.ops);
+    setStep(parsed.ops.length); // typing shows the whole script
+    setGsis(parsed.gsis);
   }, []);
 
   const enterEditor = () => {
-    setDocText(serializeOps(ops, BASE_INDEX)); // reflect any grid edits as text
+    // reflect current structure + data as text so the two stay one source
+    setDocText(serializeGsis(gsis) + "\n" + serializeOps(ops, BASE_INDEX));
     setMode("editor");
   };
 
@@ -162,17 +162,22 @@ export function App() {
     [ops, curStep],
   );
   const baseView = useMemo(() => project(state, BASE_INDEX), [state]);
-  const gsiView = useMemo(() => project(state, gsiIndex, BASE_INDEX), [state, gsiIndex]);
   const prevBaseView = useMemo(() => project(prevState, BASE_INDEX), [prevState]);
-  const prevGsiView = useMemo(
-    () => project(prevState, gsiIndex, BASE_INDEX),
-    [prevState, gsiIndex],
+  // One view per declared GSI.
+  const gsiViews = useMemo(
+    () =>
+      gsis.map((g) => ({
+        index: g,
+        view: project(state, g, BASE_INDEX),
+        prev: project(prevState, g, BASE_INDEX),
+      })),
+    [gsis, state, prevState],
   );
 
   const cost = useMemo<OpCost | null>(() => {
     if (curStep < 1) return null;
-    return writeCost(prevState, ops[curStep - 1], BASE_INDEX, [gsiIndex]);
-  }, [prevState, ops, curStep, gsiIndex]);
+    return writeCost(prevState, ops[curStep - 1], BASE_INDEX, gsis);
+  }, [prevState, ops, curStep, gsis]);
 
   // Backfill suggestion — schema drift within an entity, at the head of the log.
   const backfill = useMemo(
@@ -231,7 +236,7 @@ export function App() {
         </div>
 
         <div className="seg">
-          {(["base", "GSI1", "split"] as Pane[]).map((p) => (
+          {["base", ...gsis.map((g) => g.name), "split"].map((p) => (
             <button
               key={p}
               className={p === pane ? "active" : ""}
@@ -250,28 +255,6 @@ export function App() {
             diff
           </button>
         </div>
-
-        <span className="seg-label">GSI1</span>
-        <div className="seg">
-          {(["ALL", "KEYS_ONLY", "INCLUDE"] as const).map((m) => (
-            <button
-              key={m}
-              className={m === projMode ? "active" : ""}
-              onClick={() => setProjMode(m)}
-              title={`GSI1 projection: ${m}`}
-            >
-              {m === "KEYS_ONLY" ? "keys" : m === "INCLUDE" ? "include" : "all"}
-            </button>
-          ))}
-        </div>
-        {projMode === "INCLUDE" && (
-          <input
-            className="include-input"
-            value={includeText}
-            placeholder="attrs, comma-sep"
-            onChange={(e) => setIncludeText(e.target.value)}
-          />
-        )}
 
         {dirty && (
           <button className="reset" onClick={reset}>
@@ -342,31 +325,49 @@ export function App() {
             edit={baseEdit}
             subtitle={editing ? "you write here · via script" : "you write here"}
           />
-          <Panel
-            view={gsiView}
-            prev={prevGsiView}
-            diffOn={diffOn}
-            link={link}
-            subtitle={`read-only · projects ${projMode}`}
-          />
+          {gsiViews.map((gv) => (
+            <Panel
+              key={gv.index.name}
+              view={gv.view}
+              prev={gv.prev}
+              diffOn={diffOn}
+              link={link}
+              subtitle={`read-only · ${projLabel(gv.index)}`}
+            />
+          ))}
         </div>
-      ) : (
+      ) : pane === "base" ? (
         <Panel
-          view={pane === "base" ? baseView : gsiView}
-          prev={pane === "base" ? prevBaseView : prevGsiView}
+          view={baseView}
+          prev={prevBaseView}
           diffOn={diffOn}
           link={link}
-          edit={pane === "base" ? baseEdit : undefined}
+          edit={baseEdit}
         />
+      ) : (
+        (() => {
+          const gv = gsiViews.find((g) => g.index.name === pane) ?? gsiViews[0];
+          return gv ? (
+            <Panel
+              view={gv.view}
+              prev={gv.prev}
+              diffOn={diffOn}
+              link={link}
+              subtitle={`read-only · ${projLabel(gv.index)}`}
+            />
+          ) : (
+            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} />
+          );
+        })()
       )}
 
       <p className="hint">
         {editing ? (
           <>
-            Type in the script above &mdash; try <code>item</code> then Tab to
-            scaffold a row, or edit <code>status</code> on the <code>o1</code>{" "}
-            line. The panes reparse live. Switch to <b>canvas</b> to edit cells
-            directly.
+            Type in the script above &mdash; <code>item</code>+Tab scaffolds a row.
+            Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new
+            pane appears. Each <code>@gsi</code> sets its own projection
+            (<code>all</code>/<code>keys</code>/comma-list). Panes reparse live.
           </>
         ) : (
           <>

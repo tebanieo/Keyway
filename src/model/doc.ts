@@ -10,6 +10,10 @@ export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.
 # label and it becomes an atomic key change (delete + put). "delete label" removes.
 # The _type tag groups items into entities you can reuse.
 
+# Indexes are declared with @gsi. Add more (e.g. @gsi GSI2 pk=GSI2PK sk=GSI2SK
+# projection=keys) and a pane appears for each.
+@gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
+
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  GSI1PK=EMAIL#ada@analytical.io  GSI1SK=USER#1  _type=user-profile
 u2: PK=USER#2  SK=PROFILE  name=Alan Turing  email=alan@enigma.uk  GSI1PK=EMAIL#alan@enigma.uk  GSI1SK=USER#2  _type=user-profile
 

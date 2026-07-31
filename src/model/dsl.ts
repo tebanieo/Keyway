@@ -1,5 +1,5 @@
 import { keyOf } from "../engine/engine";
-import type { IndexSpec, Item, Op } from "../engine/types";
+import type { IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
 
 /**
  * A tiny, readable text format for a single-table model. One line = one op =
@@ -28,6 +28,20 @@ export interface Diagnostic {
 export interface ParseResult {
   ops: Op[];
   diagnostics: Diagnostic[];
+  /** GSIs declared via `@gsi` lines (or a default GSI1 if none are). */
+  gsis: IndexSpec[];
+}
+
+/** Default GSIs when the document declares none. */
+const DEFAULT_GSIS: IndexSpec[] = [{ name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" }];
+
+/** Parse a `projection=` value: `all` | `keys`/`keys_only` | comma list. */
+function parseProjection(v: string | undefined): ProjectionSpec | undefined {
+  if (!v) return undefined;
+  const low = v.toLowerCase();
+  if (low === "all") return undefined;
+  if (low === "keys" || low === "keys_only") return "KEYS_ONLY";
+  return v.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 const LABEL = /^([A-Za-z0-9_]+)\s*:\s*(.*)$/;
@@ -76,15 +90,73 @@ export function serializeOps(ops: readonly Op[], baseIndex: IndexSpec): string {
   return lines.filter((l) => l !== "").join("\n") + "\n";
 }
 
+/** Serialize declared GSIs back to `@gsi` directive lines. */
+export function serializeGsis(gsis: readonly IndexSpec[]): string {
+  if (gsis.length === 0) return "";
+  const lines = gsis.map((g) => {
+    const parts = ["@gsi", g.name, `pk=${g.pk}`];
+    if (g.sk) parts.push(`sk=${g.sk}`);
+    const p = g.projection;
+    if (p === "KEYS_ONLY") parts.push("projection=keys");
+    else if (Array.isArray(p)) parts.push(`projection=${p.join(",")}`);
+    return parts.join(SP);
+  });
+  return lines.join("\n") + "\n";
+}
+
+const DIRECTIVE = /^@(\w+)\s+(.*)$/;
+const GSI_NAME = /^(\S+)\s*(.*)$/;
+
 export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const ops: Op[] = [];
   const diagnostics: Diagnostic[] = [];
   const lastKey = new Map<string, string>(); // label -> base key when last put
-
   const lines = text.split("\n");
+
+  // Pass 1: directives -> index config.
+  const gsis: IndexSpec[] = [];
   lines.forEach((raw, line) => {
     const s = raw.trim();
-    if (s === "" || s.startsWith("#")) return;
+    if (!s.startsWith("@")) return;
+    const d = DIRECTIVE.exec(s);
+    if (!d) {
+      diagnostics.push({ line, message: "malformed directive", severity: "error" });
+      return;
+    }
+    const [, kind, rest] = d;
+    if (kind === "gsi") {
+      const nm = GSI_NAME.exec(rest);
+      const attrs = nm ? parseAttrs(nm[2]) : {};
+      if (!nm || !attrs.pk) {
+        diagnostics.push({
+          line,
+          message: "@gsi needs a name and pk= (e.g. `@gsi GSI2 pk=GSI2PK sk=GSI2SK`)",
+          severity: "error",
+        });
+        return;
+      }
+      gsis.push({
+        name: nm[1],
+        pk: attrs.pk,
+        sk: attrs.sk,
+        projection: parseProjection(attrs.projection),
+      });
+    } else if (kind === "table") {
+      diagnostics.push({
+        line,
+        message: "@table isn't supported yet — base keys are fixed to PK/SK",
+        severity: "warning",
+      });
+    } else {
+      diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
+    }
+  });
+  if (gsis.length === 0) gsis.push(...DEFAULT_GSIS.map((g) => ({ ...g })));
+
+  // Pass 2: item / delete lines.
+  lines.forEach((raw, line) => {
+    const s = raw.trim();
+    if (s === "" || s.startsWith("#") || s.startsWith("@")) return;
 
     const del = DELETE.exec(s);
     if (del) {
@@ -132,5 +204,5 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     if (newKey) lastKey.set(label, newKey);
   });
 
-  return { ops, diagnostics };
+  return { ops, diagnostics, gsis };
 }

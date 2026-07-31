@@ -64,6 +64,35 @@ describe("parseDoc", () => {
     expect(diagnostics[0]).toMatchObject({ line: 0, severity: "warning" });
   });
 
+  it("declares GSIs from @gsi directives with projection", () => {
+    const { gsis, diagnostics } = parseDoc(
+      "@gsi GSI1 pk=GSI1PK sk=GSI1SK\n@gsi ByStatus pk=G2PK sk=G2SK projection=keys\n@gsi Fred pk=FPK projection=status,total",
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(gsis).toHaveLength(3);
+    expect(gsis[0]).toMatchObject({ name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" });
+    expect(gsis[0].projection).toBeUndefined(); // ALL
+    expect(gsis[1]).toMatchObject({ name: "ByStatus", projection: "KEYS_ONLY" });
+    expect(gsis[2]).toMatchObject({ name: "Fred", pk: "FPK", projection: ["status", "total"] });
+    expect(gsis[2].sk).toBeUndefined(); // pk-only GSI
+  });
+
+  it("defaults to a single GSI1 when none are declared", () => {
+    const { gsis } = parseDoc("u1: PK=A  SK=B", BASE);
+    expect(gsis.map((g) => g.name)).toEqual(["GSI1"]);
+  });
+
+  it("flags a malformed @gsi and ignores @ lines as ops", () => {
+    const { gsis, diagnostics, ops } = parseDoc(
+      "@gsi\n@gsi Good pk=GPK\nu1: PK=A  SK=B",
+      BASE,
+    );
+    expect(ops).toHaveLength(1); // only the item line
+    expect(gsis.map((g) => g.name)).toEqual(["Good"]);
+    expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
   it("serialize -> parse round-trips the op log", () => {
     const original = parseDoc(DEFAULT_DOC, BASE).ops;
     const text = serializeOps(original, BASE);
