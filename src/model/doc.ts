@@ -4,6 +4,14 @@
  * can edit live. Items carry a `_type` tag so the editor can derive entity
  * templates (type `order` on a fresh line to scaffold one).
  */
+/** The blank slate the app opens on (and `reset` returns to): structure, no data. */
+export const EMPTY_DOC = `# Empty model — start typing items below, or load an example (examples ▾).
+# Structure: @table names the base table, @gsi adds an index, @ap declares an
+# access pattern. Then add items:  label: PK=…  SK=…
+@table AppTable pk=PK sk=SK
+@gsi GSI1 pk=GSI1PK sk=GSI1SK
+`;
+
 export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.
 # One line = one operation = one step. "label:" puts an item; the label is its
 # stable id, so repeating it edits the same item. Change a PK/SK on a repeated

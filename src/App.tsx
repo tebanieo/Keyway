@@ -6,10 +6,10 @@ import type { OpCost } from "./engine/cost";
 import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
 import type { IndexSpec, Item, Op, View } from "./engine/types";
-import { BASE_INDEX, SEED_OPS } from "./model/seed";
+import { BASE_INDEX } from "./model/seed";
 import { parseDoc, serializeAps, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
-import { DEFAULT_DOC } from "./model/doc";
+import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { EXAMPLES } from "./model/examples";
 import { computeBackfill, putItemOf } from "./model/backfill";
@@ -98,10 +98,10 @@ function isKeyAttr(k: string, index: IndexSpec): boolean {
 }
 
 export function App() {
-  const [ops, setOps] = useState<Op[]>(SEED_OPS);
-  const [docText, setDocText] = useState(DEFAULT_DOC);
+  const [ops, setOps] = useState<Op[]>([]);
+  const [docText, setDocText] = useState(EMPTY_DOC);
   const [mode, setMode] = useState<Mode>("canvas");
-  const [step, setStep] = useState(SEED_OPS.length);
+  const [step, setStep] = useState(0);
   const [pane, setPane] = useState<string>("split"); // "base" | "split" | gsi name
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -113,10 +113,10 @@ export function App() {
   const [queryOpen, setQueryOpen] = useState(false);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
-    () => parseDoc(DEFAULT_DOC, BASE_INDEX).notes,
+    () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
   );
   const [aps, setAps] = useState<AccessPattern[]>(
-    () => parseDoc(DEFAULT_DOC, BASE_INDEX).aps,
+    () => parseDoc(EMPTY_DOC, BASE_INDEX).aps,
   );
   const [apsOpen, setApsOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -124,10 +124,10 @@ export function App() {
   const [focusOn, setFocusOn] = useState(false);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
-    () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
+    () => parseDoc(EMPTY_DOC, BASE_INDEX).base,
   );
   const [gsis, setGsis] = useState<IndexSpec[]>(
-    () => parseDoc(DEFAULT_DOC, BASE_INDEX).gsis,
+    () => parseDoc(EMPTY_DOC, BASE_INDEX).gsis,
   );
   const editorRef = useRef<EditorHandle>(null);
 
@@ -217,10 +217,10 @@ export function App() {
   };
 
   const reset = () => {
-    setOps(SEED_OPS);
-    setDocText(DEFAULT_DOC);
-    setStep(SEED_OPS.length);
-    const parsed = parseDoc(DEFAULT_DOC, BASE_INDEX);
+    setOps([]);
+    setDocText(EMPTY_DOC);
+    setStep(0);
+    const parsed = parseDoc(EMPTY_DOC, BASE_INDEX);
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
@@ -333,7 +333,7 @@ export function App() {
       window.setTimeout(() => setCopied((c) => (c === value ? null : c)), 1400);
     },
   };
-  const dirty = ops !== SEED_OPS || docText !== DEFAULT_DOC;
+  const dirty = docText !== EMPTY_DOC || ops.length > 0;
   // Editing lives on the base pane, and only in canvas mode.
   const baseEdit = editing ? undefined : edit;
 
@@ -772,9 +772,17 @@ function Panel({
         <span className="count">{total} items</span>
       </div>
       <div className="partitions">
-        {parts.length === 0 && (
-          <div className="empty">no items under this index</div>
-        )}
+        {parts.length === 0 &&
+          (edit ? (
+            <div className="empty">
+              <span>empty table — add an item, author in the editor, or load an example</span>
+              <button className="add-item" onClick={() => edit.onAddItem("ITEM#1")}>
+                + add an item
+              </button>
+            </div>
+          ) : (
+            <div className="empty">no items under this index</div>
+          ))}
         {parts.map((part) => (
           <div className="partition" key={`${index.name}:${part.pk}`}>
             <div className="partition-head">
