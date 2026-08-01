@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { pkAttrs, skAttrs } from "./engine/engine";
 import { runQuery } from "./engine/query";
-import type { Cond, CondOp, FilterCond } from "./engine/query";
+import type { Cond, CondOp } from "./engine/query";
+import { parseFilter } from "./engine/filter";
 import type { IndexSpec, Item } from "./engine/types";
 
 const OPS: CondOp[] = ["=", "begins_with", "<", "<=", ">", ">=", "between"];
@@ -41,22 +42,9 @@ export function QueryPanel({
 
   const [pkVals, setPkVals] = useState<Record<string, string>>({});
   const [skConds, setSkConds] = useState<Record<string, Cond>>({});
-  const [filters, setFilters] = useState<FilterCond[]>([]);
+  const [filterText, setFilterText] = useState("");
   const [consistent, setConsistent] = useState(false);
-
-  const addFilter = () =>
-    setFilters((f) => [...f, { attr: "", op: "=", value: "", combinator: "and" }]);
-  const setFilter = (i: number, patch: Partial<FilterCond>) =>
-    setFilters((f) => f.map((c, j) => (j === i ? { ...c, ...patch } : c)));
-  const removeFilter = (i: number) => setFilters((f) => f.filter((_, j) => j !== i));
   const [result, setResult] = useState<{ scanned: number; returned: number; rcu: number; error: string | null } | null>(null);
-
-  // All attribute names in the model, for the filter dropdown.
-  const attrNames = useMemo(() => {
-    const s = new Set<string>();
-    for (const it of state.values()) for (const k of Object.keys(it.attrs)) s.add(k);
-    return [...s].sort();
-  }, [state]);
 
   const setPk = (a: string, v: string) => setPkVals((p) => ({ ...p, [a]: v }));
   const setSk = (a: string, patch: Partial<Cond>) =>
@@ -80,15 +68,21 @@ export function QueryPanel({
       skParts,
       consistent,
     };
-    const active = filters.filter((f) => f.attr !== "" && f.value !== "");
-    const r = runQuery(state, index, { ...common, filters: active });
+    const parsed = parseFilter(filterText);
+    if (parsed.error) {
+      setResult({ scanned: 0, returned: 0, rcu: 0, error: `filter: ${parsed.error}` });
+      onHighlight({ matched: new Set(), scanned: new Set() });
+      return;
+    }
+    const filter = parsed.ast ?? null;
+    const r = runQuery(state, index, { ...common, filter });
     setResult({ scanned: r.scanned, returned: r.items.length, rcu: r.rcu, error: r.error });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
     }
     // the "read" set (before filter) drives the faint "you paid for this" highlight
-    const read = runQuery(state, index, { ...common, filters: [] });
+    const read = runQuery(state, index, { ...common, filter: null });
     onHighlight({
       matched: new Set(r.items.map((i) => i.id)),
       scanned: new Set(read.items.map((i) => i.id)),
@@ -207,48 +201,20 @@ export function QueryPanel({
 
       <div className="query-filter">
         <span className="q-flabel">filter</span>
-        {filters.map((f, i) => (
-          <span className="q-filter-row" key={i}>
-            {i > 0 && (
-              <select
-                className="q-comb"
-                value={f.combinator ?? "and"}
-                onChange={(e) => setFilter(i, { combinator: e.target.value as "and" | "or" })}
-              >
-                <option value="and">AND</option>
-                <option value="or">OR</option>
-              </select>
-            )}
-            <select value={f.attr} onChange={(e) => setFilter(i, { attr: e.target.value })}>
-              <option value="">attr…</option>
-              {attrNames.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-            <select value={f.op} onChange={(e) => setFilter(i, { op: e.target.value as CondOp })}>
-              {OPS.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-            <input value={f.value} placeholder="value" onChange={(e) => setFilter(i, { value: e.target.value })} />
-            {f.op === "between" && (
-              <input value={f.value2 ?? ""} placeholder="…and" onChange={(e) => setFilter(i, { value2: e.target.value })} />
-            )}
-            <button className="q-remove" title="remove" onClick={() => removeFilter(i)}>
-              &times;
-            </button>
-          </span>
-        ))}
-        <button className="q-add" onClick={addFilter}>
-          + condition
-        </button>
-        {filters.length > 0 && (
-          <span className="q-hint">applied after the read — trims results, not cost (AND binds tighter than OR)</span>
-        )}
+        <input
+          className="q-filter-input"
+          value={filterText}
+          placeholder="e.g.  status = pending AND size(name) > 5 OR begins_with(SK, ORDER#)"
+          onChange={(e) => setFilterText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") run();
+          }}
+          spellCheck={false}
+        />
+        <span className="q-hint">
+          applied after the read — trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND OR NOT ( )
+          begins_with contains attribute_exists size
+        </span>
       </div>
 
       {result && (

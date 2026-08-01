@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { fold } from "./engine";
 import { runQuery } from "./query";
 import type { QuerySpec } from "./query";
+import { parseFilter } from "./filter";
 import type { IndexSpec, Op } from "./types";
+
+const filter = (expr: string) => parseFilter(expr).ast ?? null;
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
 const GSI1: IndexSpec = { name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" };
@@ -25,7 +28,7 @@ const spec = (o: Partial<QuerySpec>): QuerySpec => ({
   pk: [],
   sk: [],
   skParts: [],
-  filters: [],
+  filter: null,
   consistent: false,
   ...o,
 });
@@ -62,7 +65,7 @@ describe("runQuery — query", () => {
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filters: [{ attr: "status", op: "=", value: "pending" }],
+        filter: filter("status = pending"),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]); // returned
@@ -74,36 +77,30 @@ describe("runQuery — query", () => {
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
   });
 
-  it("ANDs multiple filter conditions", () => {
+  it("applies a compound filter expression (AND)", () => {
     const r = runQuery(
       state,
       BASE,
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filters: [
-          { attr: "status", op: "=", value: "pending" },
-          { attr: "GSI1SK", op: ">", value: "2024-02", combinator: "and" },
-        ],
+        filter: filter("status = pending AND GSI1SK > 2024-02"),
       }),
     );
-    expect(r.items.map((i) => i.id)).toEqual(["o3"]); // pending AND after 2024-02
+    expect(r.items.map((i) => i.id)).toEqual(["o3"]);
   });
 
-  it("ORs filter conditions (AND binds tighter)", () => {
+  it("applies a compound filter expression (OR)", () => {
     const r = runQuery(
       state,
       BASE,
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filters: [
-          { attr: "status", op: "=", value: "shipped" },
-          { attr: "GSI1SK", op: "=", value: "2024-03", combinator: "or" },
-        ],
+        filter: filter("status = shipped OR GSI1SK = 2024-03"),
       }),
     );
-    expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o3"]); // shipped OR 2024-03
+    expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o3"]);
   });
 
   it("range with between on the sort key", () => {
@@ -127,7 +124,7 @@ describe("runQuery — scan", () => {
     expect(r.scanned).toBe(3); // only the 3 orders carry GSI1 keys
   });
   it("a scan filter trims results, not cost", () => {
-    const r = runQuery(state, BASE, spec({ op: "scan", filters: [{ attr: "status", op: "=", value: "pending" }] }));
+    const r = runQuery(state, BASE, spec({ op: "scan", filter: filter("status = pending") }));
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
     expect(r.scanned).toBe(5); // still read everything
   });
