@@ -355,7 +355,7 @@ export function App() {
         </div>
 
         <div className="seg">
-          {["base", ...gsis.map((g) => g.name), "split"].map((p) => (
+          {[base.name, ...gsis.map((g) => g.name), "split"].map((p) => (
             <button
               key={p}
               className={p === pane ? "active" : ""}
@@ -567,7 +567,7 @@ export function App() {
             />
           ))}
         </div>
-      ) : pane === "base" ? (
+      ) : pane === base.name ? (
         <Panel
           view={baseView}
           prev={prevBaseView}

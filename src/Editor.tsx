@@ -71,9 +71,9 @@ const DIRECTIVES = [
     `@gsi ${ph("Name")} pk=${ph("pk1")},${ph("pk2")} sk=${ph("sk1")},${ph("sk2")}`,
     { label: "@gsi multi-key", detail: "up to 4 pk / 4 sk, comma-separated", type: "keyword" },
   ),
-  snippetCompletion(`@table pk=${ph("pk")} sk=${ph("sk")}`, {
+  snippetCompletion(`@table ${ph("Name")} pk=${ph("pk")} sk=${ph("sk")}`, {
     label: "@table",
-    detail: "custom base-table keys",
+    detail: "name the base table + its keys",
     type: "keyword",
   }),
   snippetCompletion(`@ap ${ph("description")} -> ${ph("Index")}`, {

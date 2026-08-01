@@ -88,6 +88,17 @@ describe("parseDoc", () => {
     expect(ops).toHaveLength(1); // item has both custom keys -> valid
   });
 
+  it("@table names the base table (leading bareword)", () => {
+    const { base } = parseDoc("@table AppTable pk=PK sk=SK\nu1: PK=A  SK=B", BASE);
+    expect(base).toMatchObject({ name: "AppTable", pk: "PK", sk: "SK" });
+  });
+
+  it("@table without a name defaults to 'base'", () => {
+    const { base } = parseDoc("@table pk=orgId sk=recordId", BASE);
+    expect(base.name).toBe("base");
+    expect(base.pk).toBe("orgId");
+  });
+
   it("@table with only pk= makes a PK-only base table", () => {
     const { base, diagnostics } = parseDoc("@table pk=id\nx1: id=A  v=1", BASE);
     expect(diagnostics).toEqual([]);

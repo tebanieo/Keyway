@@ -120,10 +120,14 @@ export function serializeGsis(gsis: readonly IndexSpec[]): string {
   return lines.join("\n") + "\n";
 }
 
-/** Serialize a non-default base table as an `@table` line (default PK/SK omitted). */
+/** Serialize the base table as an `@table` line — emitted when it's named or has
+ *  non-default keys (a plain PK/SK unnamed table stays implicit). */
 export function serializeTable(base: IndexSpec): string {
-  if (base.pk === "PK" && base.sk === "SK") return "";
-  const parts = ["@table", `pk=${base.pk}`];
+  const named = base.name !== "base";
+  const custom = base.pk !== "PK" || base.sk !== "SK";
+  if (!named && !custom) return "";
+  const parts = named ? ["@table", base.name] : ["@table"];
+  parts.push(`pk=${base.pk}`);
   if (base.sk) parts.push(`sk=${base.sk}`);
   return parts.join(SP) + "\n";
 }
@@ -183,16 +187,24 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         projection: parseProjection(attrs.projection),
       });
     } else if (kind === "table") {
-      const attrs = parseAttrs(rest);
+      // @table [Name] pk=.. sk=..  — a leading bareword (no "=") names the table
+      const first = /^(\S+)(?:\s+([\s\S]*))?$/.exec(rest);
+      let name = "base";
+      let attrText = rest;
+      if (first && !first[1].includes("=")) {
+        name = first[1];
+        attrText = first[2] ?? "";
+      }
+      const attrs = parseAttrs(attrText);
       if (!attrs.pk) {
         diagnostics.push({
           line,
-          message: "@table needs pk= (e.g. `@table pk=PK sk=SK`, or pk= alone for a PK-only table)",
+          message: "@table needs pk= (e.g. `@table AppTable pk=PK sk=SK`, or pk= alone for a PK-only table)",
           severity: "error",
         });
         return;
       }
-      base = { name: "base", pk: attrs.pk, sk: attrs.sk }; // sk absent -> PK-only
+      base = { name, pk: attrs.pk, sk: attrs.sk }; // sk absent -> PK-only
     } else if (kind === "ap") {
       // @ap <description>  [-> <index that serves it>]
       const [desc, idx] = rest.split("->");

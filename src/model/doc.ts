@@ -10,13 +10,14 @@ export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.
 # label and it becomes an atomic key change (delete + put). "delete label" removes.
 # The _type tag groups items into entities you can reuse.
 
-# Indexes are declared with @gsi. Add more (e.g. @gsi GSI2 pk=GSI2PK sk=GSI2SK
-# projection=keys) and a pane appears for each.
+# The base table (named) + its indexes. @table names it; @gsi adds an index
+# (a pane appears for each). Add e.g. @gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys.
+@table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
 # Access patterns are the SPEC — what the design must serve. "-> Index" links
-# one to the index that serves it; the panel flags covered vs uncovered.
-@ap Get a user's profile and orders -> base
+# one to the index (base table or GSI) that serves it; the panel flags coverage.
+@ap Get a user's profile and orders -> AppTable
 @ap Look up a user by email -> GSI1
 @ap List orders by status -> GSI1
 @ap Get a user's notification settings by type

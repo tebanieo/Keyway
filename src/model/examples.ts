@@ -13,11 +13,12 @@ export interface Example {
 }
 
 const SAAS = `# Multi-tenant SaaS — tenants, users, and projects, all scoped by tenant.
-# Access patterns:
-#   - list a tenant's users        (base: PK=TENANT#x, SK begins_with USER#)
-#   - find a user by email         (GSI1: EMAIL#...)
-#   - list a tenant's projects by status  (GSI1 overloaded: STATUS#...)
+@table SaasTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
+
+@ap List a tenant's users -> SaasTable
+@ap Find a user by email -> GSI1
+@ap List a tenant's projects by status -> GSI1
 
 t1: PK=TENANT#acme  SK=META  name=Acme Corp  plan=enterprise  _type=tenant
 u1: PK=TENANT#acme  SK=USER#ada  name=Ada  email=ada@acme.com  role=admin  GSI1PK=EMAIL#ada@acme.com  GSI1SK=TENANT#acme  _type=user
@@ -27,11 +28,12 @@ p2: PK=TENANT#acme  SK=PROJECT#gemini  name=Gemini  status=archived  GSI1PK=STAT
 `;
 
 const SOCIAL = `# Social graph — profiles, follows (adjacency-list edges), and posts.
-# Access patterns:
-#   - get a profile
-#   - who follows a user   (GSI1 reverses the follow edge)
-#   - a user's feed, newest first  (GSI1: FEED#user)
+@table SocialTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
+
+@ap Get a profile -> SocialTable
+@ap Who follows a user -> GSI1
+@ap A user's feed, newest first -> GSI1
 
 a1: PK=USER#ada  SK=PROFILE  handle=ada  name=Ada Lovelace  _type=profile
 a2: PK=USER#alan  SK=PROFILE  handle=alan  name=Alan Turing  _type=profile
@@ -44,11 +46,12 @@ p2: PK=USER#ada  SK=POST#2024-03-05  text=Second post  GSI1PK=FEED#ada  GSI1SK=2
 `;
 
 const EVENTS = `# Event ticketing — events, and tickets scoped to an event.
-# Access patterns:
-#   - get an event
-#   - list an event's tickets by tier  (base: SK begins_with TICKET#)
-#   - find tickets held by a person    (GSI1: HOLDER#email)
+@table EventsTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
+
+@ap Get an event -> EventsTable
+@ap List an event's tickets by tier -> EventsTable
+@ap Find tickets held by a person -> GSI1
 
 e1: PK=EVENT#reinvent  SK=META  name=re:Invent  date=2024-12-02  city=Las Vegas  _type=event
 k1: PK=EVENT#reinvent  SK=TICKET#0001  tier=vip  holder=ada@x.io  GSI1PK=HOLDER#ada@x.io  GSI1SK=EVENT#reinvent  _type=ticket
@@ -60,8 +63,12 @@ const MULTIKEY = `# Native multi-key GSI — up to 4 partition + 4 sort attribut
 # natively-typed columns (no string concatenation). "ByRegion" partitions by
 # (tenant, region) and sorts by (status, date). In a query, all partition attrs
 # are equality; of the sort attrs only the LAST (date) can take a range.
+@table OrdersTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 @gsi ByRegion pk=tenant,region sk=status,date
+
+@ap Get an order by id -> OrdersTable
+@ap List orders by tenant + region, sorted by status then date -> ByRegion
 
 o1: PK=ORDER#1  SK=META  tenant=acme  region=us  status=open  date=2024-03-01  total=42  _type=order
 o2: PK=ORDER#2  SK=META  tenant=acme  region=us  status=shipped  date=2024-02-10  total=17  _type=order
