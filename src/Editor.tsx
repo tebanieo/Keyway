@@ -208,6 +208,12 @@ function completeDsl(ctx: CompletionContext) {
   const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
 
+  // If the cursor sits inside a value (current segment already has an `=`), the
+  // user is typing a VALUE, not an attribute name — offering attribute/GSI
+  // completions here would garble it (e.g. SK=GSI1PK=GSI1PK). Stay quiet.
+  const segment = /(\S*)$/.exec(before)?.[1] ?? "";
+  if (segment.includes("=")) return null;
+
   const { base, entities, attrs, gsis } = liveModel(ctx.state.doc.toString());
   const started = /^\s*[\w-]+\s*:/.test(before); // line already has `label:`
 
