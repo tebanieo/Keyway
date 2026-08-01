@@ -948,6 +948,62 @@ body {
   text-align: center;
 }
 
+.ptable td.actions {
+  white-space: nowrap;
+}
+
+/* Click a value to copy it. */
+.ptable td.copyable {
+  cursor: pointer;
+}
+.ptable td.copyable:hover {
+  color: var(--accent);
+}
+
+/* Pin toggle — a hollow dot on row hover, filled accent when pinned. */
+.pin-btn {
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  vertical-align: middle;
+}
+.ptable tbody tr:hover .pin-btn {
+  opacity: 0.55;
+}
+.pin-btn.on {
+  opacity: 1;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.copied-toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--panel);
+  border: 1px solid var(--enter);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  color: var(--muted);
+  animation: narr-in 0.2s ease;
+}
+.copied-toast code {
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--key);
+}
+
 .del-btn {
   border: 0;
   background: transparent;
@@ -956,6 +1012,7 @@ body {
   line-height: 1;
   cursor: pointer;
   opacity: 0;
+  margin-left: 6px;
 }
 .ptable tr:hover .del-btn {
   opacity: 1;

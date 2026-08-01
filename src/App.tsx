@@ -58,6 +58,7 @@ interface LinkProps {
   pinnedId: string | null;
   onHover: (id: string | null) => void;
   onPin: (id: string) => void;
+  onCopy: (value: string) => void;
 }
 
 interface EditProps {
@@ -103,6 +104,7 @@ export function App() {
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [examplesOpen, setExamplesOpen] = useState(false);
@@ -309,6 +311,12 @@ export function App() {
     pinnedId,
     onHover: setHoveredId,
     onPin: (id) => setPinnedId((cur) => (cur === id ? null : id)),
+    onCopy: (value) => {
+      if (value === "") return;
+      void navigator.clipboard?.writeText(value);
+      setCopied(value);
+      window.setTimeout(() => setCopied((c) => (c === value ? null : c)), 1400);
+    },
   };
   const dirty = ops !== SEED_OPS || docText !== DEFAULT_DOC;
   // Editing lives on the base pane, and only in canvas mode.
@@ -573,6 +581,12 @@ export function App() {
           </>
         )}
       </p>
+
+      {copied !== null && (
+        <div className="copied-toast">
+          copied <code>{copied}</code>
+        </div>
+      )}
     </div>
   );
 }
@@ -719,7 +733,7 @@ function GridRows({
               {k}
             </th>
           ))}
-          {edit && <th className="actions" />}
+          <th className="actions" />
         </tr>
       </thead>
       <tbody>
@@ -740,7 +754,6 @@ function GridRows({
               className={`row-${r.status}${pinned}${hovered}${q}${dim}`}
               onMouseEnter={() => link.onHover(it.id)}
               onMouseLeave={() => link.onHover(null)}
-              onClick={() => link.onPin(it.id)}
             >
               {gutter && <td className="gutter">{MARKER[r.status]}</td>}
               {cols.map((k) => {
@@ -748,32 +761,49 @@ function GridRows({
                 const key = isKeyAttr(k, index);
                 if (edit && !removed) {
                   return (
-                    <EditableCell key={k} value={val} isKey={key} onCommit={(v) => edit.onEdit(it, k, v)} />
+                    <EditableCell
+                      key={k}
+                      value={val}
+                      isKey={key}
+                      onCommit={(v) => edit.onEdit(it, k, v)}
+                      onCopy={link.onCopy}
+                    />
                   );
                 }
-                const cls = key ? "iskey" : val ? "" : "blank";
+                const cls = (key ? "iskey" : val ? "" : "blank") + (val ? " copyable" : "");
                 return (
-                  <td className={cls} key={k}>
+                  <td
+                    className={cls}
+                    key={k}
+                    title={val ? "click to copy" : undefined}
+                    onClick={() => val && link.onCopy(val)}
+                  >
                     {val}
                   </td>
                 );
               })}
-              {edit && (
-                <td className="actions">
-                  {!removed && (
-                    <button
-                      className="del-btn"
-                      title="delete item"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        edit.onDelete(it.id);
-                      }}
-                    >
-                      &times;
-                    </button>
-                  )}
-                </td>
-              )}
+              <td className="actions">
+                <button
+                  className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
+                  title="pin / follow this item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    link.onPin(it.id);
+                  }}
+                />
+                {edit && !removed && (
+                  <button
+                    className="del-btn"
+                    title="delete item"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      edit.onDelete(it.id);
+                    }}
+                  >
+                    &times;
+                  </button>
+                )}
+              </td>
             </tr>
           );
         })}
@@ -786,13 +816,16 @@ function EditableCell({
   value,
   isKey,
   onCommit,
+  onCopy,
 }: {
   value: string;
   isKey: boolean;
   onCommit: (v: string) => void;
+  onCopy: (v: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const cls = isKey ? "iskey editable" : value ? "editable" : "blank editable";
+  const base = isKey ? "iskey editable" : value ? "editable" : "blank editable";
+  const cls = value ? `${base} copyable` : base;
 
   if (editing) {
     return (
@@ -822,8 +855,8 @@ function EditableCell({
   return (
     <td
       className={cls}
-      title="double-click to edit"
-      onClick={(e) => e.stopPropagation()}
+      title={value ? "click to copy · double-click to edit" : "double-click to edit"}
+      onClick={() => value && onCopy(value)}
       onDoubleClick={() => setEditing(true)}
     >
       {value}
