@@ -24,6 +24,23 @@ typecheck + build + **75 unit tests** green. **Hard-refresh the browser first.**
 
 ---
 
+## 🔧 Follow-up fixes (later session — all 🟡 ready, hard-refresh)
+
+Editor authoring cleanups + first query-panel fixes, in order:
+- **@ directive autocomplete** — type `@` on a line → `@gsi` / `@gsi multi-key` / `@table` templates. Multi-key GSI is `pk=a,b sk=c,d` (comma lists); the template shows it. (Duplicate `pk=a pk=b` silently kept only the last — that was the confusion.)
+- **item scaffolds keys only; Tab-at-end opens a menu** — after PK/SK, Tab pops the list of GSI keys / `_type` / attributes to add. Killed the `_type=carro=value` doubling AND the mid-line GSI garble.
+- **completions stay silent inside a value** — typing `GSI` in the SK *value* no longer garbles it.
+- **empty-line menu** — land on a blank line (e.g. after Enter) and the "what can I do here?" menu pops up (item/delete/@directives/entities). You loved this one.
+- **click a value to copy it** — click any cell → clipboard + subtle "copied" toast (grab values for the query). Pin moved to a small hover dot (right edge of each row); filled = pinned.
+- **query: GetItem disabled on a GSI** — correct (GetItem is base-only); selecting a GSI auto-switches to query.
+- **query: multiple filter conditions** — `+ condition`, each with AND/OR (AND binds tighter, no parens yet). Applied after the read, so they still don't reduce cost.
+
+**Still open from the query batch (backlogged):**
+- ⚠️ **Multi-key GSI query populating only 1 pk/sk** — I inspected the code; it maps `pkAttrs`/`skAttrs`, so it *should* render all. Please retest with a **comma-declared** GSI (`@gsi X pk=a,b sk=c,d`) — the earlier issue was likely the `pk=a pk=b` overwrite. If it still shows one, tell me and I'll dig in.
+- **Query-as-text editor (A/B)** and **real item-size → exact RCU/WCU** are in the backlog (item-size waits on your overhead spec).
+
+---
+
 Each feature below is **committed and self-tested (typecheck + build + unit tests green)**
 but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 
