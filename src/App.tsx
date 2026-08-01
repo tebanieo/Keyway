@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fold, project } from "./engine/engine";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
@@ -8,6 +8,7 @@ import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX, SEED_OPS } from "./model/seed";
 import { parseDoc, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
+import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
@@ -102,6 +103,7 @@ export function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
@@ -135,6 +137,25 @@ export function App() {
     setGsis(parsed.gsis);
   }, []);
 
+  // Load a whole model from text (a shared link, or an example). Same path for
+  // both — set the doc + parsed structure and open the editor.
+  const loadModel = useCallback((text: string) => {
+    const parsed = parseDoc(text, BASE_INDEX);
+    setDocText(text);
+    setOps(parsed.ops);
+    setBase(parsed.base);
+    setGsis(parsed.gsis);
+    setStep(parsed.ops.length);
+    setPinnedId(null);
+    setMode("editor");
+  }, []);
+
+  // On open: if the URL carries a model (`#m=…`), load it.
+  useEffect(() => {
+    const shared = modelFromLocation(location.hash);
+    if (shared) loadModel(shared);
+  }, [loadModel]);
+
   const enterEditor = () => {
     // reflect current structure + data as text so the two stay one source
     setDocText(
@@ -165,6 +186,28 @@ export function App() {
     setBase(parseDoc(DEFAULT_DOC, BASE_INDEX).base);
     setGsis(parseDoc(DEFAULT_DOC, BASE_INDEX).gsis);
     setPinnedId(null);
+  };
+
+  // The model as text, whichever mode we're in (canvas serializes ops back).
+  const currentDoc = () =>
+    editing
+      ? docText
+      : serializeTable(base) + serializeGsis(gsis) + "\n" + serializeOps(ops, base);
+
+  const onShare = async () => {
+    const url = shareUrl(currentDoc());
+    if (url.length > SAFE_URL_LEN) {
+      setShareMsg("model too large to link — copy the text instead");
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareMsg("link copied to clipboard");
+      } catch {
+        setShareMsg("couldn't copy — link logged to console");
+        console.log(url);
+      }
+    }
+    window.setTimeout(() => setShareMsg(null), 2600);
   };
 
   // ---- projections ----------------------------------------------------------
@@ -267,6 +310,11 @@ export function App() {
             diff
           </button>
         </div>
+
+        <button className="share" onClick={onShare} title="copy a shareable link to this model">
+          share
+        </button>
+        {shareMsg && <span className="share-msg">{shareMsg}</span>}
 
         {dirty && (
           <button className="reset" onClick={reset}>

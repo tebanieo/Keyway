@@ -600,6 +600,25 @@ body {
   color: var(--text);
 }
 
+.share {
+  padding: 5px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(91, 157, 255, 0.12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.share:hover {
+  background: rgba(91, 157, 255, 0.2);
+}
+
+.share-msg {
+  font-size: 12px;
+  color: var(--enter);
+}
+
 .reset {
   padding: 5px 12px;
   border: 1px solid var(--line);
