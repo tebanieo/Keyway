@@ -127,6 +127,83 @@ body {
   font-weight: 600;
 }
 
+/* Playback controls + focus toggle. */
+.stepper .play {
+  width: auto;
+  padding: 0 12px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.stepper .speed {
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+  padding: 0 4px;
+}
+.stepper .focus {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.stepper .focus.active {
+  background: var(--accent);
+  color: #06101f;
+  font-weight: 600;
+  border-color: var(--accent);
+}
+
+/* Focus mode: dim everything except the item the current step touches. */
+.ptable tr.dimmed td {
+  opacity: 0.28;
+  transition: opacity 0.2s ease;
+}
+
+/* Narration callout — a comment above an op, shown as a caption. */
+.narration {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto 18px;
+  max-width: 720px;
+  padding: 12px 18px;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: narr-in 0.32s ease;
+}
+@keyframes narr-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.narr-step {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #06101f;
+  font-size: 12px;
+  font-weight: 700;
+}
+.narr-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
 /* Query panel — first-cut UX (functional, not yet themed). */
 .query-panel {
   margin-bottom: 20px;

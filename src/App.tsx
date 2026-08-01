@@ -10,7 +10,7 @@ import { parseDoc, serializeGsis, serializeOps, serializeTable } from "./model/d
 import { DEFAULT_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { EXAMPLES } from "./model/examples";
-import { computeBackfill } from "./model/backfill";
+import { computeBackfill, putItemOf } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
 import { QueryPanel } from "./QueryPanel";
@@ -108,6 +108,12 @@ export function App() {
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [queryOpen, setQueryOpen] = useState(false);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
+  const [notes, setNotes] = useState<(string | undefined)[]>(
+    () => parseDoc(DEFAULT_DOC, BASE_INDEX).notes,
+  );
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [focusOn, setFocusOn] = useState(false);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
@@ -139,6 +145,7 @@ export function App() {
     setStep(parsed.ops.length); // typing shows the whole script
     setBase(parsed.base);
     setGsis(parsed.gsis);
+    setNotes(parsed.notes);
   }, []);
 
   // Load a whole model from text (a shared link, or an example). Same path for
@@ -149,6 +156,7 @@ export function App() {
     setOps(parsed.ops);
     setBase(parsed.base);
     setGsis(parsed.gsis);
+    setNotes(parsed.notes);
     setStep(parsed.ops.length);
     setPinnedId(null);
     setMode("editor");
@@ -159,6 +167,17 @@ export function App() {
     const shared = modelFromLocation(location.hash);
     if (shared) loadModel(shared);
   }, [loadModel]);
+
+  // Auto-play: advance one step on a timer while playing; stop at the end.
+  useEffect(() => {
+    if (!playing) return;
+    if (curStep >= ops.length) {
+      setPlaying(false);
+      return;
+    }
+    const id = window.setTimeout(() => setStep((s) => s + 1), 1300 / speed);
+    return () => window.clearTimeout(id);
+  }, [playing, curStep, ops.length, speed]);
 
   const enterEditor = () => {
     // reflect current structure + data as text so the two stay one source
@@ -187,9 +206,17 @@ export function App() {
     setOps(SEED_OPS);
     setDocText(DEFAULT_DOC);
     setStep(SEED_OPS.length);
-    setBase(parseDoc(DEFAULT_DOC, BASE_INDEX).base);
-    setGsis(parseDoc(DEFAULT_DOC, BASE_INDEX).gsis);
+    const parsed = parseDoc(DEFAULT_DOC, BASE_INDEX);
+    setBase(parsed.base);
+    setGsis(parsed.gsis);
+    setNotes(parsed.notes);
     setPinnedId(null);
+    setPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (curStep >= ops.length) setStep(0); // replay from the top
+    setPlaying((p) => !p);
   };
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
@@ -266,7 +293,17 @@ export function App() {
     }
   };
 
-  const op = describe(ops[curStep - 1], base);
+  const curOp = ops[curStep - 1];
+  const op = describe(curOp, base);
+  const narration = curStep >= 1 ? notes[curStep - 1] : undefined;
+  // The item this step touches — spotlighted in focus mode.
+  const affectedId = curOp
+    ? curOp.kind === "delete"
+      ? curOp.id
+      : (putItemOf(curOp)?.id ?? null)
+    : null;
+  const focusId = playing || focusOn ? affectedId : null;
+
   const link: LinkProps = {
     hoveredId,
     pinnedId,
@@ -379,14 +416,43 @@ export function App() {
           step {curStep}/{ops.length} &middot; <b>{op.verb}</b> {op.detail}
         </div>
         <div className="stepper">
-          <button disabled={curStep === 0} onClick={() => setStep(curStep - 1)}>
+          <button className="play" onClick={togglePlay} title="auto-play">
+            {playing ? "❚❚" : "▶"}
+          </button>
+          <button
+            disabled={curStep === 0}
+            onClick={() => {
+              setPlaying(false);
+              setStep(curStep - 1);
+            }}
+          >
             &minus;
           </button>
           <button
             disabled={curStep === ops.length}
-            onClick={() => setStep(curStep + 1)}
+            onClick={() => {
+              setPlaying(false);
+              setStep(curStep + 1);
+            }}
           >
             +
+          </button>
+          <select
+            className="speed"
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            title="playback speed"
+          >
+            <option value={0.5}>0.5&times;</option>
+            <option value={1}>1&times;</option>
+            <option value={2}>2&times;</option>
+          </select>
+          <button
+            className={focusOn ? "focus active" : "focus"}
+            onClick={() => setFocusOn((v) => !v)}
+            title="focus mode — dim everything except the item this step touches"
+          >
+            focus
           </button>
         </div>
       </div>
@@ -429,6 +495,13 @@ export function App() {
         />
       )}
 
+      {narration && (
+        <div className="narration" key={curStep}>
+          <span className="narr-step">{curStep}</span>
+          <span className="narr-text">{narration}</span>
+        </div>
+      )}
+
       <CostBar cost={cost} />
 
       {pane === "split" ? (
@@ -440,6 +513,7 @@ export function App() {
             link={link}
             edit={baseEdit}
             query={qhl}
+            focusId={focusId}
             subtitle={editing ? "you write here · via script" : "you write here"}
           />
           {gsiViews.map((gv) => (
@@ -450,6 +524,7 @@ export function App() {
               diffOn={diffOn}
               link={link}
               query={qhl}
+              focusId={focusId}
               subtitle={`read-only · ${projLabel(gv.index)}`}
             />
           ))}
@@ -462,6 +537,7 @@ export function App() {
           link={link}
           edit={baseEdit}
           query={qhl}
+          focusId={focusId}
         />
       ) : (
         (() => {
@@ -473,10 +549,11 @@ export function App() {
               diffOn={diffOn}
               link={link}
               query={qhl}
+              focusId={focusId}
               subtitle={`read-only · ${projLabel(gv.index)}`}
             />
           ) : (
-            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} query={qhl} />
+            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} query={qhl} focusId={focusId} />
           );
         })()
       )}
@@ -558,6 +635,7 @@ function Panel({
   edit,
   subtitle,
   query,
+  focusId,
 }: {
   view: View;
   prev: View;
@@ -566,6 +644,7 @@ function Panel({
   edit?: EditProps;
   subtitle?: string;
   query?: QueryHighlight;
+  focusId?: string | null;
 }) {
   const index = view.index;
   const parts = diffOn
@@ -604,7 +683,7 @@ function Panel({
                 </button>
               )}
             </div>
-            <GridRows rows={part.rows} index={index} link={link} edit={edit} gutter={diffOn} query={query} />
+            <GridRows rows={part.rows} index={index} link={link} edit={edit} gutter={diffOn} query={query} focusId={focusId} />
           </div>
         ))}
       </div>
@@ -619,6 +698,7 @@ function GridRows({
   edit,
   gutter,
   query,
+  focusId,
 }: {
   rows: DiffRow[];
   index: IndexSpec;
@@ -626,6 +706,7 @@ function GridRows({
   edit?: EditProps;
   gutter: boolean;
   query?: QueryHighlight;
+  focusId?: string | null;
 }) {
   const cols = unionKeys(rows, index);
   return (
@@ -651,11 +732,12 @@ function GridRows({
             : query?.scanned.has(it.id)
               ? " q-read"
               : "";
+          const dim = focusId && it.id !== focusId ? " dimmed" : "";
           const removed = r.status === "removed";
           return (
             <tr
               key={`${removed ? "x" : ""}${it.id}`}
-              className={`row-${r.status}${pinned}${hovered}${q}`}
+              className={`row-${r.status}${pinned}${hovered}${q}${dim}`}
               onMouseEnter={() => link.onHover(it.id)}
               onMouseLeave={() => link.onHover(null)}
               onClick={() => link.onPin(it.id)}

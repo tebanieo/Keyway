@@ -32,6 +32,8 @@ export interface ParseResult {
   base: IndexSpec;
   /** GSIs declared via `@gsi` lines (or a default GSI1 if none are). */
   gsis: IndexSpec[];
+  /** Per-op narration (a comment directly above the line), aligned with `ops`. */
+  notes: (string | undefined)[];
 }
 
 /** Default GSIs when the document declares none. */
@@ -120,6 +122,7 @@ const GSI_NAME = /^(\S+)\s*(.*)$/;
 
 export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const ops: Op[] = [];
+  const notes: (string | undefined)[] = []; // narration, aligned with ops
   const diagnostics: Diagnostic[] = [];
   const lastKey = new Map<string, string>(); // label -> base key when last put
   const lines = text.split("\n");
@@ -184,14 +187,35 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   });
   if (gsis.length === 0) gsis.push(...DEFAULT_GSIS.map((g) => ({ ...g })));
 
-  // Pass 2: item / delete lines.
+  // Pass 2: item / delete lines. A comment directly above a line (no blank
+  // line between) becomes that step's narration; a blank line clears it, so
+  // header/section comments stay silent.
+  let pending: string[] = [];
+  const takeNote = (): string | undefined => {
+    const note = pending.join(" ").trim();
+    pending = [];
+    return note || undefined;
+  };
+
   lines.forEach((raw, line) => {
     const s = raw.trim();
-    if (s === "" || s.startsWith("#") || s.startsWith("@")) return;
+    if (s === "") {
+      pending = [];
+      return;
+    }
+    if (s.startsWith("#") || s.startsWith("//")) {
+      pending.push(s.replace(/^(#+|\/\/)\s*/, ""));
+      return;
+    }
+    if (s.startsWith("@")) {
+      pending = [];
+      return;
+    }
 
     const del = DELETE.exec(s);
     if (del) {
       ops.push({ kind: "delete", id: del[1] });
+      notes.push(takeNote());
       lastKey.delete(del[1]);
       return;
     }
@@ -230,8 +254,9 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     } else {
       ops.push({ kind: "put", item });
     }
+    notes.push(takeNote());
     if (newKey) lastKey.set(label, newKey);
   });
 
-  return { ops, diagnostics, base, gsis };
+  return { ops, diagnostics, base, gsis, notes };
 }

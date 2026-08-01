@@ -140,6 +140,16 @@ describe("parseDoc", () => {
     expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
   });
 
+  it("attaches an adjacent comment as an op's narration; blank line silences it", () => {
+    const { notes } = parseDoc(
+      "# a silent header\n\n# create Ada\nu1: PK=A  SK=B\nu2: PK=A  SK=C\n// ships it\ndelete u1",
+      BASE,
+    );
+    expect(notes[0]).toBe("create Ada"); // header cleared by the blank line
+    expect(notes[1]).toBeUndefined(); // no comment above u2
+    expect(notes[2]).toBe("ships it"); // // comment above the delete
+  });
+
   it("serialize -> parse round-trips the op log", () => {
     const original = parseDoc(DEFAULT_DOC, BASE).ops;
     const text = serializeOps(original, BASE);

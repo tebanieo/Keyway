@@ -61,3 +61,12 @@ but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 - `vite.config.ts` now sets `base: "./"` so the build works on GitHub Pages project sites without knowing the repo name.
 - Added `.github/workflows/deploy.yml` (build + test + publish to Pages on push to `main`) and a `README.md` with the "100% client-side / no data" story + contribute-an-example instructions.
 - ⛔ **Not published.** Publishing needs a GitHub repo (there's no remote yet) and is your call. To go live: create the repo, push, then Settings → Pages → Source = "GitHub Actions". Everything else is ready.
+
+### 🟡 #7 — Auto-play + narration + focus mode
+**Test:** switch to **editor** (or load an example) so there's narration text, then press **▶** in the stepper. It steps through the model on a timer (there's a **0.5×/1×/2×** speed selector). A **comment directly above an op line becomes that step's narration** — it pops up as a caption as that step plays (e.g. the "order ships…" and "settings carry no GSI1 key…" comments in the default doc). Toggle **focus** to dim every row except the one the current step touches — try it with play on: the story reads as a calm spotlight instead of a busy grid. Press ▶ at the end to replay from the top.
+**Notes:**
+- **The demo IS the text.** A shared link + auto-play = a self-running narrated walkthrough, no video. Narration comes from `#`/`//` comments *attached* to a line (blank line above = silent header). Parser change is tested.
+- Focus spotlights the current op's item (put/transact → the item; delete → the tombstone). Focus can be toggled independently of play, or it's implied while playing.
+- Narration exists only for **parsed** models (editor / examples / links). Canvas mode (SEED_OPS) has best-effort notes from the initial default doc; if you diverge in canvas the narration may go stale — it's a text-model feature.
+- This finally lands the **focus mode** from our very first conversation (the "track >4 moving things" perceptual-ceiling fix) — auto-play is its natural home.
+- Presentation is a clean caption callout; the **spatially-anchored bubble** idea (narration pinned next to the affected row) is a nice future upgrade, noted but not built.

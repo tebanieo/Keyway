@@ -1,5 +1,16 @@
-import type { IndexSpec, Item } from "../engine/types";
+import type { IndexSpec, Item, Op } from "../engine/types";
 import { TYPE_ATTR } from "./entities";
+
+/** The put item an op introduces (from a put, or a transact's put action). */
+export function putItemOf(op: Op | undefined): Item | null {
+  if (!op) return null;
+  if (op.kind === "put") return op.item;
+  if (op.kind === "transact") {
+    const p = op.actions.find((a) => a.kind === "put");
+    return p && p.kind === "put" ? p.item : null;
+  }
+  return null;
+}
 
 export interface Backfill {
   attr: string;
