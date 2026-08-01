@@ -35,8 +35,21 @@ const MARKER: Record<string, string> = {
   same: "",
 };
 
-function newId(): string {
-  return crypto.randomUUID();
+/**
+ * Next free `i1`, `i2`, … label for a new canvas-created item. It doubles as the
+ * item's stable id AND its DSL label when serialized to the editor, so it must
+ * be grammar-valid — a UUID has hyphens and breaks the label rule.
+ */
+function nextItemLabel(ops: readonly Op[]): string {
+  const used = new Set<string>();
+  for (const op of ops) {
+    const it = putItemOf(op);
+    if (it) used.add(it.id);
+    else if (op.kind === "delete") used.add(op.id);
+  }
+  let n = 1;
+  while (used.has(`i${n}`)) n++;
+  return `i${n}`;
 }
 
 /**
@@ -208,9 +221,9 @@ export function App() {
     },
     onDelete: (id) => commit([{ kind: "delete", id }]),
     onAddItem: (pkValue) => {
-      const id = newId();
+      const id = nextItemLabel(ops);
       const attrs: Record<string, string> = { [base.pk]: pkValue };
-      if (base.sk) attrs[base.sk] = `ITEM#${id.slice(0, 4)}`;
+      if (base.sk) attrs[base.sk] = `ITEM#${id}`;
       commit([{ kind: "put", item: { id, attrs } }]);
       setPinnedId(id);
     },
