@@ -46,6 +46,10 @@
   --glass-hi: rgba(255, 255, 255, 0.14);
   --glass-blur: blur(18px) saturate(1.4);
 
+  /* scrollbars — themed, a notch above the table surface for contrast */
+  --scroll: #363d4b;
+  --scroll-hover: #4a5264;
+
   /* interaction */
   --ring: 0 0 0 2px rgba(91, 157, 255, 0.45);
   --accent-glow: 0 0 18px rgba(91, 157, 255, 0.35);
@@ -63,6 +67,33 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+}
+
+/* Thin, themed scrollbars everywhere — the native "fat white" bars clashed
+   with the glass system. Firefox uses scrollbar-* ; WebKit uses ::-webkit-*. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll);
+  border-radius: var(--r-pill);
+  border: 3px solid transparent; /* padding-box inset → a slim ~4px thumb */
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-hover);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .app {
