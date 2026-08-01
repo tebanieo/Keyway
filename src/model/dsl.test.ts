@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDoc, serializeGsis, serializeOps } from "./dsl";
+import { parseDoc, serializeAps, serializeGsis, serializeOps } from "./dsl";
 import { DEFAULT_DOC } from "./doc";
 import { fold, project } from "../engine/engine";
 import type { IndexSpec } from "../engine/types";
@@ -158,9 +158,30 @@ describe("parseDoc", () => {
     );
     expect(diagnostics).toEqual([]);
     expect(aps).toEqual([
-      { n: 1, description: "Get a user by id", index: undefined },
-      { n: 2, description: "Find user by email", index: "GSI1" },
+      { n: 1, description: "Get a user by id", index: undefined, readOp: "query", conds: undefined },
+      { n: 2, description: "Find user by email", index: "GSI1", readOp: "query", conds: undefined },
     ]);
+  });
+
+  it("parses @ap key conditions (equality + sort-key range) and round-trips them", () => {
+    const { aps, diagnostics } = parseDoc(
+      "@ap List a user's orders -> AppTable PK=USER#1 SK begins_with ORDER#\n" +
+        "@ap Orders in a window -> GSI1 GSI1PK=STATUS#open GSI1SK between 2024-01 and 2024-06",
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(aps[0].conds).toEqual([
+      { attr: "PK", op: "=", value: "USER#1" },
+      { attr: "SK", op: "begins_with", value: "ORDER#" },
+    ]);
+    expect(aps[1].conds).toEqual([
+      { attr: "GSI1PK", op: "=", value: "STATUS#open" },
+      { attr: "GSI1SK", op: "between", value: "2024-01", value2: "2024-06" },
+    ]);
+    // round-trip through the serializer preserves the conditions
+    const text = serializeAps(aps);
+    const reparsed = parseDoc(text, BASE).aps;
+    expect(reparsed.map((a) => a.conds)).toEqual(aps.map((a) => a.conds));
   });
 
   it("attaches an adjacent comment as an op's narration; blank line silences it", () => {

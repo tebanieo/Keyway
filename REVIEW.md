@@ -29,10 +29,16 @@ typecheck + build + **75 unit tests** green. **Hard-refresh the browser first.**
 **Test:** the cost bar now shows **item Nb** next to the WCU. Add attributes to an item and watch the size grow; past 1 KB the base WCU ticks up (small items still cost 1). In **query**, the readout now shows **bytes** and the RCU is the *cumulative* bytes read rounded once — so a scan of many small items is cheap (0.5 RCU), which is correct. Flip a GSI to **keys** projection and its write cost drops (fewer bytes projected).
 **Notes:** pure `itemSize`/`wcu`/`rcu` in `src/engine/itemsize.ts` (8 tests) replaces the ≤4KB assumption everywhere — write cost is projection-aware. All values are sized as Strings (flat model); Number/Binary/Set sizing lands with typed attrs. The 100-byte per-item overhead is treated as storage-only (per the docs) — verify vs the awslabs calc when we care about sub-KB precision.
 
-## 🟡 Access patterns (@ap) + coverage (new)
+## 🟡 Access patterns (@ap) + coverage v2 — RUNS the query (new)
 
-**Test:** the default doc declares 4 patterns; click **patterns** in the toolbar → panel shows `AP1..4` with ✓/✗ and **3/4 covered**. The uncovered one ("notification settings by type") has no `-> Index`. Add `-> GSI1` (or a real index) after it and it flips to covered. Declare your own with `@ap Get X by Y -> GSI1` (auto-numbered; `@ap` is in the `@`-completion menu).
-**Notes / honest scope:** **v1 coverage = the serving index exists.** That catches the core case ("you need an index for this pattern that isn't defined"). The deeper validation you described — link each `@ap` to an actual query and check it returns data with valid key conditions — is the **v2 refinement** (backlogged). Access patterns travel in the saved model/link.
+**Test:** open the default doc, click **patterns**. It now shows **3/4 served** (not just "index exists"): each AP declares a real query and the panel RUNS it against the finished model, reporting per-AP status + a message on the right.
+- AP1 `-> AppTable PK=USER#1` → **served** "returns 3 items".
+- AP2 `-> GSI1 GSI1PK=EMAIL#ada@analytical.io` → **served** "returns 1 item".
+- AP3 `-> GSI1 GSI1PK=STATUS#pending` → **served** (o3; note o1 shipped → moved off pending).
+- AP4 (no `-> Index`) → **unassigned** gap ✗.
+- **Teaching cases to try:** change AP3 to `GSI1PK=STATUS#cancelled` → **empty** ⚠ "no item matches". Drop the partition key (`-> GSI1 GSI1SK begins_with 2024`) → **invalid** ⚠ with the exact key-rule message. Point a range at a non-key attr → **invalid** "isn't a key of this index".
+- Syntax: `@ap desc -> Index [get|query|scan] [key conditions]`; conditions reuse item/query syntax (`GSI1PK=x`, `SK begins_with ORDER#`, `SK between a and b`). Round-trips through save/link.
+**Scope:** graded coverage = served / empty / invalid / assigned / no-index / unassigned. Filters on `@ap` queries not yet supported (key conditions only — that's what determines whether the index *can* serve it). Coverage runs against the FULL model (all ops), not the scrubber step. Engine: `src/model/coverage.ts`, fully tested (10 cases) + example-coverage guard + DSL cond round-trip test.
 
 ## 🟡 Full filter expressions (new — hard-refresh)
 

@@ -9,6 +9,8 @@ import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX } from "./model/seed";
 import { parseDoc, serializeAps, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
+import { apCoverage } from "./model/coverage";
+import type { CoverageStatus } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { EXAMPLES } from "./model/examples";
@@ -276,6 +278,9 @@ export function App() {
 
   // ---- projections ----------------------------------------------------------
   const state = useMemo(() => fold(ops.slice(0, curStep), base), [ops, curStep, base]);
+  // The FINISHED model (all ops), regardless of scrubber position — access-pattern
+  // coverage is about the design as a whole, not the mid-playback moment.
+  const fullState = useMemo(() => fold(ops, base), [ops, base]);
   const prevState = useMemo(
     () => fold(ops.slice(0, Math.max(0, curStep - 1)), base),
     [ops, curStep, base],
@@ -542,7 +547,7 @@ export function App() {
       )}
 
       {apsOpen && aps.length > 0 && (
-        <AccessPatterns aps={aps} base={base} gsis={gsis} onClose={() => setApsOpen(false)} />
+        <AccessPatterns aps={aps} base={base} gsis={gsis} state={fullState} onClose={() => setApsOpen(false)} />
       )}
 
       {narration && (
@@ -633,61 +638,71 @@ export function App() {
   );
 }
 
+/** How each coverage status renders: mark glyph + severity class. */
+const COVER_UI: Record<CoverageStatus, { mark: string; kind: "ok" | "warn" | "bad" }> = {
+  served: { mark: "✓", kind: "ok" },
+  empty: { mark: "⚠", kind: "warn" },
+  invalid: { mark: "⚠", kind: "warn" },
+  assigned: { mark: "~", kind: "warn" },
+  "no-index": { mark: "✗", kind: "bad" },
+  unassigned: { mark: "✗", kind: "bad" },
+};
+
 /**
- * The access-pattern SPEC + coverage. An @ap is "covered" when it names an
- * index (`-> GSI1`) that exists in the model. v1 coverage = the serving index
- * exists; deeper validation (key conditions, returns data) is a refinement.
+ * The access-pattern SPEC + coverage (v2). Each `@ap` carries a declared query
+ * (`-> Index` + key conditions); we RUN it against the finished model and grade
+ * the result — served / empty / invalid / assigned / gap. This is the original
+ * "does my design serve all my access patterns?" validation, and an invalid
+ * query shows the exact key rule it broke.
  */
 function AccessPatterns({
   aps,
   base,
   gsis,
+  state,
   onClose,
 }: {
   aps: AccessPattern[];
   base: IndexSpec;
   gsis: IndexSpec[];
+  state: Map<string, Item>;
   onClose: () => void;
 }) {
-  const indexNames = new Set([base.name, ...gsis.map((g) => g.name)]);
-  const covered = (ap: AccessPattern) => !!ap.index && indexNames.has(ap.index);
-  const n = aps.filter(covered).length;
+  const indexes = [base, ...gsis];
+  const rows = aps.map((ap) => ({ ap, cov: apCoverage(ap, indexes, state) }));
+  const served = rows.filter((r) => r.cov.status === "served").length;
+  const gaps = rows.filter((r) => COVER_UI[r.cov.status].kind === "bad").length;
 
   return (
     <div className="ap-panel">
       <div className="ap-head">
         <span className="ap-title">access patterns</span>
-        <span className={n === aps.length ? "ap-count all" : "ap-count"}>
-          {n}/{aps.length} covered
+        <span className={served === aps.length ? "ap-count all" : "ap-count"}>
+          {served}/{aps.length} served
         </span>
+        {gaps > 0 && <span className="ap-gaps">{gaps} unserved</span>}
         <div className="spacer" />
         <button className="q-close" onClick={onClose} title="close">
           &times;
         </button>
       </div>
       <div className="ap-list">
-        {aps.map((ap) => {
-          const ok = covered(ap);
+        {rows.map(({ ap, cov }) => {
+          const ui = COVER_UI[cov.status];
           return (
-            <div className={ok ? "ap-row ok" : "ap-row"} key={ap.n}>
+            <div className={`ap-row ${ui.kind}`} key={ap.n}>
               <span className="ap-n">AP{ap.n}</span>
-              <span className="ap-mark">{ok ? "✓" : "✗"}</span>
+              <span className={`ap-mark ${ui.kind}`}>{ui.mark}</span>
               <span className="ap-desc">{ap.description}</span>
-              {ap.index ? (
-                <span className={ok ? "ap-idx" : "ap-idx bad"}>
-                  {ap.index}
-                  {ok ? "" : " (no such index)"}
-                </span>
-              ) : (
-                <span className="ap-idx none">no index assigned</span>
-              )}
+              {ap.index && <span className="ap-idx">{ap.index}</span>}
+              <span className={`ap-msg ${ui.kind}`}>{cov.message}</span>
             </div>
           );
         })}
       </div>
       <div className="ap-foot">
-        Declare with <code>@ap description -&gt; Index</code>. Uncovered = the serving
-        index isn't defined yet.
+        Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the
+        query — <b>served</b> means it returns data.
       </div>
     </div>
   );

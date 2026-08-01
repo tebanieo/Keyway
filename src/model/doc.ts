@@ -23,11 +23,12 @@ export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-# Access patterns are the SPEC — what the design must serve. "-> Index" links
-# one to the index (base table or GSI) that serves it; the panel flags coverage.
-@ap Get a user's profile and orders -> AppTable
-@ap Look up a user by email -> GSI1
-@ap List orders by status -> GSI1
+# Access patterns are the SPEC — what the design must serve. "-> Index" plus key
+# conditions makes it a real query the panel RUNS against the model; "served"
+# means it returns data. The last one names no index yet — a coverage gap.
+@ap Get a user's profile and orders -> AppTable PK=USER#1
+@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@analytical.io
+@ap List pending orders -> GSI1 GSI1PK=STATUS#pending
 @ap Get a user's notification settings by type
 
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  GSI1PK=EMAIL#ada@analytical.io  GSI1SK=USER#1  _type=user-profile
