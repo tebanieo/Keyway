@@ -1,5 +1,29 @@
 # Nightly build — ready for revision
 
+## ☕ Morning summary
+
+Good morning! I got through the whole build list except the two I deliberately held
+(design polish + actual publish). Everything is committed in small units, each
+typecheck + build + **75 unit tests** green. **Hard-refresh the browser first.**
+
+**Built tonight (all 🟡 ready for your review, none cleared):**
+1. **#4 Shareable links** — `share` copies a URL carrying the whole model (compressed, in the fragment, never sent to a server).
+2. **#5 Examples gallery** — `examples ▾` menu, 5 curated models; each is plain DSL contributors can PR.
+3. **#3 Multi-key GSIs** — native composite keys (`@gsi X pk=a,b sk=c,d`), grouped/sorted by tuple.
+4. **#1 Query / GetItem / Scan + RCU** — `query` panel; **engine is rock-solid + tested, the UI is a deliberate FIRST CUT** (tell me how you want the query builder to feel).
+5. **#7 Auto-play + narration + focus mode** — ▶ plays the model; comments-above-a-line become on-screen narration; focus dims all but the touched row. (Shared link + play = a narrated demo as text.)
+6. **Ship-it prep** — dropped dead `motion` dep, `base: "./"`, GitHub Actions Pages workflow, README. **Deploy-ready but NOT published** (needs you to create the repo).
+
+**Held on purpose (⛔):**
+- **#8 Design polish** — you said it's last, after testing; it's your taste to set. Let's do it together.
+- **Actual deploy** — needs a GitHub repo + your go.
+
+**Suggested test order:** load an **example** → press **▶** with **focus** on (see the whole thing narrate itself) → open **query**, run a scan vs a query to feel the RCU difference → hit **share** and open the link in a new tab.
+
+**One known bug I backlogged** (in memory, not fixed): accepting a completion in the `item` snippet's attr slot can double the `=value` (`_type=carro=value`). It's a design-decision fix for the editor polish pass, not a quick patch.
+
+---
+
 Each feature below is **committed and self-tested (typecheck + build + unit tests green)**
 but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 
