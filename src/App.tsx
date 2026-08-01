@@ -9,6 +9,7 @@ import { BASE_INDEX, SEED_OPS } from "./model/seed";
 import { parseDoc, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
+import { EXAMPLES } from "./model/examples";
 import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
@@ -104,6 +105,7 @@ export function App() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [examplesOpen, setExamplesOpen] = useState(false);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
@@ -309,6 +311,36 @@ export function App() {
           >
             diff
           </button>
+        </div>
+
+        <div className="dropdown">
+          <button
+            className="dropdown-btn"
+            onClick={() => setExamplesOpen((v) => !v)}
+            title="load a curated example model"
+          >
+            examples &#9662;
+          </button>
+          {examplesOpen && (
+            <>
+              <div className="menu-backdrop" onClick={() => setExamplesOpen(false)} />
+              <div className="menu">
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.name}
+                    className="menu-item"
+                    onClick={() => {
+                      loadModel(ex.dsl);
+                      setExamplesOpen(false);
+                    }}
+                  >
+                    <span className="menu-title">{ex.name}</span>
+                    <span className="menu-desc">{ex.description}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <button className="share" onClick={onShare} title="copy a shareable link to this model">

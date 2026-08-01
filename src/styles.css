@@ -600,6 +600,71 @@ body {
   color: var(--text);
 }
 
+.dropdown {
+  position: relative;
+}
+
+.dropdown-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.dropdown-btn:hover {
+  border-color: var(--muted);
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 300px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--panel-2);
+}
+
+.menu-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.menu-desc {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .share {
   padding: 5px 14px;
   border: 1px solid var(--accent);
