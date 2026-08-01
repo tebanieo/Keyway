@@ -6,20 +6,48 @@ import type { IndexSpec, Item, Op, Partition, View, WriteAction } from "./types"
  * material — DynamoDB keys routinely contain both spaces and "#".
  */
 const KEY_SEP = String.fromCharCode(0);
+/** Visible separator for a multi-attribute partition/sort value ( · ). */
+const DISPLAY_SEP = String.fromCharCode(32, 183, 32);
+
+/** All partition-key attributes of an index (a multi-key GSI has up to 4). */
+export function pkAttrs(index: IndexSpec): string[] {
+  return index.pks ?? [index.pk];
+}
+
+/** All sort-key attributes of an index (empty if the index has no sort key). */
+export function skAttrs(index: IndexSpec): string[] {
+  return index.sks ?? (index.sk ? [index.sk] : []);
+}
+
+/** Values of the given attributes, or null if any is missing/empty (sparse). */
+function values(item: Item, attrs: string[]): string[] | null {
+  const out: string[] = [];
+  for (const a of attrs) {
+    const v = item.attrs[a];
+    if (v === undefined || v === "") return null;
+    out.push(v);
+  }
+  return out;
+}
 
 /**
- * Compute an item's key string under an index, or `null` if the item does not
- * belong in that index (it lacks the pk, or lacks the sk when the index defines
- * one). `null` is how sparse indexes fall out for free: no key attribute → not
- * projected.
+ * Compute an item's full key string under an index, or `null` if it doesn't
+ * belong (missing any partition- or sort-key attribute). `null` is how sparse
+ * indexes fall out for free. Handles multi-key GSIs (several pk/sk attributes).
  */
 export function keyOf(item: Item, index: IndexSpec): string | null {
-  const pk = item.attrs[index.pk];
-  if (pk === undefined || pk === "") return null;
-  if (index.sk === undefined) return pk;
-  const sk = item.attrs[index.sk];
-  if (sk === undefined || sk === "") return null;
-  return pk + KEY_SEP + sk;
+  const pk = values(item, pkAttrs(index));
+  if (pk === null) return null;
+  const sk = values(item, skAttrs(index));
+  if (sk === null) return null; // an sk attribute is required but missing
+  return [...pk, ...sk].join(KEY_SEP);
+}
+
+/** The display value of an item's partition under an index (joins multi keys). */
+export function partitionLabel(item: Item, index: IndexSpec): string {
+  return pkAttrs(index)
+    .map((a) => item.attrs[a] ?? "")
+    .join(DISPLAY_SEP);
 }
 
 /**
@@ -79,9 +107,12 @@ function projectAttrs(item: Item, index: IndexSpec, baseIndex: IndexSpec): Item 
   const proj = index.projection;
   if (proj === undefined || proj === "ALL") return item;
 
-  const keep = new Set<string>([index.pk, baseIndex.pk]);
-  if (index.sk) keep.add(index.sk);
-  if (baseIndex.sk) keep.add(baseIndex.sk);
+  const keep = new Set<string>([
+    ...pkAttrs(index),
+    ...skAttrs(index),
+    ...pkAttrs(baseIndex),
+    ...skAttrs(baseIndex),
+  ]);
   if (Array.isArray(proj)) for (const a of proj) keep.add(a);
 
   const attrs: Record<string, string> = {};
@@ -111,26 +142,32 @@ export function project(
   index: IndexSpec,
   baseIndex: IndexSpec = index,
 ): View {
-  const groups = new Map<string, Item[]>();
+  // Group by the (possibly multi-attribute) partition value. The map key is a
+  // NUL-joined tuple so it can't collide; the display label is human-readable.
+  const groups = new Map<string, { pk: string; items: Item[] }>();
+  const pks = pkAttrs(index);
 
   for (const item of state.values()) {
     if (keyOf(item, index) === null) continue; // sparse: excluded
-    const pkValue = item.attrs[index.pk];
-    let bucket = groups.get(pkValue);
-    if (!bucket) {
-      bucket = [];
-      groups.set(pkValue, bucket);
+    const groupKey = pks.map((a) => item.attrs[a]).join(KEY_SEP);
+    let g = groups.get(groupKey);
+    if (!g) {
+      g = { pk: partitionLabel(item, index), items: [] };
+      groups.set(groupKey, g);
     }
-    bucket.push(projectAttrs(item, index, baseIndex));
+    g.items.push(projectAttrs(item, index, baseIndex));
   }
 
+  const sks = skAttrs(index);
   const partitions: Partition[] = [];
-  for (const [pk, items] of groups) {
+  for (const { pk, items } of groups.values()) {
     items.sort((a, b) => {
-      const sa = index.sk ? (a.attrs[index.sk] ?? "") : "";
-      const sb = index.sk ? (b.attrs[index.sk] ?? "") : "";
-      if (sa < sb) return -1;
-      if (sa > sb) return 1;
+      for (const attr of sks) {
+        const va = a.attrs[attr] ?? "";
+        const vb = b.attrs[attr] ?? "";
+        if (va < vb) return -1;
+        if (va > vb) return 1;
+      }
       return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
     partitions.push({ pk, items });

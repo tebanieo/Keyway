@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fold, project } from "./engine/engine";
+import { fold, pkAttrs, project, skAttrs } from "./engine/engine";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
 import { diffPartitions } from "./engine/diff";
@@ -83,15 +83,13 @@ function describe(op: Op | undefined, base: IndexSpec): { verb: string; detail: 
 function unionKeys(rows: DiffRow[], index: IndexSpec): string[] {
   const seen = new Set<string>();
   for (const r of rows) for (const k of Object.keys(r.item.attrs)) seen.add(k);
-  const lead = [index.pk, index.sk].filter(
-    (k): k is string => Boolean(k) && seen.has(k as string),
-  );
+  const lead = [...pkAttrs(index), ...skAttrs(index)].filter((k) => seen.has(k));
   const rest = [...seen].filter((k) => !lead.includes(k)).sort();
   return [...lead, ...rest];
 }
 
 function isKeyAttr(k: string, index: IndexSpec): boolean {
-  return k === index.pk || k === index.sk;
+  return pkAttrs(index).includes(k) || skAttrs(index).includes(k);
 }
 
 export function App() {

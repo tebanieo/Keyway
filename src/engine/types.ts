@@ -32,8 +32,15 @@ export type ProjectionSpec = "ALL" | "KEYS_ONLY" | string[];
 
 export interface IndexSpec {
   name: string;
+  /** Partition key attribute (single-key). For a multi-key GSI, `pks` holds all
+   *  of them and this is the first (kept for compatibility). */
   pk: string;
+  /** Sort key attribute (single-key). `sks` holds all for a multi-key GSI. */
   sk?: string;
+  /** Multi-key GSI partition-key attributes (up to 4). Equality-only in queries. */
+  pks?: string[];
+  /** Multi-key GSI sort-key attributes (up to 4). Only the last takes a range. */
+  sks?: string[];
   projection?: ProjectionSpec;
 }
 

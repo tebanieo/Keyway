@@ -96,8 +96,9 @@ export function serializeOps(ops: readonly Op[], baseIndex: IndexSpec): string {
 export function serializeGsis(gsis: readonly IndexSpec[]): string {
   if (gsis.length === 0) return "";
   const lines = gsis.map((g) => {
-    const parts = ["@gsi", g.name, `pk=${g.pk}`];
-    if (g.sk) parts.push(`sk=${g.sk}`);
+    const parts = ["@gsi", g.name, `pk=${(g.pks ?? [g.pk]).join(",")}`];
+    const sks = g.sks ?? (g.sk ? [g.sk] : []);
+    if (sks.length) parts.push(`sk=${sks.join(",")}`);
     const p = g.projection;
     if (p === "KEYS_ONLY") parts.push("projection=keys");
     else if (Array.isArray(p)) parts.push(`projection=${p.join(",")}`);
@@ -146,10 +147,24 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         });
         return;
       }
+      // pk / sk may be comma-lists for a multi-key GSI (up to 4 each).
+      const pkList = attrs.pk.split(",").map((s) => s.trim()).filter(Boolean);
+      const skList = attrs.sk
+        ? attrs.sk.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      if (pkList.length > 4 || skList.length > 4) {
+        diagnostics.push({
+          line,
+          message: "a multi-key GSI allows at most 4 partition and 4 sort attributes",
+          severity: "warning",
+        });
+      }
       gsis.push({
         name: nm[1],
-        pk: attrs.pk,
-        sk: attrs.sk,
+        pk: pkList[0],
+        pks: pkList.length > 1 ? pkList : undefined,
+        sk: skList[0],
+        sks: skList.length > 1 ? skList : undefined,
         projection: parseProjection(attrs.projection),
       });
     } else if (kind === "table") {

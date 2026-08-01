@@ -125,6 +125,43 @@ describe("project", () => {
   });
 });
 
+describe("project — multi-key GSI", () => {
+  // up to 4 pk / 4 sk attributes, native (no concatenation)
+  const MGSI: IndexSpec = {
+    name: "MGSI",
+    pk: "tenant",
+    pks: ["tenant", "region"],
+    sk: "status",
+    sks: ["status", "date"],
+  };
+  const ops: Op[] = [
+    put(item("a", { PK: "U#1", SK: "A", tenant: "acme", region: "us", status: "open", date: "2024-01" })),
+    put(item("b", { PK: "U#1", SK: "B", tenant: "acme", region: "us", status: "open", date: "2024-02" })),
+    put(item("c", { PK: "U#1", SK: "C", tenant: "acme", region: "eu", status: "open", date: "2024-01" })),
+    put(item("d", { PK: "U#1", SK: "D", tenant: "acme" })), // missing region/status/date
+  ];
+
+  it("groups by the full partition tuple (tenant + region)", () => {
+    const view = project(fold(ops, BASE), MGSI, BASE);
+    // acme/us has a and b; acme/eu has c — two partitions
+    expect(view.partitions).toHaveLength(2);
+    const us = view.partitions.find((p) => p.items.some((i) => i.id === "a"))!;
+    expect(us.items.map((i) => i.id)).not.toContain("c");
+  });
+
+  it("sorts within a partition by the sort-key tuple (status, then date)", () => {
+    const view = project(fold(ops, BASE), MGSI, BASE);
+    const us = view.partitions.find((p) => p.items.some((i) => i.id === "a"))!;
+    expect(us.items.map((i) => i.id)).toEqual(["a", "b"]); // same status, 2024-01 < 2024-02
+  });
+
+  it("excludes an item missing any key attribute (sparse over the tuple)", () => {
+    const view = project(fold(ops, BASE), MGSI, BASE);
+    const ids = view.partitions.flatMap((p) => p.items.map((i) => i.id));
+    expect(ids).not.toContain("d");
+  });
+});
+
 describe("diffViews", () => {
   it("classifies enter / move / stable across an insert", () => {
     const before = fold(

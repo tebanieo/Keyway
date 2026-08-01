@@ -17,7 +17,7 @@ import {
 import type { CompletionContext } from "@codemirror/autocomplete";
 import { forceLinting, linter, lintGutter } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
-import { fold } from "./engine/engine";
+import { fold, pkAttrs, skAttrs } from "./engine/engine";
 import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 import { allAttrNames, deriveEntities, TYPE_ATTR } from "./model/entities";
@@ -42,11 +42,10 @@ function itemSnippet(base: IndexSpec) {
 }
 /** Inserts one declared GSI's key attributes to add to the current item. */
 function gsiKeysSnippet(g: IndexSpec) {
-  const parts = [`${g.pk}=${ph(g.pk)}`];
-  if (g.sk) parts.push(`${g.sk}=${ph(g.sk)}`);
-  return snippetCompletion(parts.join(SP2), {
+  const keys = [...pkAttrs(g), ...skAttrs(g)];
+  return snippetCompletion(keys.map((a) => `${a}=${ph(a)}`).join(SP2), {
     label: g.name,
-    detail: `${g.name} keys — ${g.pk}${g.sk ? ` / ${g.sk}` : ""}`,
+    detail: `${g.name} keys — ${keys.join(", ")}`,
     type: "property",
   });
 }

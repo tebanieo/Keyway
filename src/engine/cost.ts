@@ -1,5 +1,5 @@
 import type { IndexSpec, Item, Op } from "./types";
-import { applyAction, keyOf } from "./engine";
+import { applyAction, keyOf, partitionLabel, pkAttrs, skAttrs } from "./engine";
 
 /**
  * What a single write does to one index.
@@ -42,8 +42,7 @@ function projectedChanged(prev: Item, next: Item, index: IndexSpec): boolean {
   }
   // KEYS_ONLY / INCLUDE: only the index keys and included attributes are carried
   // (base keys are identity and change only via a reindex, handled separately).
-  const carried = new Set<string>([index.pk]);
-  if (index.sk) carried.add(index.sk);
+  const carried = new Set<string>([...pkAttrs(index), ...skAttrs(index)]);
   if (Array.isArray(proj)) for (const a of proj) carried.add(a);
   return [...carried].some((k) => prev.attrs[k] !== next.attrs[k]);
 }
@@ -56,10 +55,10 @@ function transitionCost(prev: Item | null, next: Item, g: IndexSpec): IndexCost 
     return { index: g.name, effect: "none", writes: 0 };
   }
   if (prevKey === null) {
-    return { index: g.name, effect: "insert", writes: 1, to: next.attrs[g.pk] };
+    return { index: g.name, effect: "insert", writes: 1, to: partitionLabel(next, g) };
   }
   if (newKey === null) {
-    return { index: g.name, effect: "delete", writes: 1, from: prev!.attrs[g.pk] };
+    return { index: g.name, effect: "delete", writes: 1, from: partitionLabel(prev!, g) };
   }
   if (prevKey === newKey) {
     const changed = projectedChanged(prev!, next, g);
@@ -67,22 +66,22 @@ function transitionCost(prev: Item | null, next: Item, g: IndexSpec): IndexCost 
       index: g.name,
       effect: changed ? "update" : "none",
       writes: changed ? 1 : 0,
-      to: next.attrs[g.pk],
+      to: partitionLabel(next, g),
     };
   }
   return {
     index: g.name,
     effect: "reindex",
     writes: 2,
-    from: prev!.attrs[g.pk],
-    to: next.attrs[g.pk],
+    from: partitionLabel(prev!, g),
+    to: partitionLabel(next, g),
   };
 }
 
 /** Cost on one index of removing `prev` from the table. */
 function removalCost(prev: Item | undefined, g: IndexSpec): IndexCost {
   if (prev && keyOf(prev, g) !== null) {
-    return { index: g.name, effect: "delete", writes: 1, from: prev.attrs[g.pk] };
+    return { index: g.name, effect: "delete", writes: 1, from: partitionLabel(prev, g) };
   }
   return { index: g.name, effect: "none", writes: 0 };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDoc, serializeOps } from "./dsl";
+import { parseDoc, serializeGsis, serializeOps } from "./dsl";
 import { DEFAULT_DOC } from "./doc";
 import { fold, project } from "../engine/engine";
 import type { IndexSpec } from "../engine/types";
@@ -103,6 +103,26 @@ describe("parseDoc", () => {
   it("flags @table without pk=", () => {
     const { diagnostics } = parseDoc("@table sk=only", BASE);
     expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
+  it("parses a multi-key GSI from comma lists and round-trips it", () => {
+    const { gsis } = parseDoc("@gsi M pk=tenant,region sk=status,date", BASE);
+    expect(gsis[0]).toMatchObject({
+      name: "M",
+      pk: "tenant", // first, for compatibility
+      pks: ["tenant", "region"],
+      sk: "status",
+      sks: ["status", "date"],
+    });
+    // round-trip through the serializer
+    const reparsed = parseDoc(serializeGsis(gsis), BASE).gsis[0];
+    expect(reparsed.pks).toEqual(["tenant", "region"]);
+    expect(reparsed.sks).toEqual(["status", "date"]);
+  });
+
+  it("warns when a multi-key GSI exceeds 4 partition or 4 sort attributes", () => {
+    const { diagnostics } = parseDoc("@gsi M pk=a,b,c,d,e sk=s", BASE);
+    expect(diagnostics.some((d) => d.severity === "warning")).toBe(true);
   });
 
   it("defaults to a single GSI1 when none are declared", () => {

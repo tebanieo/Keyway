@@ -32,3 +32,11 @@ but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 - Each example is plain DSL in `src/model/examples.ts` — a contributor adds one by appending an entry (that's the open-source flywheel). A test asserts every example parses with no errors and yields items, so a broken contribution fails CI.
 - Loads via the **same** `loadModel` path as shared links — one loader, two entry points.
 - Each carries its access patterns as `#` comments at the top (sets up the auto-play narration work later).
+
+### 🟡 #3 — Multi-key GSIs (native composite keys)
+**Test:** load the **Multi-key GSI** example (examples menu). It declares `@gsi ByRegion pk=tenant,region sk=status,date`. Open **split** — the `ByRegion` pane groups partitions by the **tuple** (`acme · us`, `acme · eu`, `globex · us`) and sorts within each by `status` then `date`. In the editor, `@gsi X pk=a,b sk=c,d` (comma lists, up to 4 each) creates one; the `X` completion inserts all four key attrs.
+**Notes:**
+- This is the **native** feature (separate typed attributes), NOT concatenation. Data-model layer only — the query *rules* (equality on all pk, range only on the last sk, no skipping) land with **#1 Query**.
+- Design choice for your review: kept `pk`/`sk` as single-key fields (+ optional `pks`/`sks` arrays) so base tables and every existing model/test were untouched; `pkAttrs`/`skAttrs` helpers centralize it. Partition display joins values with " · ".
+- Sparse over the whole tuple: an item missing *any* pk or sk attribute is excluded (see the `d` item test).
+- 5 tests: multi-pk grouping, multi-sk sort, tuple-sparse, comma-list parse + round-trip, >4 warning.

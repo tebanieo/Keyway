@@ -56,6 +56,19 @@ k2: PK=EVENT#reinvent  SK=TICKET#0002  tier=general  holder=bob@x.io  GSI1PK=HOL
 k3: PK=EVENT#reinvent  SK=TICKET#0003  tier=general  holder=ada@x.io  GSI1PK=HOLDER#ada@x.io  GSI1SK=EVENT#reinvent  _type=ticket
 `;
 
+const MULTIKEY = `# Native multi-key GSI — up to 4 partition + 4 sort attributes as SEPARATE,
+# natively-typed columns (no string concatenation). "ByRegion" partitions by
+# (tenant, region) and sorts by (status, date). In a query, all partition attrs
+# are equality; of the sort attrs only the LAST (date) can take a range.
+@gsi GSI1 pk=GSI1PK sk=GSI1SK
+@gsi ByRegion pk=tenant,region sk=status,date
+
+o1: PK=ORDER#1  SK=META  tenant=acme  region=us  status=open  date=2024-03-01  total=42  _type=order
+o2: PK=ORDER#2  SK=META  tenant=acme  region=us  status=shipped  date=2024-02-10  total=17  _type=order
+o3: PK=ORDER#3  SK=META  tenant=acme  region=eu  status=open  date=2024-03-05  total=88  _type=order
+o4: PK=ORDER#4  SK=META  tenant=globex  region=us  status=open  date=2024-01-20  total=5  _type=order
+`;
+
 export const EXAMPLES: Example[] = [
   {
     name: "Users & orders",
@@ -76,5 +89,10 @@ export const EXAMPLES: Example[] = [
     name: "Event ticketing",
     description: "events and tickets, plus find-by-holder on GSI1",
     dsl: EVENTS,
+  },
+  {
+    name: "Multi-key GSI",
+    description: "native composite keys — partition by (tenant, region), sort by (status, date)",
+    dsl: MULTIKEY,
   },
 ];
