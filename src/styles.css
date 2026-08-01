@@ -66,8 +66,15 @@
 
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--text);
+  /* Faint graph-paper grid in the negative space — reads "engineered". Solid
+     panels sit on top, so the grid only shows around/behind them. */
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
 }
 
 /* Thin, themed scrollbars everywhere — the native "fat white" bars clashed
