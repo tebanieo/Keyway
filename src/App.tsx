@@ -202,15 +202,12 @@ export function App() {
     return () => window.clearTimeout(id);
   }, [playing, curStep, ops.length, speed]);
 
+  // The whole model (structure + data) as DSL text.
+  const modelToText = (someOps: Op[]) =>
+    serializeTable(base) + serializeGsis(gsis) + serializeAps(aps) + "\n" + serializeOps(someOps, base);
+
   const enterEditor = () => {
-    // reflect current structure + data as text so the two stay one source
-    setDocText(
-      serializeTable(base) +
-        serializeGsis(gsis) +
-        serializeAps(aps) +
-        "\n" +
-        serializeOps(ops, base),
-    );
+    setDocText(modelToText(ops)); // one source: reflect current state as text
     setMode("editor");
   };
 
@@ -220,11 +217,18 @@ export function App() {
       commit(editToOps(item, key, value, base));
     },
     onDelete: (id) => commit([{ kind: "delete", id }]),
+    // Add the item to the table AND open the editor — the table is for viewing,
+    // the editor is where you author from here.
     onAddItem: (pkValue) => {
       const id = nextItemLabel(ops);
       const attrs: Record<string, string> = { [base.pk]: pkValue };
       if (base.sk) attrs[base.sk] = `ITEM#${id}`;
-      commit([{ kind: "put", item: { id, attrs } }]);
+      const put: Op = { kind: "put", item: { id, attrs } };
+      const newOps = [...ops.slice(0, curStep), put];
+      setOps(newOps);
+      setStep(newOps.length);
+      setDocText(modelToText(newOps));
+      setMode("editor");
       setPinnedId(id);
     },
   };
@@ -248,10 +252,7 @@ export function App() {
   };
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
-  const currentDoc = () =>
-    editing
-      ? docText
-      : serializeTable(base) + serializeGsis(gsis) + "\n" + serializeOps(ops, base);
+  const currentDoc = () => (editing ? docText : modelToText(ops));
 
   const onShare = async () => {
     const url = shareUrl(currentDoc());
