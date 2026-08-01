@@ -454,12 +454,13 @@ body {
   color: var(--key);
 }
 
-/* Query panel — first-cut UX (functional, not yet themed). */
+/* Query panel — an on-demand read console, themed to the token system. */
 .query-panel {
-  margin-bottom: 20px;
-  border: 1px solid var(--accent);
-  border-radius: 10px;
+  margin-bottom: var(--s5);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
   background: var(--panel);
+  box-shadow: var(--shadow-1), inset 0 0 0 1px rgba(91, 157, 255, 0.08);
   overflow: hidden;
 }
 .query-head,
@@ -467,85 +468,122 @@ body {
 .query-filter {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s2);
   flex-wrap: wrap;
-  padding: 10px 14px;
+  padding: var(--s3) var(--s4);
 }
 .query-head {
-  background: var(--panel-2);
-  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--glass-line);
 }
 .query-keys {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--glass-line);
 }
 .q-title {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--accent);
+  letter-spacing: 0.2px;
 }
 .q-field {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 .q-key {
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--key);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .q-eq {
   color: var(--muted);
 }
 .query-panel input,
 .query-panel select {
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--bg);
+  padding: 6px 9px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.25);
   color: var(--text);
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  transition: border-color var(--tf), box-shadow var(--tf);
 }
 .query-panel input:focus,
 .query-panel select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: var(--ring);
 }
 .q-check {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 .q-run {
-  padding: 5px 16px;
+  padding: 6px 18px;
   border: 0;
-  border-radius: 7px;
-  background: var(--accent);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--accent), #4b86e6);
   color: #06101f;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform var(--tf), filter var(--tf);
 }
-.q-clear,
-.q-close {
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: transparent;
+.q-run:hover {
+  filter: brightness(1.08);
+}
+.q-run:active {
+  transform: scale(0.97);
+}
+.q-clear {
+  padding: 6px 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: background var(--tf), color var(--tf);
+}
+.q-clear:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Shared close (×) button — query panel + AP drawer. */
+.q-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--glass-line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--tf), color var(--tf), transform var(--tf);
+}
+.q-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+.q-close:active {
+  transform: scale(0.9);
 }
 .q-hint {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
 }
 .q-flabel {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 .q-filter-input {
@@ -555,17 +593,17 @@ body {
 .query-result {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
-  background: var(--panel-2);
-  font-size: 12px;
+  gap: var(--s4);
+  padding: var(--s3) var(--s4);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: var(--fs-sm);
 }
 .query-result.err {
   background: rgba(255, 122, 122, 0.08);
 }
 .q-stat b {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-lg);
 }
 .q-stat.rcu b {
   color: var(--accent);
