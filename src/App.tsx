@@ -22,6 +22,9 @@ import type { QueryHighlight } from "./QueryPanel";
 
 type Mode = "canvas" | "editor";
 
+/** Title-case a single-word action label (identifiers are shown verbatim). */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** Crisp inline icons (no dependency) that inherit color and animate fluidly. */
 function Icon({ name }: { name: "play" | "pause" | "prev" | "next" }) {
   const s = {
@@ -417,7 +420,7 @@ export function App() {
               className={m === mode ? "active" : ""}
               onClick={() => (m === "editor" ? enterEditor() : setMode("canvas"))}
             >
-              {m}
+              {cap(m)}
             </button>
           ))}
         </div>
@@ -429,7 +432,7 @@ export function App() {
               className={p === pane ? "active" : ""}
               onClick={() => setPane(p)}
             >
-              {p}
+              {p === "split" ? "Split" : p}
             </button>
           ))}
         </div>
@@ -439,7 +442,7 @@ export function App() {
             className={diffOn ? "active" : ""}
             onClick={() => setDiffOn((v) => !v)}
           >
-            diff
+            Diff
           </button>
         </div>
 
@@ -448,7 +451,7 @@ export function App() {
             className={queryOpen ? "active" : ""}
             onClick={() => setQueryOpen((v) => !v)}
           >
-            query
+            Query
           </button>
         </div>
 
@@ -458,7 +461,7 @@ export function App() {
               className={apsOpen ? "active" : ""}
               onClick={() => setApsOpen((v) => !v)}
             >
-              patterns
+              Patterns
             </button>
           </div>
         )}
@@ -469,7 +472,7 @@ export function App() {
             onClick={() => setExamplesOpen((v) => !v)}
             title="load a curated example model"
           >
-            examples &#9662;
+            Examples &#9662;
           </button>
           {examplesOpen && (
             <>
@@ -494,20 +497,20 @@ export function App() {
         </div>
 
         <button className="share" onClick={onShare} title="copy a shareable link to this model">
-          share
+          Share
         </button>
         {shareMsg && <span className="share-msg">{shareMsg}</span>}
 
         {dirty && (
           <button className="reset" onClick={reset}>
-            reset
+            Reset
           </button>
         )}
 
         {pinnedId && (
           <button className="pin-chip" onClick={() => setPinnedId(null)}>
             <span className="dot" />
-            pinned <code>{pinnedId.slice(0, 8)}</code>
+            Pinned <code>{pinnedId.slice(0, 8)}</code>
             <span className="x">&times;</span>
           </button>
         )}
@@ -564,7 +567,7 @@ export function App() {
             <span className="chev" aria-hidden>
               ▸
             </span>
-            <span className="eh-title">editor</span>
+            <span className="eh-title">Editor</span>
             <span className="eh-hint">one line = one step</span>
           </button>
           <div className="editor-body">
@@ -741,7 +744,7 @@ function AccessPatterns({
   return (
     <div className={open ? "ap-panel drawer open" : "ap-panel drawer"} aria-hidden={!open}>
       <div className="ap-head">
-        <span className="ap-title">access patterns</span>
+        <span className="ap-title">Access Patterns</span>
         <span className={served === aps.length ? "ap-count all" : "ap-count"}>
           {served}/{aps.length} served
         </span>

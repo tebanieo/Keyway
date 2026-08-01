@@ -97,7 +97,7 @@ export function QueryPanel({
   return (
     <div className="query-panel">
       <div className="query-head">
-        <span className="q-title">read</span>
+        <span className="q-title">Read</span>
         <div className="seg">
           {(["get", "query", "scan"] as const).map((o) => {
             const disabled = o === "get" && !isBase;
@@ -109,7 +109,7 @@ export function QueryPanel({
                 title={disabled ? "GetItem is base-table only — GSIs support query/scan" : undefined}
                 onClick={() => setOp(o)}
               >
-                {o}
+                {o.charAt(0).toUpperCase() + o.slice(1)}
               </button>
             );
           })}
