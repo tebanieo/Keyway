@@ -674,7 +674,23 @@ export function App() {
               ▸
             </span>
             <span className="eh-title">Editor</span>
-            <span className="eh-hint">one line = one step</span>
+            <span className="eh-stats">
+              {fullState.size === 0 ? (
+                "empty — load an example or start typing"
+              ) : (
+                <>
+                  <b>{fullState.size}</b> {fullState.size === 1 ? "item" : "items"}
+                  <i className="sep">·</i>
+                  <b>{1 + gsis.length}</b> {1 + gsis.length === 1 ? "index" : "indexes"}
+                  {aps.length > 0 && (
+                    <>
+                      <i className="sep">·</i>
+                      <b>{aps.length}</b> {aps.length === 1 ? "pattern" : "patterns"}
+                    </>
+                  )}
+                </>
+              )}
+            </span>
           </button>
           <div className="editor-body">
             <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />

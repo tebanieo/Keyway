@@ -855,6 +855,7 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   margin-bottom: var(--s5);
+  border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--panel);
   box-shadow: var(--shadow-1);
@@ -898,16 +899,30 @@ body {
 .editor-head .eh-title {
   font-weight: 600;
 }
-.editor-head .eh-hint {
+/* Live model summary — makes the collapsed bar an informative status strip. */
+.editor-head .eh-stats {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: var(--muted);
+  font-family: var(--font-mono);
   font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
 }
-.editor-head .eh-hint::before {
-  content: "·";
+.editor-head .eh-stats::before {
+  content: "";
+  width: 1px;
+  height: 12px;
+  margin-right: 4px;
+  background: var(--line);
+}
+.editor-head .eh-stats b {
+  color: var(--text);
+  font-weight: 600;
+}
+.editor-head .eh-stats .sep {
   color: var(--line);
+  font-style: normal;
 }
 
 .editor-body {
