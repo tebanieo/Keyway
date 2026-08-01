@@ -56,6 +56,25 @@ const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   type: "keyword",
 });
 
+// `@` directive completions — makes declaring indexes discoverable, including
+// the multi-key comma-list form (the thing that isn't obvious).
+const DIRECTIVES = [
+  snippetCompletion(`@gsi ${ph("Name")} pk=${ph("pk")} sk=${ph("sk")}`, {
+    label: "@gsi",
+    detail: "declare a secondary index",
+    type: "keyword",
+  }),
+  snippetCompletion(
+    `@gsi ${ph("Name")} pk=${ph("pk1")},${ph("pk2")} sk=${ph("sk1")},${ph("sk2")}`,
+    { label: "@gsi multi-key", detail: "up to 4 pk / 4 sk, comma-separated", type: "keyword" },
+  ),
+  snippetCompletion(`@table pk=${ph("pk")} sk=${ph("sk")}`, {
+    label: "@table",
+    detail: "custom base-table keys",
+    type: "keyword",
+  }),
+];
+
 /** Parse the live doc into base/index config + entity templates + attr names. */
 function liveModel(doc: string) {
   const parsed = parseDoc(doc, BASE_INDEX);
@@ -161,6 +180,12 @@ const authoringKeys = Prec.highest(
 function completeDsl(ctx: CompletionContext) {
   const line = ctx.state.doc.lineAt(ctx.pos);
   const before = ctx.state.sliceDoc(line.from, ctx.pos);
+
+  // A directive line being typed (`@…`) → offer @gsi / @table templates.
+  const dir = /^@([\w-]*)$/.exec(before);
+  if (dir) {
+    return { from: ctx.pos - dir[1].length - 1, options: DIRECTIVES };
+  }
 
   // After `_type=` → offer the entity types already defined in the model.
   const typeVal = /_type=([\w-]*)$/.exec(before);
