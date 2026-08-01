@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { fold, pkAttrs, project, skAttrs } from "./engine/engine";
 import { itemSize } from "./engine/itemsize";
 import { writeCost } from "./engine/cost";
@@ -26,7 +27,7 @@ type Mode = "canvas" | "editor";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Crisp inline icons (no dependency) that inherit color and animate fluidly. */
-function Icon({ name }: { name: "play" | "pause" | "prev" | "next" }) {
+function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" }) {
   const s = {
     width: 16,
     height: 16,
@@ -63,7 +64,53 @@ function Icon({ name }: { name: "play" | "pause" | "prev" | "next" }) {
           <path d="M9 6l6 6-6 6" />
         </svg>
       );
+    case "patterns":
+      return (
+        <svg {...s}>
+          <path d="M9 6h11M9 12h11M9 18h11" />
+          <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
+        </svg>
+      );
   }
+}
+
+/** One entry in the right activity rail. */
+interface RailItem {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  /** A count worth reacting to (e.g. uncovered patterns) → badge + attention. */
+  badge?: number;
+  active: boolean;
+  onClick: () => void;
+}
+
+/**
+ * A right-edge activity rail: the launcher for the side drawers. It tucks to a
+ * slim pull-tab when nothing needs attention (hover to reveal), and auto-reveals
+ * with a badge + pulse when an item has something to react to (an uncovered
+ * access pattern today; query / warnings / helpers later).
+ */
+function RightRail({ items }: { items: RailItem[] }) {
+  if (items.length === 0) return null;
+  const signal = items.some((i) => (i.badge ?? 0) > 0 || i.active);
+  return (
+    <div className={signal ? "rail revealed" : "rail"}>
+      {items.map((it) => (
+        <button
+          key={it.id}
+          className={`rail-btn${it.active ? " active" : ""}${(it.badge ?? 0) > 0 ? " warn" : ""}`}
+          onClick={it.onClick}
+          title={it.label}
+          aria-label={it.label}
+        >
+          {it.icon}
+          {(it.badge ?? 0) > 0 && <span className="rail-badge">{it.badge}</span>}
+          <span className="rail-label">{it.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /** Short label for an index's projection, shown in the pane subtitle. */
@@ -328,6 +375,15 @@ export function App() {
   // The FINISHED model (all ops), regardless of scrubber position — access-pattern
   // coverage is about the design as a whole, not the mid-playback moment.
   const fullState = useMemo(() => fold(ops, base), [ops, base]);
+  // How many declared patterns the design does NOT yet serve — drives the rail
+  // badge (the "something to react to" signal).
+  const apUnserved = useMemo(() => {
+    const idx = [base, ...gsis];
+    return aps.reduce(
+      (n, ap) => n + (apCoverage(ap, idx, fullState).status === "served" ? 0 : 1),
+      0,
+    );
+  }, [aps, base, gsis, fullState]);
   const prevState = useMemo(
     () => fold(ops.slice(0, Math.max(0, curStep - 1)), base),
     [ops, curStep, base],
@@ -454,17 +510,6 @@ export function App() {
             Query
           </button>
         </div>
-
-        {aps.length > 0 && (
-          <div className="seg">
-            <button
-              className={apsOpen ? "active" : ""}
-              onClick={() => setApsOpen((v) => !v)}
-            >
-              Patterns
-            </button>
-          </div>
-        )}
 
         <div className="dropdown">
           <button
@@ -604,6 +649,23 @@ export function App() {
           }}
         />
       )}
+
+      <RightRail
+        items={
+          aps.length > 0
+            ? [
+                {
+                  id: "patterns",
+                  label: "Access Patterns",
+                  icon: <Icon name="patterns" />,
+                  badge: apUnserved,
+                  active: apsOpen,
+                  onClick: () => setApsOpen((v) => !v),
+                },
+              ]
+            : []
+        }
+      />
 
       {aps.length > 0 && (
         <AccessPatterns

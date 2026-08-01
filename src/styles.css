@@ -467,6 +467,134 @@ body {
   color: var(--key);
 }
 
+/* Right activity rail — launcher for the side drawers. Tucks to a slim pull-tab
+   at rest (hover to reveal); auto-reveals + pulses when an item has a badge. */
+.rail {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line);
+  border-right: 0;
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  transform: translate(calc(100% - 12px), -50%); /* tucked: a slim tab peeks */
+  transition: transform 0.3s var(--ease);
+}
+.rail:hover,
+.rail.revealed {
+  transform: translate(0, -50%);
+}
+/* A grip on the peeking tab so the tucked rail reads as interactive. */
+.rail::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 3px;
+  height: 26px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: var(--muted);
+  opacity: 0.5;
+  transition: opacity var(--tf);
+}
+.rail:hover::before,
+.rail.revealed::before {
+  opacity: 0;
+}
+
+.rail-btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--tf), background var(--tf), transform var(--tf);
+}
+.rail-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.rail-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.rail-btn:active {
+  transform: scale(0.94);
+}
+.rail-btn.active {
+  color: var(--accent);
+  border-color: rgba(91, 157, 255, 0.5);
+  background: rgba(91, 157, 255, 0.14);
+}
+.rail-btn.warn {
+  color: var(--warn);
+  border-color: rgba(255, 176, 32, 0.4);
+}
+.rail.revealed .rail-btn.warn {
+  animation: rail-pulse 2.2s var(--ease) infinite;
+}
+@keyframes rail-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 176, 32, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 176, 32, 0.18);
+  }
+}
+
+.rail-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--warn);
+  color: #1a1200;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+/* Label tag, revealed to the left on hover. */
+.rail-label {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: #1c212b;
+  border: 1px solid var(--glass-line);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--tf);
+}
+.rail-btn:hover .rail-label {
+  opacity: 1;
+}
+
 /* Query panel — an on-demand read console, themed to the token system. */
 .query-panel {
   margin-bottom: var(--s5);
