@@ -113,6 +113,9 @@ function isKeyAttr(k: string, index: IndexSpec): boolean {
 export function App() {
   const [ops, setOps] = useState<Op[]>([]);
   const [docText, setDocText] = useState(EMPTY_DOC);
+  // Bumped only when the doc is REPLACED externally (load/reset) — used as the
+  // editor's React key so it remounts with the new text. Typing must not bump it.
+  const [docVersion, setDocVersion] = useState(0);
   const [mode, setMode] = useState<Mode>("canvas");
   const [step, setStep] = useState(0);
   const [pane, setPane] = useState<string>("split"); // "base" | "split" | gsi name
@@ -182,6 +185,7 @@ export function App() {
     setStep(parsed.ops.length);
     setPinnedId(null);
     setMode("editor");
+    setDocVersion((v) => v + 1); // remount the editor with the loaded text
   }, []);
 
   // On open: if the URL carries a model (`#m=…`), load it.
@@ -243,6 +247,7 @@ export function App() {
     setAps(parsed.aps);
     setPinnedId(null);
     setPlaying(false);
+    setDocVersion((v) => v + 1); // remount the editor if it's open
   };
 
   const togglePlay = () => {
@@ -503,7 +508,7 @@ export function App() {
           <div className="editor-head">
             model script <span className="muted">— one line per step, edits apply live</span>
           </div>
-          <Editor ref={editorRef} initialDoc={docText} onChange={onDoc} />
+          <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />
         </div>
       )}
 
