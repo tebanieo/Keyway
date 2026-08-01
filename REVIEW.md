@@ -40,3 +40,16 @@ but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 - Design choice for your review: kept `pk`/`sk` as single-key fields (+ optional `pks`/`sks` arrays) so base tables and every existing model/test were untouched; `pkAttrs`/`skAttrs` helpers centralize it. Partition display joins values with " · ".
 - Sparse over the whole tuple: an item missing *any* pk or sk attribute is excluded (see the `d` item test).
 - 5 tests: multi-pk grouping, multi-sk sort, tuple-sparse, comma-list parse + round-trip, >4 warning.
+
+### 🟡 #1 — Query / GetItem / Scan + RCU  ⚠️ engine solid; UI is a FIRST CUT
+**Test:** click **query** in the toolbar → a panel opens. Try:
+- **get** on base: pk `USER#1`, sk `PROFILE` → 1 read, the profile lights green.
+- **query** on base: pk `USER#1`, sk `begins_with ORDER#` → the orders light green; the profile is NOT read. Add a **filter** `status = pending` → fewer rows stay green (returned) but the readout still says you *read* all the orders (**filters don't save RCU** — that's the lesson; the amber rows are "read but filtered out").
+- **scan** → **every** item lights up and RCU jumps — the expensive read.
+- Load the **Multi-key GSI** example, query index `ByRegion`: it shows an equality box per partition attr (`tenant`, `region`) and, for the sort keys, `status` locked to `=` with only the LAST (`date`) getting an operator dropdown. Put a range on `status` → you can't (it's locked); the engine also returns a rule error if you force it.
+**Notes / decisions for your review:**
+- **The engine (`runQuery`) is the solid, tested part (12 tests).** The **panel UI is a deliberate first cut** — functional, wired, but NOT styled to the "professional" bar (that's the #8 design pass). Expect rough edges in layout; tell me how you want the query builder to feel and I'll rebuild the UI.
+- Green row = returned; amber row = read-but-filtered (visualizes "filters don't reduce cost").
+- RCU model: 0.5/item eventually-consistent, 1/item strong, assuming each item ≤4KB. There's a **strong** checkbox. This is a teaching approximation — real RCU is size-based; noted.
+- Comparisons are lexicographic (string) — fine for dates/prefixes; numbers-as-strings would sort lexically. Real multi-key would compare by native type; flagged for later.
+- Query runs against the model **at the current step** (respects the scrubber).

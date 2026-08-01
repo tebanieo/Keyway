@@ -13,6 +13,8 @@ import { EXAMPLES } from "./model/examples";
 import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
+import { QueryPanel } from "./QueryPanel";
+import type { QueryHighlight } from "./QueryPanel";
 
 type Mode = "canvas" | "editor";
 
@@ -104,6 +106,8 @@ export function App() {
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [examplesOpen, setExamplesOpen] = useState(false);
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
@@ -311,6 +315,15 @@ export function App() {
           </button>
         </div>
 
+        <div className="seg">
+          <button
+            className={queryOpen ? "active" : ""}
+            onClick={() => setQueryOpen((v) => !v)}
+          >
+            query
+          </button>
+        </div>
+
         <div className="dropdown">
           <button
             className="dropdown-btn"
@@ -403,6 +416,19 @@ export function App() {
         </div>
       )}
 
+      {queryOpen && (
+        <QueryPanel
+          base={base}
+          gsis={gsis}
+          state={state}
+          onHighlight={setQhl}
+          onClose={() => {
+            setQueryOpen(false);
+            setQhl({ matched: new Set(), scanned: new Set() });
+          }}
+        />
+      )}
+
       <CostBar cost={cost} />
 
       {pane === "split" ? (
@@ -413,6 +439,7 @@ export function App() {
             diffOn={diffOn}
             link={link}
             edit={baseEdit}
+            query={qhl}
             subtitle={editing ? "you write here · via script" : "you write here"}
           />
           {gsiViews.map((gv) => (
@@ -422,6 +449,7 @@ export function App() {
               prev={gv.prev}
               diffOn={diffOn}
               link={link}
+              query={qhl}
               subtitle={`read-only · ${projLabel(gv.index)}`}
             />
           ))}
@@ -433,6 +461,7 @@ export function App() {
           diffOn={diffOn}
           link={link}
           edit={baseEdit}
+          query={qhl}
         />
       ) : (
         (() => {
@@ -443,10 +472,11 @@ export function App() {
               prev={gv.prev}
               diffOn={diffOn}
               link={link}
+              query={qhl}
               subtitle={`read-only · ${projLabel(gv.index)}`}
             />
           ) : (
-            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} />
+            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} query={qhl} />
           );
         })()
       )}
@@ -527,6 +557,7 @@ function Panel({
   link,
   edit,
   subtitle,
+  query,
 }: {
   view: View;
   prev: View;
@@ -534,6 +565,7 @@ function Panel({
   link: LinkProps;
   edit?: EditProps;
   subtitle?: string;
+  query?: QueryHighlight;
 }) {
   const index = view.index;
   const parts = diffOn
@@ -572,7 +604,7 @@ function Panel({
                 </button>
               )}
             </div>
-            <GridRows rows={part.rows} index={index} link={link} edit={edit} gutter={diffOn} />
+            <GridRows rows={part.rows} index={index} link={link} edit={edit} gutter={diffOn} query={query} />
           </div>
         ))}
       </div>
@@ -586,12 +618,14 @@ function GridRows({
   link,
   edit,
   gutter,
+  query,
 }: {
   rows: DiffRow[];
   index: IndexSpec;
   link: LinkProps;
   edit?: EditProps;
   gutter: boolean;
+  query?: QueryHighlight;
 }) {
   const cols = unionKeys(rows, index);
   return (
@@ -612,11 +646,16 @@ function GridRows({
           const it: Item = r.item;
           const pinned = it.id === link.pinnedId ? " pinned" : "";
           const hovered = it.id === link.hoveredId ? " hovered" : "";
+          const q = query?.matched.has(it.id)
+            ? " q-matched"
+            : query?.scanned.has(it.id)
+              ? " q-read"
+              : "";
           const removed = r.status === "removed";
           return (
             <tr
               key={`${removed ? "x" : ""}${it.id}`}
-              className={`row-${r.status}${pinned}${hovered}`}
+              className={`row-${r.status}${pinned}${hovered}${q}`}
               onMouseEnter={() => link.onHover(it.id)}
               onMouseLeave={() => link.onHover(null)}
               onClick={() => link.onPin(it.id)}
