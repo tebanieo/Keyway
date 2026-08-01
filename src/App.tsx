@@ -134,7 +134,6 @@ export function App() {
   const [apsOpen, setApsOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [focusOn, setFocusOn] = useState(false);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).base,
@@ -333,7 +332,8 @@ export function App() {
       ? curOp.id
       : (putItemOf(curOp)?.id ?? null)
     : null;
-  const focusId = playing || focusOn ? affectedId : null;
+  // Spotlight the touched item only while auto-playing (no standalone toggle).
+  const focusId = playing ? affectedId : null;
 
   const link: LinkProps = {
     hoveredId,
@@ -495,13 +495,6 @@ export function App() {
             <option value={1}>1&times;</option>
             <option value={2}>2&times;</option>
           </select>
-          <button
-            className={focusOn ? "focus active" : "focus"}
-            onClick={() => setFocusOn((v) => !v)}
-            title="focus mode — dim everything except the item this step touches"
-          >
-            focus
-          </button>
         </div>
       </div>
 
