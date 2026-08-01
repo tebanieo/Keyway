@@ -544,6 +544,13 @@ body {
   color: var(--warn);
   border-color: rgba(255, 176, 32, 0.4);
 }
+/* Resolved: everything served — flash green before the rail floats away. */
+.rail-btn.ok {
+  color: var(--enter);
+  border-color: rgba(55, 214, 122, 0.5);
+  background: rgba(55, 214, 122, 0.14);
+  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
 .rail.revealed .rail-btn.warn {
   animation: rail-pulse 2.2s var(--ease) infinite;
 }

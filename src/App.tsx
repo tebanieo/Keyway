@@ -92,23 +92,42 @@ interface RailItem {
  * access pattern today; query / warnings / helpers later).
  */
 function RightRail({ items }: { items: RailItem[] }) {
+  const total = items.reduce((n, i) => n + (i.badge ?? 0), 0);
+  // When the last badge clears (>0 → 0), flash a green "resolved" ✓ and keep the
+  // rail out for a beat before it floats back to its tab — a reward for fixing it.
+  const [resolved, setResolved] = useState(false);
+  const prev = useRef(total);
+  useEffect(() => {
+    if (prev.current > 0 && total === 0) {
+      setResolved(true);
+      const t = window.setTimeout(() => setResolved(false), 1600);
+      prev.current = total;
+      return () => window.clearTimeout(t);
+    }
+    prev.current = total;
+  }, [total]);
+
   if (items.length === 0) return null;
-  const signal = items.some((i) => (i.badge ?? 0) > 0 || i.active);
+  const signal = total > 0 || resolved || items.some((i) => i.active);
   return (
-    <div className={signal ? "rail revealed" : "rail"}>
-      {items.map((it) => (
-        <button
-          key={it.id}
-          className={`rail-btn${it.active ? " active" : ""}${(it.badge ?? 0) > 0 ? " warn" : ""}`}
-          onClick={it.onClick}
-          title={it.label}
-          aria-label={it.label}
-        >
-          {it.icon}
-          {(it.badge ?? 0) > 0 && <span className="rail-badge">{it.badge}</span>}
-          <span className="rail-label">{it.label}</span>
-        </button>
-      ))}
+    <div className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}`}>
+      {items.map((it) => {
+        const badge = it.badge ?? 0;
+        return (
+          <button
+            key={it.id}
+            className={`rail-btn${it.active ? " active" : ""}${badge > 0 ? " warn" : ""}${resolved ? " ok" : ""}`}
+            onClick={it.onClick}
+            title={it.label}
+            aria-label={it.label}
+          >
+            {it.icon}
+            {badge > 0 && <span className="rail-badge">{badge}</span>}
+            {resolved && badge === 0 && <span className="rail-badge ok">✓</span>}
+            <span className="rail-label">{it.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
