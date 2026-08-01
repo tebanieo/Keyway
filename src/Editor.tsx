@@ -206,7 +206,11 @@ function completeDsl(ctx: CompletionContext) {
   }
 
   const word = ctx.matchBefore(/[\w-]*/);
-  if (!word || (word.from === word.to && !ctx.explicit)) return null;
+  if (!word) return null;
+  // Allow the menu on an empty line even without an explicit trigger, so it can
+  // pop up on its own and show "what can I do here?".
+  const atLineStart = before.trim() === "";
+  if (word.from === word.to && !ctx.explicit && !atLineStart) return null;
 
   // If the cursor sits inside a value (current segment already has an `=`), the
   // user is typing a VALUE, not an attribute name — offering attribute/GSI
@@ -253,8 +257,14 @@ function completeDsl(ctx: CompletionContext) {
       ),
     ];
   } else {
-    // line start: scaffold a fresh item — blank, or from an entity template
-    options = [itemSnippet(base), DELETE_SNIPPET, ...entities.map(entityScaffold)];
+    // line start: everything you can begin a line with — scaffold an item
+    // (blank or from an entity template), delete, or an @ directive.
+    options = [
+      itemSnippet(base),
+      DELETE_SNIPPET,
+      ...DIRECTIVES,
+      ...entities.map(entityScaffold),
+    ];
   }
 
   return { from: word.from, options };
@@ -353,7 +363,16 @@ export const Editor = forwardRef<
           theme,
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => {
-            if (u.docChanged) cb.current(u.state.doc.toString());
+            if (u.docChanged) {
+              cb.current(u.state.doc.toString());
+              // Landed on a fresh empty line (e.g. after Enter)? Pop the menu of
+              // what you can do here. Deferred — can't dispatch inside an update.
+              const cur = u.state.doc.lineAt(u.state.selection.main.head);
+              if (cur.text.trim() === "") {
+                const v = u.view;
+                setTimeout(() => startCompletion(v), 0);
+              }
+            }
             const line = u.state.doc.lineAt(u.state.selection.main.head).number;
             if (line !== lastLine) {
               lastLine = line;
