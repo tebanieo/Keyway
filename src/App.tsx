@@ -161,7 +161,7 @@ interface RailItem {
  * with a badge + pulse when an item has something to react to (an uncovered
  * access pattern today; query / warnings / helpers later).
  */
-function RightRail({ items }: { items: RailItem[] }) {
+function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boolean }) {
   const total = items.reduce((n, i) => n + (i.badge ?? 0), 0);
   // When the last badge clears (>0 → 0), flash a green "resolved" ✓ and keep the
   // rail out for a beat before it floats back to its tab — a reward for fixing it.
@@ -178,9 +178,11 @@ function RightRail({ items }: { items: RailItem[] }) {
   }, [total]);
 
   if (items.length === 0) return null;
-  const signal = total > 0 || resolved || items.some((i) => i.active);
+  const signal = total > 0 || resolved || reveal || items.some((i) => i.active);
   return (
-    <div className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}`}>
+    <div
+      className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}${reveal ? " hint" : ""}`}
+    >
       {items.map((it) => {
         const badge = it.badge ?? 0;
         return (
@@ -710,6 +712,7 @@ export function App() {
       )}
 
       <RightRail
+        reveal={ops.length === 0}
         items={[
           {
             id: "examples",

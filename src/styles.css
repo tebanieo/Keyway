@@ -638,6 +638,25 @@ body {
   opacity: 1;
 }
 
+/* Empty-canvas hint: reveal the labels and pulse so a new user knows to click. */
+.rail.hint .rail-label {
+  opacity: 1;
+}
+.rail.hint .rail-btn {
+  color: var(--accent);
+  border-color: rgba(91, 157, 255, 0.5);
+  animation: rail-hint 2s var(--ease) infinite;
+}
+@keyframes rail-hint {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(91, 157, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(91, 157, 255, 0.18);
+  }
+}
+
 /* Query panel — an on-demand read console, themed to the token system. */
 .query-panel {
   margin-bottom: var(--s5);
