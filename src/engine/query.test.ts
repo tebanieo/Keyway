@@ -25,7 +25,7 @@ const spec = (o: Partial<QuerySpec>): QuerySpec => ({
   pk: [],
   sk: [],
   skParts: [],
-  filter: null,
+  filters: [],
   consistent: false,
   ...o,
 });
@@ -62,7 +62,7 @@ describe("runQuery — query", () => {
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filter: { attr: "status", op: "=", value: "pending" },
+        filters: [{ attr: "status", op: "=", value: "pending" }],
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]); // returned
@@ -72,6 +72,38 @@ describe("runQuery — query", () => {
   it("queries a GSI partition", () => {
     const r = runQuery(state, GSI1, spec({ pk: ["STATUS#pending"] }));
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
+  });
+
+  it("ANDs multiple filter conditions", () => {
+    const r = runQuery(
+      state,
+      BASE,
+      spec({
+        pk: ["U#1"],
+        skParts: [{ op: "begins_with", value: "ORDER#" }],
+        filters: [
+          { attr: "status", op: "=", value: "pending" },
+          { attr: "GSI1SK", op: ">", value: "2024-02", combinator: "and" },
+        ],
+      }),
+    );
+    expect(r.items.map((i) => i.id)).toEqual(["o3"]); // pending AND after 2024-02
+  });
+
+  it("ORs filter conditions (AND binds tighter)", () => {
+    const r = runQuery(
+      state,
+      BASE,
+      spec({
+        pk: ["U#1"],
+        skParts: [{ op: "begins_with", value: "ORDER#" }],
+        filters: [
+          { attr: "status", op: "=", value: "shipped" },
+          { attr: "GSI1SK", op: "=", value: "2024-03", combinator: "or" },
+        ],
+      }),
+    );
+    expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o3"]); // shipped OR 2024-03
   });
 
   it("range with between on the sort key", () => {
@@ -95,7 +127,7 @@ describe("runQuery — scan", () => {
     expect(r.scanned).toBe(3); // only the 3 orders carry GSI1 keys
   });
   it("a scan filter trims results, not cost", () => {
-    const r = runQuery(state, BASE, spec({ op: "scan", filter: { attr: "status", op: "=", value: "pending" } }));
+    const r = runQuery(state, BASE, spec({ op: "scan", filters: [{ attr: "status", op: "=", value: "pending" }] }));
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
     expect(r.scanned).toBe(5); // still read everything
   });

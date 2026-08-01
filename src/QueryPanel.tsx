@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { pkAttrs, skAttrs } from "./engine/engine";
 import { runQuery } from "./engine/query";
-import type { Cond, CondOp } from "./engine/query";
+import type { Cond, CondOp, FilterCond } from "./engine/query";
 import type { IndexSpec, Item } from "./engine/types";
 
 const OPS: CondOp[] = ["=", "begins_with", "<", "<=", ">", ">=", "between"];
@@ -35,18 +35,20 @@ export function QueryPanel({
   const [op, setOp] = useState<"get" | "query" | "scan">("query");
   const [indexName, setIndexName] = useState(base.name);
   const index = indexes.find((i) => i.name === indexName) ?? base;
+  const isBase = index.name === base.name;
   const pks = pkAttrs(index);
   const sks = skAttrs(index);
 
   const [pkVals, setPkVals] = useState<Record<string, string>>({});
   const [skConds, setSkConds] = useState<Record<string, Cond>>({});
-  const [filterOn, setFilterOn] = useState(false);
-  const [filter, setFilter] = useState<{ attr: string; op: CondOp; value: string; value2?: string }>({
-    attr: "",
-    op: "=",
-    value: "",
-  });
+  const [filters, setFilters] = useState<FilterCond[]>([]);
   const [consistent, setConsistent] = useState(false);
+
+  const addFilter = () =>
+    setFilters((f) => [...f, { attr: "", op: "=", value: "", combinator: "and" }]);
+  const setFilter = (i: number, patch: Partial<FilterCond>) =>
+    setFilters((f) => f.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  const removeFilter = (i: number) => setFilters((f) => f.filter((_, j) => j !== i));
   const [result, setResult] = useState<{ scanned: number; returned: number; rcu: number; error: string | null } | null>(null);
 
   // All attribute names in the model, for the filter dropdown.
@@ -78,14 +80,15 @@ export function QueryPanel({
       skParts,
       consistent,
     };
-    const r = runQuery(state, index, { ...common, filter: filterOn && filter.attr ? filter : null });
+    const active = filters.filter((f) => f.attr !== "" && f.value !== "");
+    const r = runQuery(state, index, { ...common, filters: active });
     setResult({ scanned: r.scanned, returned: r.items.length, rcu: r.rcu, error: r.error });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
     }
     // the "read" set (before filter) drives the faint "you paid for this" highlight
-    const read = runQuery(state, index, { ...common, filter: null });
+    const read = runQuery(state, index, { ...common, filters: [] });
     onHighlight({
       matched: new Set(r.items.map((i) => i.id)),
       scanned: new Set(read.items.map((i) => i.id)),
@@ -102,15 +105,32 @@ export function QueryPanel({
       <div className="query-head">
         <span className="q-title">read</span>
         <div className="seg">
-          {(["get", "query", "scan"] as const).map((o) => (
-            <button key={o} className={o === op ? "active" : ""} onClick={() => setOp(o)}>
-              {o}
-            </button>
-          ))}
+          {(["get", "query", "scan"] as const).map((o) => {
+            const disabled = o === "get" && !isBase;
+            return (
+              <button
+                key={o}
+                className={o === op ? "active" : ""}
+                disabled={disabled}
+                title={disabled ? "GetItem is base-table only — GSIs support query/scan" : undefined}
+                onClick={() => setOp(o)}
+              >
+                {o}
+              </button>
+            );
+          })}
         </div>
         <label className="q-field">
           index
-          <select value={indexName} onChange={(e) => setIndexName(e.target.value)}>
+          <select
+            value={indexName}
+            onChange={(e) => {
+              const name = e.target.value;
+              setIndexName(name);
+              // GetItem can't run on a GSI — fall back to query.
+              if (name !== base.name && op === "get") setOp("query");
+            }}
+          >
             {indexes.map((i) => (
               <option key={i.name} value={i.name}>
                 {i.name}
@@ -186,13 +206,20 @@ export function QueryPanel({
       )}
 
       <div className="query-filter">
-        <label className="q-check">
-          <input type="checkbox" checked={filterOn} onChange={(e) => setFilterOn(e.target.checked)} />
-          filter
-        </label>
-        {filterOn && (
-          <>
-            <select value={filter.attr} onChange={(e) => setFilter((f) => ({ ...f, attr: e.target.value }))}>
+        <span className="q-flabel">filter</span>
+        {filters.map((f, i) => (
+          <span className="q-filter-row" key={i}>
+            {i > 0 && (
+              <select
+                className="q-comb"
+                value={f.combinator ?? "and"}
+                onChange={(e) => setFilter(i, { combinator: e.target.value as "and" | "or" })}
+              >
+                <option value="and">AND</option>
+                <option value="or">OR</option>
+              </select>
+            )}
+            <select value={f.attr} onChange={(e) => setFilter(i, { attr: e.target.value })}>
               <option value="">attr…</option>
               {attrNames.map((a) => (
                 <option key={a} value={a}>
@@ -200,16 +227,27 @@ export function QueryPanel({
                 </option>
               ))}
             </select>
-            <select value={filter.op} onChange={(e) => setFilter((f) => ({ ...f, op: e.target.value as CondOp }))}>
+            <select value={f.op} onChange={(e) => setFilter(i, { op: e.target.value as CondOp })}>
               {OPS.map((o) => (
                 <option key={o} value={o}>
                   {o}
                 </option>
               ))}
             </select>
-            <input value={filter.value} placeholder="value" onChange={(e) => setFilter((f) => ({ ...f, value: e.target.value }))} />
-            <span className="q-hint">applied after the read — trims results, not cost</span>
-          </>
+            <input value={f.value} placeholder="value" onChange={(e) => setFilter(i, { value: e.target.value })} />
+            {f.op === "between" && (
+              <input value={f.value2 ?? ""} placeholder="…and" onChange={(e) => setFilter(i, { value2: e.target.value })} />
+            )}
+            <button className="q-remove" title="remove" onClick={() => removeFilter(i)}>
+              &times;
+            </button>
+          </span>
+        ))}
+        <button className="q-add" onClick={addFilter}>
+          + condition
+        </button>
+        {filters.length > 0 && (
+          <span className="q-hint">applied after the read — trims results, not cost (AND binds tighter than OR)</span>
         )}
       </div>
 

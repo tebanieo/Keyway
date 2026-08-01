@@ -10,6 +10,13 @@ export interface Cond {
   value2?: string; // for "between"
 }
 
+/** A filter condition on a named attribute, chained with AND/OR to the previous
+ *  one. AND binds tighter than OR (no parentheses in v1). */
+export interface FilterCond extends Cond {
+  attr: string;
+  combinator?: "and" | "or"; // ignored on the first; defaults to "and"
+}
+
 export interface QuerySpec {
   op: "get" | "query" | "scan";
   /** Equality values for each partition-key attribute (get / query). */
@@ -19,9 +26,9 @@ export interface QuerySpec {
   /** query: a condition per sort-key attribute, left-to-right (a prefix). All
    *  but the last must be "=" — that's the multi-key sort rule. */
   skParts: Cond[];
-  /** Optional non-key filter — applied AFTER the read, so it trims results but
-   *  not cost. */
-  filter: (Cond & { attr: string }) | null;
+  /** Non-key filters — applied AFTER the read, so they trim results but not
+   *  cost. Chained with AND/OR (AND tighter). Empty = no filter. */
+  filters: FilterCond[];
   /** Strong (1 RCU / 4KB) vs eventually consistent (0.5 RCU / 4KB). */
   consistent: boolean;
 }
@@ -53,6 +60,27 @@ function cmp(v: string, c: Cond): boolean {
     case "between":
       return v >= c.value && v <= (c.value2 ?? c.value);
   }
+}
+
+/**
+ * Evaluate a chain of filter conditions with AND-before-OR precedence (no
+ * parentheses): split into OR-groups of ANDed conditions, OR the groups.
+ */
+function matchesFilters(item: Item, filters: FilterCond[]): boolean {
+  if (filters.length === 0) return true;
+  let result = false;
+  let group = true;
+  filters.forEach((f, i) => {
+    const m = cmp(item.attrs[f.attr] ?? "", f);
+    if (i === 0) group = m;
+    else if (f.combinator === "or") {
+      result = result || group;
+      group = m;
+    } else {
+      group = group && m;
+    }
+  });
+  return result || group;
 }
 
 /** ~1 RCU per 4KB read strongly-consistent; half that eventually-consistent.
@@ -137,9 +165,7 @@ export function runQuery(
     });
   }
 
-  const items = spec.filter
-    ? read.filter((it) => cmp(it.attrs[spec.filter!.attr] ?? "", spec.filter!))
-    : read;
+  const items = read.filter((it) => matchesFilters(it, spec.filters));
 
   return {
     scanned: read.length,
