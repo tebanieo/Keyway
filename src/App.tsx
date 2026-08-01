@@ -161,6 +161,9 @@ export function App() {
   const [docVersion, setDocVersion] = useState(0);
   const [mode, setMode] = useState<Mode>("canvas");
   const [step, setStep] = useState(0);
+  // The editor is the hero; collapsing its header hands the screen to the tables
+  // (authors work up top, viewers focus on the panes below).
+  const [editorCollapsed, setEditorCollapsed] = useState(false);
   const [pane, setPane] = useState<string>("split"); // "base" | "split" | gsi name
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -552,11 +555,21 @@ export function App() {
       </div>
 
       {editing && (
-        <div className="editor-wrap">
-          <div className="editor-head">
-            model script <span className="muted">— one line per step, edits apply live</span>
+        <div className={editorCollapsed ? "editor-wrap collapsed" : "editor-wrap"}>
+          <button
+            className="editor-head"
+            onClick={() => setEditorCollapsed((v) => !v)}
+            title={editorCollapsed ? "expand the editor" : "collapse the editor — focus the tables"}
+          >
+            <span className="chev" aria-hidden>
+              ▸
+            </span>
+            <span className="eh-title">model script</span>
+            <span className="muted">— one line per step, edits apply live</span>
+          </button>
+          <div className="editor-body">
+            <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />
           </div>
-          <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />
         </div>
       )}
 

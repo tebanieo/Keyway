@@ -529,27 +529,67 @@ body {
   box-shadow: inset 0 0 0 9999px rgba(255, 176, 32, 0.1);
 }
 
+/* The editor is the hero: an unbounded surface (no boxed card), collapsible by
+   its header so the tables below take the whole screen. */
 .editor-wrap {
-  margin-bottom: 20px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  margin-bottom: var(--s5);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
+  transition: grid-template-rows 0.28s var(--ease);
+}
+.editor-wrap.collapsed {
+  grid-template-rows: auto 0fr;
 }
 
 .editor-head {
-  padding: 8px 14px;
-  background: var(--panel-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  background: transparent;
   color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--tf), border-color var(--tf);
 }
-
+.editor-head:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.editor-wrap.collapsed .editor-head {
+  border-bottom-color: transparent;
+}
+.editor-head .chev {
+  color: var(--muted);
+  transform: rotate(90deg); /* expanded: points down */
+  transition: transform var(--tf);
+}
+.editor-wrap.collapsed .editor-head .chev {
+  transform: rotate(0deg); /* collapsed: points right */
+}
+.editor-head .eh-title {
+  font-weight: 600;
+}
 .editor-head .muted {
   color: var(--muted);
 }
 
+.editor-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .editor .cm-editor {
-  max-height: 340px;
+  min-height: 220px;
+  max-height: 58vh;
 }
 
 .editor .cm-scroller {
