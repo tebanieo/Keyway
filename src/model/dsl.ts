@@ -25,9 +25,20 @@ export interface Diagnostic {
   severity: "error" | "warning";
 }
 
+/** A declared access pattern (the SPEC): what a query needs to serve. */
+export interface AccessPattern {
+  /** Auto-assigned number (AP1, AP2, …) by declaration order. */
+  n: number;
+  description: string;
+  /** Optional index declared to serve it (`@ap … -> GSI1`). */
+  index?: string;
+}
+
 export interface ParseResult {
   ops: Op[];
   diagnostics: Diagnostic[];
+  /** Access patterns declared via `@ap` lines. */
+  aps: AccessPattern[];
   /** Base table keys, from `@table` (or the passed default: PK/SK). */
   base: IndexSpec;
   /** GSIs declared via `@gsi` lines (or a default GSI1 if none are). */
@@ -130,6 +141,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   // Pass 1: directives -> index config.
   let base: IndexSpec = { name: "base", pk: baseIndex.pk, sk: baseIndex.sk };
   const gsis: IndexSpec[] = [];
+  const aps: AccessPattern[] = [];
   lines.forEach((raw, line) => {
     const s = raw.trim();
     if (!s.startsWith("@")) return;
@@ -181,6 +193,15 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         return;
       }
       base = { name: "base", pk: attrs.pk, sk: attrs.sk }; // sk absent -> PK-only
+    } else if (kind === "ap") {
+      // @ap <description>  [-> <index that serves it>]
+      const [desc, idx] = rest.split("->");
+      const description = desc.trim();
+      if (description === "") {
+        diagnostics.push({ line, message: "@ap needs a description", severity: "error" });
+        return;
+      }
+      aps.push({ n: aps.length + 1, description, index: idx?.trim() || undefined });
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
@@ -258,5 +279,15 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     if (newKey) lastKey.set(label, newKey);
   });
 
-  return { ops, diagnostics, base, gsis, notes };
+  return { ops, diagnostics, base, gsis, aps, notes };
+}
+
+/** Serialize access patterns back to `@ap` directive lines. */
+export function serializeAps(aps: readonly AccessPattern[]): string {
+  if (aps.length === 0) return "";
+  return (
+    aps
+      .map((a) => `@ap ${a.description}${a.index ? ` -> ${a.index}` : ""}`)
+      .join("\n") + "\n"
+  );
 }

@@ -140,6 +140,18 @@ describe("parseDoc", () => {
     expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
   });
 
+  it("declares access patterns via @ap, auto-numbered, with optional index", () => {
+    const { aps, diagnostics } = parseDoc(
+      "@ap Get a user by id\n@ap Find user by email -> GSI1\nu1: PK=A  SK=B",
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(aps).toEqual([
+      { n: 1, description: "Get a user by id", index: undefined },
+      { n: 2, description: "Find user by email", index: "GSI1" },
+    ]);
+  });
+
   it("attaches an adjacent comment as an op's narration; blank line silences it", () => {
     const { notes } = parseDoc(
       "# a silent header\n\n# create Ada\nu1: PK=A  SK=B\nu2: PK=A  SK=C\n// ships it\ndelete u1",

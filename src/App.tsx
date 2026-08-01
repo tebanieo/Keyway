@@ -7,7 +7,8 @@ import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
 import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX, SEED_OPS } from "./model/seed";
-import { parseDoc, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
+import { parseDoc, serializeAps, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
+import type { AccessPattern } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { EXAMPLES } from "./model/examples";
@@ -114,6 +115,10 @@ export function App() {
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).notes,
   );
+  const [aps, setAps] = useState<AccessPattern[]>(
+    () => parseDoc(DEFAULT_DOC, BASE_INDEX).aps,
+  );
+  const [apsOpen, setApsOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [focusOn, setFocusOn] = useState(false);
@@ -149,6 +154,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setAps(parsed.aps);
   }, []);
 
   // Load a whole model from text (a shared link, or an example). Same path for
@@ -160,6 +166,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setAps(parsed.aps);
     setStep(parsed.ops.length);
     setPinnedId(null);
     setMode("editor");
@@ -185,7 +192,11 @@ export function App() {
   const enterEditor = () => {
     // reflect current structure + data as text so the two stay one source
     setDocText(
-      serializeTable(base) + serializeGsis(gsis) + "\n" + serializeOps(ops, base),
+      serializeTable(base) +
+        serializeGsis(gsis) +
+        serializeAps(aps) +
+        "\n" +
+        serializeOps(ops, base),
     );
     setMode("editor");
   };
@@ -213,6 +224,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setAps(parsed.aps);
     setPinnedId(null);
     setPlaying(false);
   };
@@ -372,6 +384,17 @@ export function App() {
           </button>
         </div>
 
+        {aps.length > 0 && (
+          <div className="seg">
+            <button
+              className={apsOpen ? "active" : ""}
+              onClick={() => setApsOpen((v) => !v)}
+            >
+              patterns
+            </button>
+          </div>
+        )}
+
         <div className="dropdown">
           <button
             className="dropdown-btn"
@@ -506,6 +529,10 @@ export function App() {
         />
       )}
 
+      {apsOpen && aps.length > 0 && (
+        <AccessPatterns aps={aps} base={base} gsis={gsis} onClose={() => setApsOpen(false)} />
+      )}
+
       {narration && (
         <div className="narration" key={curStep}>
           <span className="narr-step">{curStep}</span>
@@ -590,6 +617,66 @@ export function App() {
           copied <code>{copied}</code>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The access-pattern SPEC + coverage. An @ap is "covered" when it names an
+ * index (`-> GSI1`) that exists in the model. v1 coverage = the serving index
+ * exists; deeper validation (key conditions, returns data) is a refinement.
+ */
+function AccessPatterns({
+  aps,
+  base,
+  gsis,
+  onClose,
+}: {
+  aps: AccessPattern[];
+  base: IndexSpec;
+  gsis: IndexSpec[];
+  onClose: () => void;
+}) {
+  const indexNames = new Set([base.name, ...gsis.map((g) => g.name)]);
+  const covered = (ap: AccessPattern) => !!ap.index && indexNames.has(ap.index);
+  const n = aps.filter(covered).length;
+
+  return (
+    <div className="ap-panel">
+      <div className="ap-head">
+        <span className="ap-title">access patterns</span>
+        <span className={n === aps.length ? "ap-count all" : "ap-count"}>
+          {n}/{aps.length} covered
+        </span>
+        <div className="spacer" />
+        <button className="q-close" onClick={onClose} title="close">
+          &times;
+        </button>
+      </div>
+      <div className="ap-list">
+        {aps.map((ap) => {
+          const ok = covered(ap);
+          return (
+            <div className={ok ? "ap-row ok" : "ap-row"} key={ap.n}>
+              <span className="ap-n">AP{ap.n}</span>
+              <span className="ap-mark">{ok ? "✓" : "✗"}</span>
+              <span className="ap-desc">{ap.description}</span>
+              {ap.index ? (
+                <span className={ok ? "ap-idx" : "ap-idx bad"}>
+                  {ap.index}
+                  {ok ? "" : " (no such index)"}
+                </span>
+              ) : (
+                <span className="ap-idx none">no index assigned</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="ap-foot">
+        Declare with <code>@ap description -&gt; Index</code>. Uncovered = the serving
+        index isn't defined yet.
+      </div>
     </div>
   );
 }

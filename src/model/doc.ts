@@ -14,6 +14,13 @@ export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.
 # projection=keys) and a pane appears for each.
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
+# Access patterns are the SPEC — what the design must serve. "-> Index" links
+# one to the index that serves it; the panel flags covered vs uncovered.
+@ap Get a user's profile and orders -> base
+@ap Look up a user by email -> GSI1
+@ap List orders by status -> GSI1
+@ap Get a user's notification settings by type
+
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  GSI1PK=EMAIL#ada@analytical.io  GSI1SK=USER#1  _type=user-profile
 u2: PK=USER#2  SK=PROFILE  name=Alan Turing  email=alan@enigma.uk  GSI1PK=EMAIL#alan@enigma.uk  GSI1SK=USER#2  _type=user-profile
 

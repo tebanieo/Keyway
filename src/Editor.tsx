@@ -76,6 +76,11 @@ const DIRECTIVES = [
     detail: "custom base-table keys",
     type: "keyword",
   }),
+  snippetCompletion(`@ap ${ph("description")} -> ${ph("Index")}`, {
+    label: "@ap",
+    detail: "access pattern (auto-numbered)",
+    type: "keyword",
+  }),
 ];
 
 /** Parse the live doc into base/index config + entity templates + attr names. */
