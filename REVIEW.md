@@ -53,3 +53,11 @@ but **NOT cleared** — it's waiting for your review/testing. Work top-down.
 - RCU model: 0.5/item eventually-consistent, 1/item strong, assuming each item ≤4KB. There's a **strong** checkbox. This is a teaching approximation — real RCU is size-based; noted.
 - Comparisons are lexicographic (string) — fine for dates/prefixes; numbers-as-strings would sort lexically. Real multi-key would compare by native type; flagged for later.
 - Query runs against the model **at the current step** (respects the scrubber).
+
+### 🟡 Ship-it prep (deploy-ready, NOT published)
+**Test:** `npm run build` then `npm run preview` → the built app works served from a subpath (assets are relative). Nothing else to test.
+**Notes:**
+- Dropped the dead **`motion`** dependency (unused since we cut animation) — smaller install.
+- `vite.config.ts` now sets `base: "./"` so the build works on GitHub Pages project sites without knowing the repo name.
+- Added `.github/workflows/deploy.yml` (build + test + publish to Pages on push to `main`) and a `README.md` with the "100% client-side / no data" story + contribute-an-example instructions.
+- ⛔ **Not published.** Publishing needs a GitHub repo (there's no remote yet) and is your call. To go live: create the repo, push, then Settings → Pages → Source = "GitHub Actions". Everything else is ready.
