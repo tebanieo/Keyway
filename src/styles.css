@@ -331,9 +331,9 @@ body {
 }
 
 /* Access-patterns panel — the spec + coverage. */
-/* Access patterns live in a right slide-over drawer — opened on demand so it
+/* Right slide-over drawer — a reusable shell opened from the activity rail. It
    never steals focus from the editor hero or the tables. */
-.ap-panel.drawer {
+.drawer {
   position: fixed;
   top: 0;
   right: 0;
@@ -355,12 +355,12 @@ body {
   pointer-events: none;
   transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
 }
-.ap-panel.drawer.open {
+.drawer.open {
   transform: translateX(0);
   opacity: 1;
   pointer-events: auto;
 }
-.ap-head {
+.drawer-head {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -368,10 +368,46 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid var(--glass-line);
 }
-.ap-title {
+.drawer-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+}
+
+/* Examples gallery inside a drawer. */
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s2);
+}
+.ex-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--tf), border-color var(--tf);
+}
+.ex-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--glass-line);
+}
+.ex-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+.ex-desc {
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--muted);
 }
 .ap-count {
   font-size: 12px;
@@ -1334,90 +1370,6 @@ body {
 }
 .pin-chip:hover .x {
   color: var(--text);
-}
-
-.dropdown {
-  position: relative;
-}
-
-.dropdown-btn {
-  padding: 6px 13px;
-  border: 1px solid var(--glass-line);
-  border-radius: var(--r-sm);
-  background: var(--glass-bg-2);
-  color: var(--text);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  transition: background var(--tf), border-color var(--tf), transform var(--tf);
-}
-.dropdown-btn:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-}
-.dropdown-btn:active {
-  transform: scale(0.97);
-}
-
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-}
-
-.menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 45;
-  min-width: 300px;
-  padding: var(--s2);
-  /* An overlay menu is a SURFACE, not chrome: keep it near-opaque so titles
-     read cleanly over the busy content it floats above. */
-  background: #1c212b;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: menu-in 0.16s var(--ease);
-}
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.menu-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 9px 11px;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--tf);
-}
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.menu-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.menu-desc {
-  font-size: 11px;
-  color: var(--muted);
 }
 
 .share {

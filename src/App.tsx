@@ -27,7 +27,7 @@ type Mode = "canvas" | "editor";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Crisp inline icons (no dependency) that inherit color and animate fluidly. */
-function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" }) {
+function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" }) {
   const s = {
     width: 16,
     height: 16,
@@ -71,7 +71,77 @@ function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" 
           <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" />
         </svg>
       );
+    case "examples":
+      return (
+        <svg {...s}>
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      );
   }
+}
+
+/** A right-side glass drawer shell (header + close). Content is passed in, so
+ *  new rail sections just drop their body inside one of these. */
+function Drawer({
+  open,
+  title,
+  head,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  title: string;
+  head?: ReactNode;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className={open ? "drawer open" : "drawer"} aria-hidden={!open}>
+      <div className="drawer-head">
+        <span className="drawer-title">{title}</span>
+        {head}
+        <div className="spacer" />
+        <button className="q-close" onClick={onClose} title="close">
+          &times;
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Examples gallery as a rail drawer — same load path a shared link uses. */
+function ExamplesDrawer({
+  open,
+  onClose,
+  onLoad,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onLoad: (dsl: string) => void;
+}) {
+  return (
+    <Drawer open={open} title="Examples" onClose={onClose}>
+      <div className="ex-list">
+        {EXAMPLES.map((ex) => (
+          <button
+            key={ex.name}
+            className="ex-item"
+            onClick={() => {
+              onLoad(ex.dsl);
+              onClose();
+            }}
+          >
+            <span className="ex-title">{ex.name}</span>
+            <span className="ex-desc">{ex.description}</span>
+          </button>
+        ))}
+      </div>
+    </Drawer>
+  );
 }
 
 /** One entry in the right activity rail. */
@@ -240,7 +310,8 @@ export function App() {
   const [copied, setCopied] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const [examplesOpen, setExamplesOpen] = useState(false);
+  // Which right-rail drawer is open (only one at a time — they share the edge).
+  const [drawer, setDrawer] = useState<null | "patterns" | "examples">(null);
   const [queryOpen, setQueryOpen] = useState(false);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
@@ -249,7 +320,6 @@ export function App() {
   const [aps, setAps] = useState<AccessPattern[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).aps,
   );
-  const [apsOpen, setApsOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
@@ -530,36 +600,6 @@ export function App() {
           </button>
         </div>
 
-        <div className="dropdown">
-          <button
-            className="dropdown-btn"
-            onClick={() => setExamplesOpen((v) => !v)}
-            title="load a curated example model"
-          >
-            Examples &#9662;
-          </button>
-          {examplesOpen && (
-            <>
-              <div className="menu-backdrop" onClick={() => setExamplesOpen(false)} />
-              <div className="menu">
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex.name}
-                    className="menu-item"
-                    onClick={() => {
-                      loadModel(ex.dsl);
-                      setExamplesOpen(false);
-                    }}
-                  >
-                    <span className="menu-title">{ex.name}</span>
-                    <span className="menu-desc">{ex.description}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
         <button className="share" onClick={onShare} title="copy a shareable link to this model">
           Share
         </button>
@@ -670,30 +710,43 @@ export function App() {
       )}
 
       <RightRail
-        items={
-          aps.length > 0
+        items={[
+          {
+            id: "examples",
+            label: "Examples",
+            icon: <Icon name="examples" />,
+            active: drawer === "examples",
+            onClick: () => setDrawer((d) => (d === "examples" ? null : "examples")),
+          },
+          ...(aps.length > 0
             ? [
                 {
                   id: "patterns",
                   label: "Access Patterns",
                   icon: <Icon name="patterns" />,
                   badge: apUnserved,
-                  active: apsOpen,
-                  onClick: () => setApsOpen((v) => !v),
+                  active: drawer === "patterns",
+                  onClick: () => setDrawer((d) => (d === "patterns" ? null : "patterns")),
                 },
               ]
-            : []
-        }
+            : []),
+        ]}
+      />
+
+      <ExamplesDrawer
+        open={drawer === "examples"}
+        onClose={() => setDrawer(null)}
+        onLoad={loadModel}
       />
 
       {aps.length > 0 && (
         <AccessPatterns
-          open={apsOpen}
+          open={drawer === "patterns"}
           aps={aps}
           base={base}
           gsis={gsis}
           state={fullState}
-          onClose={() => setApsOpen(false)}
+          onClose={() => setDrawer(null)}
         />
       )}
 
@@ -823,18 +876,19 @@ function AccessPatterns({
   const gaps = rows.filter((r) => COVER_UI[r.cov.status].kind === "bad").length;
 
   return (
-    <div className={open ? "ap-panel drawer open" : "ap-panel drawer"} aria-hidden={!open}>
-      <div className="ap-head">
-        <span className="ap-title">Access Patterns</span>
-        <span className={served === aps.length ? "ap-count all" : "ap-count"}>
-          {served}/{aps.length} served
-        </span>
-        {gaps > 0 && <span className="ap-gaps">{gaps} unserved</span>}
-        <div className="spacer" />
-        <button className="q-close" onClick={onClose} title="close">
-          &times;
-        </button>
-      </div>
+    <Drawer
+      open={open}
+      title="Access Patterns"
+      onClose={onClose}
+      head={
+        <>
+          <span className={served === aps.length ? "ap-count all" : "ap-count"}>
+            {served}/{aps.length} served
+          </span>
+          {gaps > 0 && <span className="ap-gaps">{gaps} unserved</span>}
+        </>
+      }
+    >
       <div className="ap-list">
         {rows.map(({ ap, cov }) => {
           const ui = COVER_UI[cov.status];
@@ -855,7 +909,7 @@ function AccessPatterns({
         Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the
         query — <b>served</b> means it returns data.
       </div>
-    </div>
+    </Drawer>
   );
 }
 
