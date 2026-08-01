@@ -78,6 +78,33 @@ describe("parseDoc", () => {
     expect(gsis[2].sk).toBeUndefined(); // pk-only GSI
   });
 
+  it("@table sets custom base keys, and drives item key detection", () => {
+    const { base, ops, diagnostics } = parseDoc(
+      "@table pk=orgId sk=recordId\nx1: orgId=ACME  recordId=INFO  note=hi",
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(base).toMatchObject({ pk: "orgId", sk: "recordId" });
+    expect(ops).toHaveLength(1); // item has both custom keys -> valid
+  });
+
+  it("@table with only pk= makes a PK-only base table", () => {
+    const { base, diagnostics } = parseDoc("@table pk=id\nx1: id=A  v=1", BASE);
+    expect(diagnostics).toEqual([]);
+    expect(base.pk).toBe("id");
+    expect(base.sk).toBeUndefined();
+  });
+
+  it("defaults base to the passed default when no @table", () => {
+    const { base } = parseDoc("u1: PK=A  SK=B", BASE);
+    expect(base).toMatchObject({ pk: "PK", sk: "SK" });
+  });
+
+  it("flags @table without pk=", () => {
+    const { diagnostics } = parseDoc("@table sk=only", BASE);
+    expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
   it("defaults to a single GSI1 when none are declared", () => {
     const { gsis } = parseDoc("u1: PK=A  SK=B", BASE);
     expect(gsis.map((g) => g.name)).toEqual(["GSI1"]);

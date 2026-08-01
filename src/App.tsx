@@ -6,7 +6,7 @@ import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
 import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX, SEED_OPS } from "./model/seed";
-import { parseDoc, serializeGsis, serializeOps } from "./model/dsl";
+import { parseDoc, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
 import { DEFAULT_DOC } from "./model/doc";
 import { computeBackfill } from "./model/backfill";
 import { Editor } from "./Editor";
@@ -38,10 +38,10 @@ function newId(): string {
  * key change is identity-changing, which DynamoDB models as an atomic
  * TransactWriteItems (delete old + put new) — billed at 2× base.
  */
-function editToOps(item: Item, key: string, value: string): Op[] {
+function editToOps(item: Item, key: string, value: string, base: IndexSpec): Op[] {
   const attrs = { ...item.attrs, [key]: value };
   const next: Item = { id: item.id, attrs };
-  if (key === BASE_INDEX.pk || key === BASE_INDEX.sk) {
+  if (key === base.pk || key === base.sk) {
     return [
       { kind: "transact", actions: [{ kind: "delete", id: item.id }, { kind: "put", item: next }] },
     ];
@@ -62,16 +62,20 @@ interface EditProps {
   onAddItem: (pkValue: string) => void;
 }
 
-function describe(op: Op | undefined): { verb: string; detail: string } {
+function keyLabel(attrs: Record<string, string>, base: IndexSpec): string {
+  const pk = attrs[base.pk] ?? "?";
+  return base.sk ? `${pk} / ${attrs[base.sk] ?? "?"}` : pk;
+}
+
+function describe(op: Op | undefined, base: IndexSpec): { verb: string; detail: string } {
   if (!op) return { verb: "start", detail: "empty table" };
   if (op.kind === "delete") return { verb: "delete", detail: op.id };
   if (op.kind === "transact") {
     const p = op.actions.find((a) => a.kind === "put");
     const a = p?.kind === "put" ? p.item.attrs : undefined;
-    return { verb: "transact", detail: a ? `${a.PK} / ${a.SK} (key change)` : "delete + put" };
+    return { verb: "transact", detail: a ? `${keyLabel(a, base)} (key change)` : "delete + put" };
   }
-  const a = op.item.attrs;
-  return { verb: "put", detail: `${a.PK} / ${a.SK}` };
+  return { verb: "put", detail: keyLabel(op.item.attrs, base) };
 }
 
 function unionKeys(rows: DiffRow[], index: IndexSpec): string[] {
@@ -98,7 +102,10 @@ export function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
-  // Secondary indexes, declared in the DSL (`@gsi …`). Default: a single GSI1.
+  // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
+  const [base, setBase] = useState<IndexSpec>(
+    () => parseDoc(DEFAULT_DOC, BASE_INDEX).base,
+  );
   const [gsis, setGsis] = useState<IndexSpec[]>(
     () => parseDoc(DEFAULT_DOC, BASE_INDEX).gsis,
   );
@@ -124,25 +131,28 @@ export function App() {
     const parsed = parseDoc(text, BASE_INDEX);
     setOps(parsed.ops);
     setStep(parsed.ops.length); // typing shows the whole script
+    setBase(parsed.base);
     setGsis(parsed.gsis);
   }, []);
 
   const enterEditor = () => {
     // reflect current structure + data as text so the two stay one source
-    setDocText(serializeGsis(gsis) + "\n" + serializeOps(ops, BASE_INDEX));
+    setDocText(
+      serializeTable(base) + serializeGsis(gsis) + "\n" + serializeOps(ops, base),
+    );
     setMode("editor");
   };
 
   const edit: EditProps = {
     onEdit: (item, key, value) => {
       if ((item.attrs[key] ?? "") === value) return;
-      commit(editToOps(item, key, value));
+      commit(editToOps(item, key, value, base));
     },
     onDelete: (id) => commit([{ kind: "delete", id }]),
     onAddItem: (pkValue) => {
       const id = newId();
-      const attrs: Record<string, string> = { [BASE_INDEX.pk]: pkValue };
-      if (BASE_INDEX.sk) attrs[BASE_INDEX.sk] = `ITEM#${id.slice(0, 4)}`;
+      const attrs: Record<string, string> = { [base.pk]: pkValue };
+      if (base.sk) attrs[base.sk] = `ITEM#${id.slice(0, 4)}`;
       commit([{ kind: "put", item: { id, attrs } }]);
       setPinnedId(id);
     },
@@ -152,37 +162,39 @@ export function App() {
     setOps(SEED_OPS);
     setDocText(DEFAULT_DOC);
     setStep(SEED_OPS.length);
+    setBase(parseDoc(DEFAULT_DOC, BASE_INDEX).base);
+    setGsis(parseDoc(DEFAULT_DOC, BASE_INDEX).gsis);
     setPinnedId(null);
   };
 
   // ---- projections ----------------------------------------------------------
-  const state = useMemo(() => fold(ops.slice(0, curStep), BASE_INDEX), [ops, curStep]);
+  const state = useMemo(() => fold(ops.slice(0, curStep), base), [ops, curStep, base]);
   const prevState = useMemo(
-    () => fold(ops.slice(0, Math.max(0, curStep - 1)), BASE_INDEX),
-    [ops, curStep],
+    () => fold(ops.slice(0, Math.max(0, curStep - 1)), base),
+    [ops, curStep, base],
   );
-  const baseView = useMemo(() => project(state, BASE_INDEX), [state]);
-  const prevBaseView = useMemo(() => project(prevState, BASE_INDEX), [prevState]);
+  const baseView = useMemo(() => project(state, base), [state, base]);
+  const prevBaseView = useMemo(() => project(prevState, base), [prevState, base]);
   // One view per declared GSI.
   const gsiViews = useMemo(
     () =>
       gsis.map((g) => ({
         index: g,
-        view: project(state, g, BASE_INDEX),
-        prev: project(prevState, g, BASE_INDEX),
+        view: project(state, g, base),
+        prev: project(prevState, g, base),
       })),
-    [gsis, state, prevState],
+    [gsis, state, prevState, base],
   );
 
   const cost = useMemo<OpCost | null>(() => {
     if (curStep < 1) return null;
-    return writeCost(prevState, ops[curStep - 1], BASE_INDEX, gsis);
-  }, [prevState, ops, curStep, gsis]);
+    return writeCost(prevState, ops[curStep - 1], base, gsis);
+  }, [prevState, ops, curStep, base, gsis]);
 
   // Backfill suggestion — schema drift within an entity, at the head of the log.
   const backfill = useMemo(
-    () => (curStep === ops.length ? computeBackfill(state, BASE_INDEX) : null),
-    [state, curStep, ops.length],
+    () => (curStep === ops.length ? computeBackfill(state, base) : null),
+    [state, curStep, ops.length, base],
   );
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
@@ -207,7 +219,7 @@ export function App() {
     }
   };
 
-  const op = describe(ops[curStep - 1]);
+  const op = describe(ops[curStep - 1], base);
   const link: LinkProps = {
     hoveredId,
     pinnedId,

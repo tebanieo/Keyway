@@ -28,12 +28,18 @@ import type { IndexSpec } from "./engine/types";
 const SP2 = String.fromCharCode(32, 32);
 const ph = (name: string) => "${" + name + "}"; // a snippet tabstop
 
-// Static completions. `item` scaffolds a whole row; `gsi` is ADDITIVE (just the
-// GSI1 keys, appended to the item you're writing); `delete` removes one.
-const ITEM_SNIPPET = snippetCompletion(
-  `${ph("label")}: PK=${ph("PK")}${SP2}SK=${ph("SK")}${SP2}${ph("attr")}=${ph("value")}`,
-  { label: "item", detail: "new base item (whole row)", type: "keyword" },
-);
+// `item` scaffolds a whole row using the (possibly custom) base keys; `gsi` is
+// ADDITIVE (a GSI's keys, appended to the item you're writing); `delete` removes.
+function itemSnippet(base: IndexSpec) {
+  const keys = [base.pk, base.sk]
+    .filter((k): k is string => Boolean(k))
+    .map((k) => `${k}=${ph(k)}`)
+    .join(SP2);
+  return snippetCompletion(
+    `${ph("label")}: ${keys}${SP2}${ph("attr")}=${ph("value")}`,
+    { label: "item", detail: "new base item (whole row)", type: "keyword" },
+  );
+}
 /** Inserts one declared GSI's key attributes to add to the current item. */
 function gsiKeysSnippet(g: IndexSpec) {
   const parts = [`${g.pk}=${ph(g.pk)}`];
@@ -51,14 +57,15 @@ const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   type: "keyword",
 });
 
-const LEAD = [BASE_INDEX.pk, BASE_INDEX.sk].filter((k): k is string => Boolean(k));
-
-/** Parse the live doc into entity templates + known attribute names. */
+/** Parse the live doc into base/index config + entity templates + attr names. */
 function liveModel(doc: string) {
   const parsed = parseDoc(doc, BASE_INDEX);
-  const items = [...fold(parsed.ops, BASE_INDEX).values()];
+  const base = parsed.base;
+  const lead = [base.pk, base.sk].filter((k): k is string => Boolean(k));
+  const items = [...fold(parsed.ops, base).values()];
   return {
-    entities: deriveEntities(items, LEAD),
+    base,
+    entities: deriveEntities(items, lead),
     attrs: allAttrNames(items),
     gsis: parsed.gsis,
   };
@@ -173,7 +180,7 @@ function completeDsl(ctx: CompletionContext) {
   const word = ctx.matchBefore(/[\w-]*/);
   if (!word || (word.from === word.to && !ctx.explicit)) return null;
 
-  const { entities, attrs, gsis } = liveModel(ctx.state.doc.toString());
+  const { base, entities, attrs, gsis } = liveModel(ctx.state.doc.toString());
   const started = /^\s*[\w-]+\s*:/.test(before); // line already has `label:`
 
   let options;
@@ -197,7 +204,7 @@ function completeDsl(ctx: CompletionContext) {
     ];
   } else {
     // line start: scaffold a fresh item — blank, or from an entity template
-    options = [ITEM_SNIPPET, DELETE_SNIPPET, ...entities.map(entityScaffold)];
+    options = [itemSnippet(base), DELETE_SNIPPET, ...entities.map(entityScaffold)];
   }
 
   return { from: word.from, options };

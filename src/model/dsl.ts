@@ -28,6 +28,8 @@ export interface Diagnostic {
 export interface ParseResult {
   ops: Op[];
   diagnostics: Diagnostic[];
+  /** Base table keys, from `@table` (or the passed default: PK/SK). */
+  base: IndexSpec;
   /** GSIs declared via `@gsi` lines (or a default GSI1 if none are). */
   gsis: IndexSpec[];
 }
@@ -104,6 +106,14 @@ export function serializeGsis(gsis: readonly IndexSpec[]): string {
   return lines.join("\n") + "\n";
 }
 
+/** Serialize a non-default base table as an `@table` line (default PK/SK omitted). */
+export function serializeTable(base: IndexSpec): string {
+  if (base.pk === "PK" && base.sk === "SK") return "";
+  const parts = ["@table", `pk=${base.pk}`];
+  if (base.sk) parts.push(`sk=${base.sk}`);
+  return parts.join(SP) + "\n";
+}
+
 const DIRECTIVE = /^@(\w+)\s+(.*)$/;
 const GSI_NAME = /^(\S+)\s*(.*)$/;
 
@@ -114,6 +124,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const lines = text.split("\n");
 
   // Pass 1: directives -> index config.
+  let base: IndexSpec = { name: "base", pk: baseIndex.pk, sk: baseIndex.sk };
   const gsis: IndexSpec[] = [];
   lines.forEach((raw, line) => {
     const s = raw.trim();
@@ -142,11 +153,16 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         projection: parseProjection(attrs.projection),
       });
     } else if (kind === "table") {
-      diagnostics.push({
-        line,
-        message: "@table isn't supported yet — base keys are fixed to PK/SK",
-        severity: "warning",
-      });
+      const attrs = parseAttrs(rest);
+      if (!attrs.pk) {
+        diagnostics.push({
+          line,
+          message: "@table needs pk= (e.g. `@table pk=PK sk=SK`, or pk= alone for a PK-only table)",
+          severity: "error",
+        });
+        return;
+      }
+      base = { name: "base", pk: attrs.pk, sk: attrs.sk }; // sk absent -> PK-only
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
@@ -178,12 +194,10 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     const [, label, body] = m;
     const attrs = parseAttrs(body);
     const item: Item = { id: label, attrs };
-    const newKey = keyOf(item, baseIndex);
+    const newKey = keyOf(item, base);
 
     if (newKey === null) {
-      const need = baseIndex.sk
-        ? `${baseIndex.pk} and ${baseIndex.sk}`
-        : baseIndex.pk;
+      const need = base.sk ? `${base.pk} and ${base.sk}` : base.pk;
       diagnostics.push({
         line,
         message: `item "${label}" is missing its key (${need}); it won't appear`,
@@ -204,5 +218,5 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     if (newKey) lastKey.set(label, newKey);
   });
 
-  return { ops, diagnostics, gsis };
+  return { ops, diagnostics, base, gsis };
 }
