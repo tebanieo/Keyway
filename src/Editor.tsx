@@ -293,7 +293,7 @@ const theme = EditorView.theme(
   {
     "&": { backgroundColor: "#12151c", color: "#e6e9ef", fontSize: "13px" },
     ".cm-content": {
-      fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+      fontFamily: 'var(--font-mono)',
       caretColor: "#5b9dff",
     },
     ".cm-gutters": { backgroundColor: "#12151c", color: "#5b6172", border: "none" },

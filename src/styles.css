@@ -14,8 +14,8 @@
   --warn: #ffb020;
 
   /* type */
-  --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --font-ui: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
@@ -187,7 +187,7 @@ body {
   border-radius: 8px;
   background: var(--panel-2);
   color: var(--text);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
@@ -678,8 +678,16 @@ body {
 .editor-head .eh-title {
   font-weight: 600;
 }
-.editor-head .muted {
+.editor-head .eh-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.editor-head .eh-hint::before {
+  content: "·";
+  color: var(--line);
 }
 
 .editor-body {
@@ -1000,7 +1008,7 @@ body {
 }
 
 .cell .v {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -1033,14 +1041,14 @@ body {
 .ptable {
   width: 100%;
   border-collapse: collapse;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
 .ptable th {
   text-align: left;
   padding: 6px 14px;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1168,7 +1176,7 @@ body {
   box-shadow: 0 0 8px var(--accent);
 }
 .pin-chip code {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--accent);
 }
 .pin-chip .x {
@@ -1327,7 +1335,7 @@ body {
   border-radius: 5px;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 .cell-input:focus {

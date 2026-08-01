@@ -564,8 +564,8 @@ export function App() {
             <span className="chev" aria-hidden>
               ▸
             </span>
-            <span className="eh-title">model script</span>
-            <span className="muted">— one line per step, edits apply live</span>
+            <span className="eh-title">editor</span>
+            <span className="eh-hint">one line = one step</span>
           </button>
           <div className="editor-body">
             <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />
