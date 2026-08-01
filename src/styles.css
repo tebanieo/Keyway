@@ -275,29 +275,42 @@ body {
   transition: opacity 0.2s ease;
 }
 
-/* Narration callout — a comment above an op, shown as a caption. */
+/* Narration callout — a floating caption for the current step. Fixed (not in
+   the flow) so appearing/disappearing never shifts the page; pointer-events off
+   so it doesn't block the content it hovers over. */
 .narration {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  z-index: 55;
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 auto 18px;
-  max-width: 720px;
+  width: max-content;
+  max-width: min(720px, 92vw);
   padding: 12px 18px;
-  background: linear-gradient(180deg, var(--panel), var(--panel-2));
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  animation: narr-in 0.32s ease;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  animation: narr-drop 0.3s var(--ease);
 }
-@keyframes narr-in {
+/* Keyframes keep translate(-50%) so centering survives the animation. */
+@keyframes narr-drop {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translate(-50%, -12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
+}
+.narration {
+  transform: translate(-50%, 0);
 }
 .narr-step {
   flex: none;
@@ -1416,7 +1429,17 @@ body {
   box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
   font-size: var(--fs-sm);
   color: var(--muted);
-  animation: narr-in 0.2s ease;
+  animation: toast-rise 0.2s var(--ease);
+}
+@keyframes toast-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 .copied-toast code {
   font-family: var(--font-mono);
