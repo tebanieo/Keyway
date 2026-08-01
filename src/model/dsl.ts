@@ -227,6 +227,18 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         });
         return;
       }
+      // A multi-key GSI uses a comma list (`pk=a,b`). Repeated `pk=`/`sk=` is a
+      // common mistake — parseAttrs silently keeps only the last, collapsing the
+      // index to a single key (the "only the first key shows" trap). Flag it.
+      const dupPk = (nm[2].match(/(?:^|\s)pk=/g) ?? []).length > 1;
+      const dupSk = (nm[2].match(/(?:^|\s)sk=/g) ?? []).length > 1;
+      if (dupPk || dupSk) {
+        diagnostics.push({
+          line,
+          message: "multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=` — only the last was kept",
+          severity: "warning",
+        });
+      }
       // pk / sk may be comma-lists for a multi-key GSI (up to 4 each).
       const pkList = attrs.pk.split(",").map((s) => s.trim()).filter(Boolean);
       const skList = attrs.sk

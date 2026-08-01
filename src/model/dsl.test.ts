@@ -136,6 +136,13 @@ describe("parseDoc", () => {
     expect(diagnostics.some((d) => d.severity === "warning")).toBe(true);
   });
 
+  it("warns on repeated pk=/sk= (the silent multi-key collapse) and keeps only the last", () => {
+    const { gsis, diagnostics } = parseDoc("@gsi M pk=tenant pk=region sk=status,date", BASE);
+    expect(gsis[0].pks).toBeUndefined(); // collapsed to a single key
+    expect(gsis[0].pk).toBe("region"); // parseAttrs kept the last
+    expect(diagnostics.some((d) => /comma list/.test(d.message))).toBe(true);
+  });
+
   it("defaults to a single GSI1 when none are declared", () => {
     const { gsis } = parseDoc("u1: PK=A  SK=B", BASE);
     expect(gsis.map((g) => g.name)).toEqual(["GSI1"]);
