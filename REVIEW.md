@@ -24,6 +24,20 @@ typecheck + build + **75 unit tests** green. **Hard-refresh the browser first.**
 
 ---
 
+## 🟡 Full filter expressions (new — hard-refresh)
+
+**Test:** open **query**, run a query/scan, and type a **filter expression** in the filter box (Enter runs). Examples:
+- `status = pending AND size(name) > 5`
+- `begins_with(SK, ORDER#) OR contains(name, Lov)`
+- `total BETWEEN 10 AND 100 AND NOT status = shipped`
+- `status IN (open, pending)` · `attribute_exists(email)`
+Green rows = returned; amber = read-but-filtered (cost unchanged — the lesson). A malformed expression shows a `filter: …` parse error instead of running.
+**Notes:**
+- Full grammar: `= <> < <= > >=`, `BETWEEN`, `IN(...)`, `AND/OR/NOT`, parentheses, and functions `attribute_exists / attribute_not_exists / attribute_type / begins_with / contains / size()`. Correct precedence (comparators tightest → OR loosest); parens override.
+- Values are inline (no `:placeholder`): left of a comparator = attribute, right = literal. Quote values with spaces: `name = "Ada Lovelace"`. Numbers compare numerically (`total > 9` matches `10`).
+- Engine is a pure tokenizer→parser→AST→evaluator (`src/engine/filter.ts`), **15 dedicated tests**. Sort-key conditions stay the restricted key-condition set (unchanged) — filters get the full grammar, matching DynamoDB.
+- `attribute_type` returns S-only for now (flat string model); set/list/map functions land when nested types do.
+
 ## 🔧 Follow-up fixes (later session — all 🟡 ready, hard-refresh)
 
 Editor authoring cleanups + first query-panel fixes, in order:
