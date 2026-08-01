@@ -24,6 +24,16 @@ typecheck + build + **75 unit tests** green. **Hard-refresh the browser first.**
 
 ---
 
+## 🟡 Exact item-size cost (new)
+
+**Test:** the cost bar now shows **item Nb** next to the WCU. Add attributes to an item and watch the size grow; past 1 KB the base WCU ticks up (small items still cost 1). In **query**, the readout now shows **bytes** and the RCU is the *cumulative* bytes read rounded once — so a scan of many small items is cheap (0.5 RCU), which is correct. Flip a GSI to **keys** projection and its write cost drops (fewer bytes projected).
+**Notes:** pure `itemSize`/`wcu`/`rcu` in `src/engine/itemsize.ts` (8 tests) replaces the ≤4KB assumption everywhere — write cost is projection-aware. All values are sized as Strings (flat model); Number/Binary/Set sizing lands with typed attrs. The 100-byte per-item overhead is treated as storage-only (per the docs) — verify vs the awslabs calc when we care about sub-KB precision.
+
+## 🟡 Access patterns (@ap) + coverage (new)
+
+**Test:** the default doc declares 4 patterns; click **patterns** in the toolbar → panel shows `AP1..4` with ✓/✗ and **3/4 covered**. The uncovered one ("notification settings by type") has no `-> Index`. Add `-> GSI1` (or a real index) after it and it flips to covered. Declare your own with `@ap Get X by Y -> GSI1` (auto-numbered; `@ap` is in the `@`-completion menu).
+**Notes / honest scope:** **v1 coverage = the serving index exists.** That catches the core case ("you need an index for this pattern that isn't defined"). The deeper validation you described — link each `@ap` to an actual query and check it returns data with valid key conditions — is the **v2 refinement** (backlogged). Access patterns travel in the saved model/link.
+
 ## 🟡 Full filter expressions (new — hard-refresh)
 
 **Test:** open **query**, run a query/scan, and type a **filter expression** in the filter box (Enter runs). Examples:
