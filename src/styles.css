@@ -1,14 +1,58 @@
 :root {
-  --bg: #0f1115;
+  /* palette */
+  --bg: #0e1014;
   --panel: #171a21;
   --panel-2: #1e222b;
   --line: #2a2f3a;
   --text: #e6e9ef;
   --muted: #8b93a7;
   --accent: #5b9dff;
+  --accent-2: #7c5bff;
   --enter: #37d67a;
   --key: #f4c060;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --danger: #ff7a7a;
+  --warn: #ffb020;
+
+  /* type */
+  --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+
+  /* spacing */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+
+  /* radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 10px 34px rgba(0, 0, 0, 0.5);
+
+  /* liquid-glass surfaces (chrome only — data stays crisp) */
+  --glass-bg: rgba(24, 28, 37, 0.62);
+  --glass-bg-2: rgba(38, 44, 57, 0.55);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.14);
+  --glass-blur: blur(18px) saturate(1.4);
+
+  /* interaction */
+  --ring: 0 0 0 2px rgba(91, 157, 255, 0.45);
+  --accent-glow: 0 0 18px rgba(91, 157, 255, 0.35);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --tf: 0.16s var(--ease);
+
+  font-family: var(--font-ui);
 }
 
 * {
@@ -24,26 +68,37 @@ body {
 .app {
   max-width: none;
   margin: 0;
-  padding: 18px 28px 40px;
+  padding: var(--s4) var(--s5) var(--s6);
 }
 
+/* Liquid-glass command bar — frosted, floating, sticky at the top. */
 .toolbar {
+  position: sticky;
+  top: var(--s3);
+  z-index: 40;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  margin-bottom: 20px;
+  padding: var(--s2) var(--s3);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  margin-bottom: var(--s5);
 }
 
 .toolbar h1 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  margin: 0 var(--s1) 0 var(--s2);
   letter-spacing: 0.2px;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .spacer {
@@ -52,24 +107,40 @@ body {
 
 .seg {
   display: inline-flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .seg button {
   background: transparent;
   color: var(--muted);
   border: 0;
-  padding: 6px 14px;
-  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: var(--fs-md);
+  font-weight: 500;
   cursor: pointer;
+  transition: color var(--tf), background var(--tf), transform var(--tf);
+}
+
+.seg button:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.seg button:active {
+  transform: scale(0.96);
 }
 
 .seg button.active {
-  background: var(--accent);
+  background: linear-gradient(180deg, var(--accent), #4b86e6);
   color: #06101f;
   font-weight: 600;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .seg-label {
@@ -97,22 +168,42 @@ body {
 .stepper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s2);
+  padding: 3px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .stepper button {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
-  font-size: 15px;
+  transition: background var(--tf), transform var(--tf), color var(--tf);
+}
+
+.stepper button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+
+.stepper button:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 .stepper button:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
 }
 
@@ -127,33 +218,24 @@ body {
   font-weight: 600;
 }
 
-/* Playback controls + focus toggle. */
+/* Playback controls. */
 .stepper .play {
-  width: auto;
-  padding: 0 12px;
-  color: var(--accent);
-  font-size: 12px;
+  color: #06101f;
+  background: linear-gradient(180deg, var(--accent), #4b86e6);
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.stepper .play:hover:not(:disabled) {
+  background: linear-gradient(180deg, #6ea8ff, var(--accent));
 }
 .stepper .speed {
   height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--panel-2);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  font-size: 12px;
-  padding: 0 4px;
-}
-.stepper .focus {
-  width: auto;
-  padding: 0 12px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.stepper .focus.active {
-  background: var(--accent);
-  color: #06101f;
-  font-weight: 600;
-  border-color: var(--accent);
+  font-size: var(--fs-sm);
+  padding: 0 var(--s2);
+  cursor: pointer;
 }
 
 /* Focus mode: dim everything except the item the current step touches. */
@@ -908,19 +990,27 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
+  padding: 5px 11px;
+  border: 1px solid rgba(91, 157, 255, 0.5);
+  border-radius: var(--r-pill);
   background: rgba(91, 157, 255, 0.14);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: background var(--tf), transform var(--tf);
+}
+.pin-chip:hover {
+  background: rgba(91, 157, 255, 0.22);
+}
+.pin-chip:active {
+  transform: scale(0.97);
 }
 .pin-chip .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
 }
 .pin-chip code {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
@@ -940,16 +1030,21 @@ body {
 }
 
 .dropdown-btn {
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-2);
+  padding: 6px 13px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: var(--glass-bg-2);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: background var(--tf), border-color var(--tf), transform var(--tf);
 }
 .dropdown-btn:hover {
-  border-color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+.dropdown-btn:active {
+  transform: scale(0.97);
 }
 
 .menu-backdrop {
@@ -960,33 +1055,47 @@ body {
 
 .menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   z-index: 20;
   min-width: 300px;
-  padding: 6px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  padding: var(--s2);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  animation: menu-in 0.16s var(--ease);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .menu-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: transparent;
   text-align: left;
   cursor: pointer;
+  transition: background var(--tf);
 }
 .menu-item:hover {
-  background: var(--panel-2);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .menu-title {
@@ -1001,36 +1110,51 @@ body {
 }
 
 .share {
-  padding: 5px 14px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  background: rgba(91, 157, 255, 0.12);
-  color: var(--accent);
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgba(91, 157, 255, 0.5);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, rgba(91, 157, 255, 0.22), rgba(91, 157, 255, 0.1));
+  color: #cfe0ff;
+  font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
+  transition: background var(--tf), box-shadow var(--tf), transform var(--tf);
 }
 .share:hover {
-  background: rgba(91, 157, 255, 0.2);
+  background: linear-gradient(180deg, rgba(91, 157, 255, 0.32), rgba(91, 157, 255, 0.16));
+  box-shadow: var(--accent-glow);
+}
+.share:active {
+  transform: scale(0.97);
 }
 
 .share-msg {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--enter);
 }
 
 .reset {
-  padding: 5px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: background var(--tf), color var(--tf), transform var(--tf);
 }
 .reset:hover {
   color: var(--text);
-  border-color: var(--muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+.reset:active {
+  transform: scale(0.97);
 }
 
 /* Editable cells: a faint hint on hover, an inline input on double-click. */

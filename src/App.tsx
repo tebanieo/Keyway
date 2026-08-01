@@ -22,6 +22,47 @@ import type { QueryHighlight } from "./QueryPanel";
 
 type Mode = "canvas" | "editor";
 
+/** Crisp inline icons (no dependency) that inherit color and animate fluidly. */
+function Icon({ name }: { name: "play" | "pause" | "prev" | "next" }) {
+  const s = {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  switch (name) {
+    case "play":
+      return (
+        <svg {...s} fill="currentColor" stroke="none">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      );
+    case "pause":
+      return (
+        <svg {...s} fill="currentColor" stroke="none">
+          <rect x="6" y="5" width="4" height="14" rx="1" />
+          <rect x="14" y="5" width="4" height="14" rx="1" />
+        </svg>
+      );
+    case "prev":
+      return (
+        <svg {...s}>
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+      );
+    case "next":
+      return (
+        <svg {...s}>
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      );
+  }
+}
+
 /** Short label for an index's projection, shown in the pane subtitle. */
 function projLabel(index: IndexSpec): string {
   const p = index.projection;
@@ -474,17 +515,18 @@ export function App() {
           step {curStep}/{ops.length} &middot; <b>{op.verb}</b> {op.detail}
         </div>
         <div className="stepper">
-          <button className="play" onClick={togglePlay} title="auto-play">
-            {playing ? "❚❚" : "▶"}
-          </button>
           <button
             disabled={curStep === 0}
             onClick={() => {
               setPlaying(false);
               setStep(curStep - 1);
             }}
+            title="step back"
           >
-            &minus;
+            <Icon name="prev" />
+          </button>
+          <button className="play" onClick={togglePlay} title="auto-play">
+            <Icon name={playing ? "pause" : "play"} />
           </button>
           <button
             disabled={curStep === ops.length}
@@ -492,8 +534,9 @@ export function App() {
               setPlaying(false);
               setStep(curStep + 1);
             }}
+            title="step forward"
           >
-            +
+            <Icon name="next" />
           </button>
           <select
             className="speed"
