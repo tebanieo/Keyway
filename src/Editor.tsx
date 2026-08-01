@@ -11,8 +11,8 @@ import {
   hasPrevSnippetField,
   nextSnippetField,
   prevSnippetField,
-  snippet,
   snippetCompletion,
+  startCompletion,
 } from "@codemirror/autocomplete";
 import type { CompletionContext } from "@codemirror/autocomplete";
 import { forceLinting, linter, lintGutter } from "@codemirror/lint";
@@ -35,10 +35,13 @@ function itemSnippet(base: IndexSpec) {
     .filter((k): k is string => Boolean(k))
     .map((k) => `${k}=${ph(k)}`)
     .join(SP2);
-  return snippetCompletion(
-    `${ph("label")}: ${keys}${SP2}${ph("attr")}=${ph("value")}`,
-    { label: "item", detail: "new base item (whole row)", type: "keyword" },
-  );
+  // Scaffold just the keys. Tab past the last one opens a menu to add GSI keys /
+  // _type / attributes — so adding a whole key=value never collides with a slot.
+  return snippetCompletion(`${ph("label")}: ${keys}`, {
+    label: "item",
+    detail: "new base item — Tab at the end to add keys/attrs",
+    type: "keyword",
+  });
 }
 /** Inserts one declared GSI's key attributes to add to the current item. */
 function gsiKeysSnippet(g: IndexSpec) {
@@ -100,11 +103,7 @@ function entityScaffold(e: EntityTemplate) {
   });
 }
 
-/**
- * Tab as a form-field jump, scoped to the current line. Two leading spaces are
- * built via char code so no literal space sits inside a string source.
- */
-const addAttr = snippet(String.fromCharCode(32, 32) + "${attr}=${value}");
+const SEP2 = String.fromCharCode(32, 32); // two-space attribute separator
 
 /** Select the value that starts just after the `=` at absolute offset `eq`. */
 function selectValue(view: EditorView, eq: number): void {
@@ -120,8 +119,9 @@ function selectValue(view: EditorView, eq: number): void {
 }
 
 // Tab: move to the next `attr=` value on this line; at the end of an item line,
-// append a fresh `attr=value` slot (so you keep adding attributes and never get
-// ejected). Returns false only on a non-item line, letting Tab exit normally.
+// add a separator and OPEN the completion menu (GSI keys / _type / attributes)
+// so you pick what to add next — no conflicting slot. Returns false on a
+// non-item line, letting Tab exit normally.
 const tabForward: Command = (view) => {
   const { state } = view;
   const sel = state.selection.main;
@@ -132,7 +132,11 @@ const tabForward: Command = (view) => {
     return true;
   }
   if (line.text.includes("=")) {
-    addAttr(view, null, line.to, line.to); // new attribute tabstop
+    view.dispatch({
+      changes: { from: line.to, insert: SEP2 },
+      selection: EditorSelection.cursor(line.to + SEP2.length),
+    });
+    startCompletion(view);
     return true;
   }
   return false;
