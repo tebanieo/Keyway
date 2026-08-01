@@ -1233,13 +1233,13 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: 20;
+  z-index: 45;
   min-width: 300px;
   padding: var(--s2);
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-line);
+  /* An overlay menu is a SURFACE, not chrome: keep it near-opaque so titles
+     read cleanly over the busy content it floats above. */
+  background: #1c212b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
   display: flex;
