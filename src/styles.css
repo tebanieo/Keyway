@@ -701,11 +701,12 @@ body {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  margin-bottom: 20px;
-  border: 1px solid var(--accent);
-  border-radius: 10px;
+  margin-bottom: var(--s5);
+  border: 1px solid rgba(91, 157, 255, 0.5);
+  border-radius: var(--r-md);
   background: rgba(91, 157, 255, 0.1);
-  font-size: 13px;
+  box-shadow: var(--shadow-1);
+  font-size: var(--fs-md);
 }
 
 .backfill .msg {
@@ -713,33 +714,43 @@ body {
 }
 
 .backfill code {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--key);
 }
 
 .backfill .do {
   padding: 6px 14px;
   border: 0;
-  border-radius: 8px;
-  background: var(--accent);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, var(--accent), #4b86e6);
   color: #06101f;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: filter var(--tf), transform var(--tf);
+}
+.backfill .do:hover {
+  filter: brightness(1.08);
+}
+.backfill .do:active {
+  transform: scale(0.97);
 }
 
 .backfill .ghost {
   padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   cursor: pointer;
+  transition: background var(--tf), color var(--tf);
 }
 
 .backfill .ghost:hover {
   color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .costbar {
@@ -748,11 +759,14 @@ body {
   gap: 10px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  margin-bottom: 20px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 12px;
+  margin-bottom: var(--s5);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1), inset 0 1px 0 var(--glass-hi);
+  font-size: var(--fs-sm);
 }
 
 .costbar .idle {
@@ -760,7 +774,7 @@ body {
 }
 
 .item-bytes {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
 }
 .item-bytes b {
@@ -771,13 +785,13 @@ body {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 7px;
-  background: var(--panel-2);
+  padding: 4px 12px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .costbar .total b {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--text);
 }
 
@@ -792,8 +806,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
 }
 
 .seg-cost .idx {
@@ -821,16 +835,16 @@ body {
 }
 
 .eff-delete {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 
 .eff-reindex {
-  color: #ffb020;
+  color: var(--warn);
 }
 
 /* The costly case gets a visible frame so 2-WCU reads as a warning. */
 .seg-cost.eff-reindex {
-  border-color: #ffb020;
+  border-color: var(--warn);
   background: rgba(255, 176, 32, 0.1);
 }
 
@@ -841,8 +855,8 @@ body {
 }
 
 .seg-cost code {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--key);
 }
 
@@ -851,7 +865,7 @@ body {
 }
 
 .seg-cost .w {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--text);
   font-weight: 600;
 }
@@ -874,7 +888,7 @@ body {
 
 .split {
   display: flex;
-  gap: 16px;
+  gap: var(--s4);
   align-items: flex-start;
 }
 
@@ -924,8 +938,9 @@ body {
 
 .partition {
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
 }
 
@@ -933,14 +948,14 @@ body {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel-2);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .partition-head .pk {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
   color: var(--key);
 }
 
@@ -1036,7 +1051,7 @@ body {
 
 .ptable td {
   padding: 7px 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--glass-line);
   white-space: nowrap;
 }
 
@@ -1380,21 +1395,23 @@ body {
   bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: 70;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  background: var(--panel);
-  border: 1px solid var(--enter);
-  border-radius: 9px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  font-size: 12px;
+  padding: 8px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(55, 214, 122, 0.5);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  font-size: var(--fs-sm);
   color: var(--muted);
   animation: narr-in 0.2s ease;
 }
 .copied-toast code {
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--key);
 }
 
