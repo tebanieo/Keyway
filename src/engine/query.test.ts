@@ -116,8 +116,9 @@ describe("runQuery — query", () => {
 describe("runQuery — scan", () => {
   it("reads every item in the index", () => {
     const r = runQuery(state, BASE, spec({ op: "scan" }));
-    expect(r.scanned).toBe(5); // ALL items — the expensive read
-    expect(r.rcu).toBe(2.5);
+    expect(r.scanned).toBe(5); // ALL items — the expensive read (by count)
+    // but these 5 items are tiny — cumulative < 4KB rounds to one eventual unit
+    expect(r.rcu).toBe(0.5);
   });
   it("scan on a GSI only reads items present in that GSI (sparse)", () => {
     const r = runQuery(state, GSI1, spec({ op: "scan" }));

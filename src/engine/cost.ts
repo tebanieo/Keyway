@@ -1,5 +1,6 @@
 import type { IndexSpec, Item, Op } from "./types";
-import { applyAction, keyOf, partitionLabel, pkAttrs, skAttrs } from "./engine";
+import { applyAction, keyOf, partitionLabel, pkAttrs, projectItem, skAttrs } from "./engine";
+import { itemSize, wcu } from "./itemsize";
 
 /**
  * What a single write does to one index.
@@ -48,40 +49,52 @@ function projectedChanged(prev: Item, next: Item, index: IndexSpec): boolean {
 }
 
 /** Cost on one index of moving an item from `prev` (maybe absent) to `next`. */
-function transitionCost(prev: Item | null, next: Item, g: IndexSpec): IndexCost {
+function transitionCost(
+  prev: Item | null,
+  next: Item,
+  g: IndexSpec,
+  baseIndex: IndexSpec,
+): IndexCost {
+  // GSI writes are sized by the PROJECTED item (KEYS_ONLY projects less → cheaper).
+  const gWcu = (it: Item) => wcu(itemSize(projectItem(it, g, baseIndex)));
   const prevKey = prev ? keyOf(prev, g) : null;
   const newKey = keyOf(next, g);
   if (prevKey === null && newKey === null) {
     return { index: g.name, effect: "none", writes: 0 };
   }
   if (prevKey === null) {
-    return { index: g.name, effect: "insert", writes: 1, to: partitionLabel(next, g) };
+    return { index: g.name, effect: "insert", writes: gWcu(next), to: partitionLabel(next, g) };
   }
   if (newKey === null) {
-    return { index: g.name, effect: "delete", writes: 1, from: partitionLabel(prev!, g) };
+    return { index: g.name, effect: "delete", writes: gWcu(prev!), from: partitionLabel(prev!, g) };
   }
   if (prevKey === newKey) {
     const changed = projectedChanged(prev!, next, g);
     return {
       index: g.name,
       effect: changed ? "update" : "none",
-      writes: changed ? 1 : 0,
+      writes: changed ? gWcu(next) : 0,
       to: partitionLabel(next, g),
     };
   }
   return {
     index: g.name,
     effect: "reindex",
-    writes: 2,
+    writes: gWcu(prev!) + gWcu(next), // delete old projection + put new one
     from: partitionLabel(prev!, g),
     to: partitionLabel(next, g),
   };
 }
 
 /** Cost on one index of removing `prev` from the table. */
-function removalCost(prev: Item | undefined, g: IndexSpec): IndexCost {
+function removalCost(prev: Item | undefined, g: IndexSpec, baseIndex: IndexSpec): IndexCost {
   if (prev && keyOf(prev, g) !== null) {
-    return { index: g.name, effect: "delete", writes: 1, from: partitionLabel(prev, g) };
+    return {
+      index: g.name,
+      effect: "delete",
+      writes: wcu(itemSize(projectItem(prev, g, baseIndex))),
+      from: partitionLabel(prev, g),
+    };
   }
   return { index: g.name, effect: "none", writes: 0 };
 }
@@ -138,20 +151,21 @@ export function writeCost(
   if (op.kind === "put") {
     const baseKey = keyOf(op.item, baseIndex);
     const prev = baseKey ? prevState.get(baseKey) ?? null : null;
-    const indexes = gsis.map((g) => transitionCost(prev, op.item, g));
+    const indexes = gsis.map((g) => transitionCost(prev, op.item, g, baseIndex));
+    const baseWrites = wcu(itemSize(op.item));
     return {
       base: "put",
-      baseWrites: 1,
+      baseWrites,
       indexes,
       transactional: false,
-      totalWrites: 1 + sumWrites(indexes),
+      totalWrites: baseWrites + sumWrites(indexes),
     };
   }
 
   if (op.kind === "delete") {
     const prev = findById(prevState, op.id);
-    const indexes = gsis.map((g) => removalCost(prev, g));
-    const baseWrites = prev ? 1 : 0;
+    const indexes = gsis.map((g) => removalCost(prev, g, baseIndex));
+    const baseWrites = prev ? wcu(itemSize(prev)) : 0;
     return {
       base: "delete",
       baseWrites,
@@ -165,28 +179,27 @@ export function writeCost(
   // then merge. Base writes are billed at 2× (transactional rate).
   const running = new Map(prevState);
   const perIndexParts = new Map<string, IndexCost[]>(gsis.map((g) => [g.name, []]));
-  let baseActionWrites = 0;
+  let baseWrites = 0;
 
   for (const action of op.actions) {
     if (action.kind === "put") {
       const baseKey = keyOf(action.item, baseIndex);
       const prev = baseKey ? running.get(baseKey) ?? null : null;
       for (const g of gsis) {
-        perIndexParts.get(g.name)!.push(transitionCost(prev, action.item, g));
+        perIndexParts.get(g.name)!.push(transitionCost(prev, action.item, g, baseIndex));
       }
-      baseActionWrites += 1;
+      baseWrites += wcu(itemSize(action.item), true); // transactional 2×
     } else {
       const prev = findById(running, action.id);
       for (const g of gsis) {
-        perIndexParts.get(g.name)!.push(removalCost(prev, g));
+        perIndexParts.get(g.name)!.push(removalCost(prev, g, baseIndex));
       }
-      if (prev) baseActionWrites += 1;
+      if (prev) baseWrites += wcu(itemSize(prev), true);
     }
     applyAction(running, action, baseIndex);
   }
 
   const indexes = gsis.map((g) => mergeIndex(g.name, perIndexParts.get(g.name)!));
-  const baseWrites = baseActionWrites * 2; // transactional writes cost double
   return {
     base: "transact",
     baseWrites,

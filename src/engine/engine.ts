@@ -103,7 +103,7 @@ export function fold(ops: readonly Op[], baseIndex: IndexSpec): Map<string, Item
  * the base row); "ALL" keeps everything, "KEYS_ONLY" keeps only those keys, and
  * a string[] additionally keeps the listed INCLUDE attributes.
  */
-function projectAttrs(item: Item, index: IndexSpec, baseIndex: IndexSpec): Item {
+export function projectItem(item: Item, index: IndexSpec, baseIndex: IndexSpec): Item {
   const proj = index.projection;
   if (proj === undefined || proj === "ALL") return item;
 
@@ -155,7 +155,7 @@ export function project(
       g = { pk: partitionLabel(item, index), items: [] };
       groups.set(groupKey, g);
     }
-    g.items.push(projectAttrs(item, index, baseIndex));
+    g.items.push(projectItem(item, index, baseIndex));
   }
 
   const sks = skAttrs(index);

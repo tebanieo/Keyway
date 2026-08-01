@@ -430,6 +430,14 @@ body {
   color: var(--muted);
 }
 
+.item-bytes {
+  font-size: 11px;
+  color: var(--muted);
+}
+.item-bytes b {
+  color: var(--text);
+}
+
 .costbar .total {
   display: inline-flex;
   align-items: baseline;

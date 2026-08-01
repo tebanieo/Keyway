@@ -2,6 +2,8 @@ import type { IndexSpec, Item } from "./types";
 import { keyOf, pkAttrs, skAttrs } from "./engine";
 import { evalFilter } from "./filter";
 import type { FilterNode } from "./filter";
+import { itemSize, rcu } from "./itemsize";
+import type { ReadMode } from "./itemsize";
 
 /** Comparison operators usable on a sort key's last attribute, or a filter. */
 export type CondOp = "=" | "begins_with" | "<" | "<=" | ">" | ">=" | "between";
@@ -31,6 +33,8 @@ export interface QuerySpec {
 export interface QueryResult {
   /** Items DynamoDB actually reads — this is what you're charged for. */
   scanned: number;
+  /** Cumulative bytes read (drives the RCU). */
+  bytes: number;
   /** Items returned to you (scanned minus filtered-out). */
   items: Item[];
   rcu: number;
@@ -55,12 +59,6 @@ function cmp(v: string, c: Cond): boolean {
     case "between":
       return v >= c.value && v <= (c.value2 ?? c.value);
   }
-}
-
-/** ~1 RCU per 4KB read strongly-consistent; half that eventually-consistent.
- *  We assume each item ≤ 4KB (one unit). */
-function rcuFor(scanned: number, consistent: boolean): number {
-  return consistent ? scanned : scanned / 2;
 }
 
 /**
@@ -107,8 +105,9 @@ export function runQuery(
   spec: QuerySpec,
 ): QueryResult {
   const error = validate(index, spec);
-  if (error) return { scanned: 0, items: [], rcu: 0, error };
+  if (error) return { scanned: 0, bytes: 0, items: [], rcu: 0, error };
 
+  const mode: ReadMode = spec.consistent ? "strong" : "eventual";
   const inIndex = (it: Item) => keyOf(it, index) !== null;
 
   if (spec.op === "get") {
@@ -120,10 +119,12 @@ export function runQuery(
         pks.every((a, i) => it.attrs[a] === spec.pk[i]) &&
         sks.every((a, i) => it.attrs[a] === spec.sk[i]),
     );
+    const bytes = found ? itemSize(found) : 0;
     return {
       scanned: 1, // a GetItem is charged even on a miss
+      bytes,
       items: found ? [found] : [],
-      rcu: rcuFor(1, spec.consistent),
+      rcu: rcu(bytes, mode),
       error: null,
     };
   }
@@ -141,10 +142,13 @@ export function runQuery(
 
   const items = spec.filter ? read.filter((it) => evalFilter(spec.filter!, it)) : read;
 
+  // Query/Scan RCU is the CUMULATIVE size of all items read, rounded once.
+  const bytes = read.reduce((n, it) => n + itemSize(it), 0);
   return {
     scanned: read.length,
+    bytes,
     items,
-    rcu: rcuFor(read.length, spec.consistent),
+    rcu: rcu(bytes, mode),
     error: null,
   };
 }

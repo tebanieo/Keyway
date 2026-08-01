@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fold, pkAttrs, project, skAttrs } from "./engine/engine";
+import { itemSize } from "./engine/itemsize";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
 import { diffPartitions } from "./engine/diff";
@@ -297,6 +298,8 @@ export function App() {
 
   const curOp = ops[curStep - 1];
   const op = describe(curOp, base);
+  const opItem = putItemOf(curOp);
+  const opBytes = opItem ? itemSize(opItem) : 0;
   const narration = curStep >= 1 ? notes[curStep - 1] : undefined;
   // The item this step touches — spotlighted in focus mode.
   const affectedId = curOp
@@ -510,7 +513,7 @@ export function App() {
         </div>
       )}
 
-      <CostBar cost={cost} />
+      <CostBar cost={cost} bytes={opBytes} />
 
       {pane === "split" ? (
         <div className="split">
@@ -599,7 +602,7 @@ const EFFECT_WORD: Record<string, string> = {
   reindex: "reindex",
 };
 
-function CostBar({ cost }: { cost: OpCost | null }) {
+function CostBar({ cost, bytes }: { cost: OpCost | null; bytes: number }) {
   if (!cost) {
     return (
       <div className="costbar">
@@ -613,6 +616,11 @@ function CostBar({ cost }: { cost: OpCost | null }) {
         <b>{cost.totalWrites}</b>
         <span className="unit">WCU</span>
       </span>
+      {bytes > 0 && (
+        <span className="item-bytes">
+          item <b>{bytes}</b> b
+        </span>
+      )}
       <span className={cost.transactional ? "seg-cost eff-box eff-tx" : "seg-cost"}>
         <span className="idx">base</span>
         <span className="eff eff-write">{cost.base}</span>

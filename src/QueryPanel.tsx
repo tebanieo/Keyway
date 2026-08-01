@@ -44,7 +44,7 @@ export function QueryPanel({
   const [skConds, setSkConds] = useState<Record<string, Cond>>({});
   const [filterText, setFilterText] = useState("");
   const [consistent, setConsistent] = useState(false);
-  const [result, setResult] = useState<{ scanned: number; returned: number; rcu: number; error: string | null } | null>(null);
+  const [result, setResult] = useState<{ scanned: number; bytes: number; returned: number; rcu: number; error: string | null } | null>(null);
 
   const setPk = (a: string, v: string) => setPkVals((p) => ({ ...p, [a]: v }));
   const setSk = (a: string, patch: Partial<Cond>) =>
@@ -70,13 +70,13 @@ export function QueryPanel({
     };
     const parsed = parseFilter(filterText);
     if (parsed.error) {
-      setResult({ scanned: 0, returned: 0, rcu: 0, error: `filter: ${parsed.error}` });
+      setResult({ scanned: 0, bytes: 0, returned: 0, rcu: 0, error: `filter: ${parsed.error}` });
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
     }
     const filter = parsed.ast ?? null;
     const r = runQuery(state, index, { ...common, filter });
-    setResult({ scanned: r.scanned, returned: r.items.length, rcu: r.rcu, error: r.error });
+    setResult({ scanned: r.scanned, bytes: r.bytes, returned: r.items.length, rcu: r.rcu, error: r.error });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
@@ -225,6 +225,9 @@ export function QueryPanel({
             <>
               <span className="q-stat">
                 <b>{result.scanned}</b> read
+              </span>
+              <span className="q-stat">
+                <b>{result.bytes}</b> bytes
               </span>
               <span className="q-stat">
                 <b>{result.returned}</b> returned
