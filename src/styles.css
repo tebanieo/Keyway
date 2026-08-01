@@ -318,20 +318,42 @@ body {
 }
 
 /* Access-patterns panel — the spec + coverage. */
-.ap-panel {
-  margin-bottom: 20px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
-  overflow: hidden;
+/* Access patterns live in a right slide-over drawer — opened on demand so it
+   never steals focus from the editor hero or the tables. */
+.ap-panel.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 60;
+  width: min(460px, 94vw);
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border: 0;
+  border-left: 1px solid var(--glass-line);
+  border-radius: 0;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.5), inset 1px 0 0 var(--glass-hi);
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+.ap-panel.drawer.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 .ap-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  background: var(--panel-2);
-  border-bottom: 1px solid var(--line);
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--glass-line);
 }
 .ap-title {
   font-size: 13px;
@@ -354,23 +376,30 @@ body {
 .ap-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
 }
 .ap-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--glass-line);
+  font-size: var(--fs-md);
 }
 .ap-row:first-child {
   border-top: 0;
 }
+.ap-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
 .ap-n {
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--muted);
-  min-width: 34px;
+  min-width: 30px;
 }
 .ap-mark {
   font-weight: 700;
@@ -380,28 +409,29 @@ body {
   color: var(--enter);
 }
 .ap-mark.warn {
-  color: #ffb020;
+  color: var(--warn);
 }
 .ap-mark.bad {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 .ap-desc {
+  flex: 1;
   color: var(--text);
-  white-space: nowrap;
+  line-height: 1.35;
 }
 .ap-idx {
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--accent);
+  background: rgba(91, 157, 255, 0.12);
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
 }
 .ap-msg {
-  flex: 1;
-  text-align: right;
-  font-size: 11px;
+  padding-left: 50px;
+  font-size: var(--fs-xs);
   color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .ap-msg.ok {
   color: var(--enter);
@@ -413,13 +443,14 @@ body {
   color: #ff7a7a;
 }
 .ap-foot {
-  padding: 8px 14px;
-  border-top: 1px solid var(--line);
-  font-size: 11px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--glass-line);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
   color: var(--muted);
 }
 .ap-foot code {
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--font-mono);
   color: var(--key);
 }
 

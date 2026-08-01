@@ -602,8 +602,15 @@ export function App() {
         />
       )}
 
-      {apsOpen && aps.length > 0 && (
-        <AccessPatterns aps={aps} base={base} gsis={gsis} state={fullState} onClose={() => setApsOpen(false)} />
+      {aps.length > 0 && (
+        <AccessPatterns
+          open={apsOpen}
+          aps={aps}
+          base={base}
+          gsis={gsis}
+          state={fullState}
+          onClose={() => setApsOpen(false)}
+        />
       )}
 
       {narration && (
@@ -712,12 +719,14 @@ const COVER_UI: Record<CoverageStatus, { mark: string; kind: "ok" | "warn" | "ba
  * query shows the exact key rule it broke.
  */
 function AccessPatterns({
+  open,
   aps,
   base,
   gsis,
   state,
   onClose,
 }: {
+  open: boolean;
   aps: AccessPattern[];
   base: IndexSpec;
   gsis: IndexSpec[];
@@ -730,7 +739,7 @@ function AccessPatterns({
   const gaps = rows.filter((r) => COVER_UI[r.cov.status].kind === "bad").length;
 
   return (
-    <div className="ap-panel">
+    <div className={open ? "ap-panel drawer open" : "ap-panel drawer"} aria-hidden={!open}>
       <div className="ap-head">
         <span className="ap-title">access patterns</span>
         <span className={served === aps.length ? "ap-count all" : "ap-count"}>
@@ -747,11 +756,13 @@ function AccessPatterns({
           const ui = COVER_UI[cov.status];
           return (
             <div className={`ap-row ${ui.kind}`} key={ap.n}>
-              <span className="ap-n">AP{ap.n}</span>
-              <span className={`ap-mark ${ui.kind}`}>{ui.mark}</span>
-              <span className="ap-desc">{ap.description}</span>
-              {ap.index && <span className="ap-idx">{ap.index}</span>}
-              <span className={`ap-msg ${ui.kind}`}>{cov.message}</span>
+              <div className="ap-row-top">
+                <span className={`ap-mark ${ui.kind}`}>{ui.mark}</span>
+                <span className="ap-n">AP{ap.n}</span>
+                <span className="ap-desc">{ap.description}</span>
+                {ap.index && <span className="ap-idx">{ap.index}</span>}
+              </div>
+              <div className={`ap-msg ${ui.kind}`}>{cov.message}</div>
             </div>
           );
         })}
