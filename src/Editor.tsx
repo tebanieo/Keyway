@@ -185,15 +185,31 @@ function completeDsl(ctx: CompletionContext) {
 
   let options;
   if (started) {
-    // mid-item: add a whole GSI's keys, or any known attribute name — including
-    // the key attributes of declared GSIs even before any item uses them.
+    // mid-item: a whole GSI's keys, a _type tag, or any known attribute name
+    // (incl. declared GSI keys even before any item uses them).
     const names = new Set(attrs);
     for (const g of gsis) {
       names.add(g.pk);
       if (g.sk) names.add(g.sk);
     }
+    // _type completions: pick an existing entity type, or tag a brand-new one.
+    const typeOpts = [
+      ...entities.map((e) =>
+        snippetCompletion(`${TYPE_ATTR}=${e.type}`, {
+          label: `${TYPE_ATTR}=${e.type}`,
+          detail: "entity type",
+          type: "enum",
+        }),
+      ),
+      snippetCompletion(`${TYPE_ATTR}=${ph("type")}`, {
+        label: TYPE_ATTR,
+        detail: "tag with a new entity type",
+        type: "enum",
+      }),
+    ];
     options = [
       ...gsis.map(gsiKeysSnippet),
+      ...typeOpts,
       ...[...names].map((a) =>
         snippetCompletion(`${a}=${ph("value")}`, {
           label: a,
