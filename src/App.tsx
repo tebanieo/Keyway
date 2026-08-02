@@ -106,27 +106,35 @@ function Icon({
  *  the slot (tabular + key-value) — graph, table, and key in one mark. */
 function Logo() {
   return (
-    <svg
-      width="32"
-      height="45"
-      viewBox="0 0 44 62"
-      fill="none"
-      stroke="var(--accent)"
-      aria-hidden
-    >
-      {/* keyhole outline */}
-      <path
-        d="M28.88 29.83 A12 12 0 1 0 15.12 29.83 L14 50 Q14 53 17 53 L27 53 Q30 53 30 50 Z"
-        strokeWidth="2.4"
+    <svg width="38" height="38" viewBox="0 0 64 64" aria-hidden>
+      <defs>
+        <linearGradient id="keyway-tile" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#4c86ff" />
+          <stop offset="1" stopColor="#6d4bf0" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="14" fill="url(#keyway-tile)" />
+      <g
+        transform="translate(32 32) scale(1.2) translate(-22 -30.5)"
+        fill="none"
+        stroke="#ffffff"
         strokeLinejoin="round"
-      />
-      {/* node-graph in the head (edges, then nodes) */}
-      <path
-        strokeWidth="1.4"
         strokeLinecap="round"
-        d="M22 17.5 L22 11 M22 17.5 L28.5 15.5 M22 17.5 L25.5 23 M22 17.5 L18.5 23 M22 17.5 L15.5 15.5 M22 11 L28.5 15.5 M18.5 23 L15.5 15.5"
-      />
-      <g fill="var(--accent)" stroke="none">
+      >
+        {/* keyhole outline */}
+        <path
+          d="M28.88 29.83 A12 12 0 1 0 15.12 29.83 L14 50 Q14 53 17 53 L27 53 Q30 53 30 50 Z"
+          strokeWidth="2.4"
+        />
+        {/* node-graph in the head */}
+        <path
+          strokeWidth="1.5"
+          d="M22 17.5 L22 11 M22 17.5 L28.5 15.5 M22 17.5 L25.5 23 M22 17.5 L18.5 23 M22 17.5 L15.5 15.5 M22 11 L28.5 15.5 M18.5 23 L15.5 15.5"
+        />
+        {/* key-teeth / table rows in the slot */}
+        <path strokeWidth="1.7" d="M18.5 34 H25 M18.5 37.5 H22 M18.5 41 H26.5 M18.5 44.5 H23 M18.5 48 H25.5" />
+      </g>
+      <g transform="translate(32 32) scale(1.2) translate(-22 -30.5)" fill="#ffffff">
         <circle cx="22" cy="17.5" r="1.7" />
         <circle cx="22" cy="11" r="1.7" />
         <circle cx="28.5" cy="15.5" r="1.7" />
@@ -134,12 +142,6 @@ function Logo() {
         <circle cx="18.5" cy="23" r="1.7" />
         <circle cx="15.5" cy="15.5" r="1.7" />
       </g>
-      {/* key-teeth / table rows in the slot */}
-      <path
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        d="M18.5 34 H25 M18.5 37.5 H22 M18.5 41 H26.5 M18.5 44.5 H23 M18.5 48 H25.5"
-      />
     </svg>
   );
 }
