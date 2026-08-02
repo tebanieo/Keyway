@@ -569,6 +569,10 @@ export function App() {
   // The FINISHED model (all ops), regardless of scrubber position — access-pattern
   // coverage is about the design as a whole, not the mid-playback moment.
   const fullState = useMemo(() => fold(ops, base), [ops, base]);
+  // Close the Query drawer if the model empties out (e.g. reset while it's open).
+  useEffect(() => {
+    if (fullState.size === 0 && drawer === "query") setDrawer(null);
+  }, [fullState.size, drawer]);
   // How many declared patterns the design does NOT yet serve — drives the rail
   // badge (the "something to react to" signal).
   const apUnserved = useMemo(() => {
@@ -866,13 +870,18 @@ export function App() {
             active: drawer === "examples",
             onClick: () => setDrawer((d) => (d === "examples" ? null : "examples")),
           },
-          {
-            id: "query",
-            label: "Read / Query",
-            icon: <Icon name="query" />,
-            active: drawer === "query",
-            onClick: () => setDrawer((d) => (d === "query" ? null : "query")),
-          },
+          // Query only appears once there's data — you can't query an empty table.
+          ...(fullState.size > 0
+            ? [
+                {
+                  id: "query",
+                  label: "Read / Query",
+                  icon: <Icon name="query" />,
+                  active: drawer === "query",
+                  onClick: () => setDrawer((d) => (d === "query" ? null : "query")),
+                },
+              ]
+            : []),
           ...(aps.length > 0
             ? [
                 {
