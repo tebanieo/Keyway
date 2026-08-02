@@ -4,7 +4,9 @@ import { itemSize } from "./engine/itemsize";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
 import type { IndexSpec, Op } from "./engine/types";
-import { Icon, Logo } from "./components/icons";
+import { Icon } from "./components/icons";
+import { Toolbar } from "./components/Toolbar";
+import type { Mode } from "./components/Toolbar";
 import { CostBar } from "./components/CostBar";
 import { Panel, projLabel } from "./components/Panel";
 import type { EditProps, LinkProps } from "./components/Panel";
@@ -25,11 +27,6 @@ import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
 import { QueryPanel } from "./QueryPanel";
 import type { QueryHighlight } from "./QueryPanel";
-
-type Mode = "canvas" | "editor";
-
-/** Title-case a single-word action label (identifiers are shown verbatim). */
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function App() {
   const [ops, setOps] = useState<Op[]>([]);
@@ -350,97 +347,35 @@ export function App() {
     })),
   ].filter((p) => visible.has(p.name));
 
+  const step1 = (delta: number) => {
+    setPlaying(false);
+    setStep(curStep + delta);
+    pulseCost();
+  };
+
   return (
     <div className="app">
-      <div className="toolbar">
-        <h1>
-          <Logo />
-          Keyway
-        </h1>
-
-        <div className="seg">
-          {(["canvas", "editor"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              className={m === mode ? "active" : ""}
-              onClick={() => (m === "editor" ? enterEditor() : setMode("canvas"))}
-            >
-              {cap(m)}
-            </button>
-          ))}
-        </div>
-
-        <button
-          className="icon-btn"
-          onClick={toggleTheme}
-          title={theme === "paper" ? "switch to dark" : "switch to paper"}
-          aria-label="toggle theme"
-        >
-          <Icon name="theme" />
-        </button>
-
-        <button className="share" onClick={onShare} title="copy a shareable link to this model">
-          Share
-        </button>
-        {shareMsg && <span className="share-msg">{shareMsg}</span>}
-
-        {dirty && (
-          <button className="reset" onClick={reset}>
-            Reset
-          </button>
-        )}
-
-        {pinnedId && (
-          <button className="pin-chip" onClick={() => setPinnedId(null)}>
-            <span className="dot" />
-            Pinned <code>{pinnedId.slice(0, 8)}</code>
-            <span className="x">&times;</span>
-          </button>
-        )}
-
-        <div className="spacer" />
-
-        <div className="op-label">
-          step {curStep}/{ops.length} &middot; <b>{op.verb}</b> {op.detail}
-        </div>
-        <div className="stepper">
-          <button
-            disabled={curStep === 0}
-            onClick={() => {
-              setPlaying(false);
-              setStep(curStep - 1);
-              pulseCost();
-            }}
-            title="step back"
-          >
-            <Icon name="prev" />
-          </button>
-          <button className="play" onClick={togglePlay} title="auto-play">
-            <Icon name={playing ? "pause" : "play"} />
-          </button>
-          <button
-            disabled={curStep === ops.length}
-            onClick={() => {
-              setPlaying(false);
-              setStep(curStep + 1);
-              pulseCost();
-            }}
-            title="step forward"
-          >
-            <Icon name="next" />
-          </button>
-          <select
-            className="speed"
-            value={speed}
-            onChange={(e) => setSpeed(Number(e.target.value))}
-            title="playback speed"
-          >
-            <option value={0.5}>0.5&times;</option>
-            <option value={1}>1&times;</option>
-            <option value={2}>2&times;</option>
-          </select>
-        </div>
-      </div>
+      <Toolbar
+        mode={mode}
+        onMode={(m) => (m === "editor" ? enterEditor() : setMode("canvas"))}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onShare={onShare}
+        shareMsg={shareMsg}
+        dirty={dirty}
+        onReset={reset}
+        pinnedId={pinnedId}
+        onUnpin={() => setPinnedId(null)}
+        curStep={curStep}
+        opsLength={ops.length}
+        op={op}
+        playing={playing}
+        onTogglePlay={togglePlay}
+        onPrev={() => step1(-1)}
+        onNext={() => step1(1)}
+        speed={speed}
+        onSpeed={setSpeed}
+      />
 
       {editing && (
         <div className={editorCollapsed ? "editor-wrap collapsed" : "editor-wrap"}>
