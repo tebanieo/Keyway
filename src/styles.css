@@ -931,14 +931,18 @@ body {
 /* The editor is the hero: an unbounded surface (no boxed card), collapsible by
    its header so the tables below take the whole screen. */
 .editor-wrap {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
   margin-bottom: var(--s5);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--panel);
   box-shadow: var(--shadow-1);
   overflow: hidden;
+  transition: grid-template-rows 0.3s var(--ease);
+}
+.editor-wrap.collapsed {
+  grid-template-rows: auto 0fr;
 }
 
 .editor-head {
@@ -1000,19 +1004,16 @@ body {
   font-style: normal;
 }
 
-/* Collapse by clipping the wrapper (fixed CM height inside → no reflow, no
-   compress-then-extend flicker on expand). */
+/* Collapse by clipping the grid row (0fr). CodeMirror sizes to its CONTENT
+   (capped at 52vh, then it scrolls) — a short script → a short editor — and its
+   box stays stable during the animation, so no compress-then-extend flicker. */
 .editor-body {
+  min-height: 0;
   overflow: hidden;
-  max-height: 48vh;
-  transition: max-height 0.3s var(--ease);
-}
-.editor-wrap.collapsed .editor-body {
-  max-height: 0;
 }
 
 .editor .cm-editor {
-  height: 48vh;
+  max-height: 52vh;
 }
 
 .editor .cm-scroller {
