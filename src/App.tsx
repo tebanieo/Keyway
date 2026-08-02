@@ -377,6 +377,8 @@ export function App() {
   // Which right-rail drawer is open (only one at a time — they share the edge).
   const [drawer, setDrawer] = useState<null | "patterns" | "examples">(null);
   const [queryOpen, setQueryOpen] = useState(false);
+  const [costPulse, setCostPulse] = useState(false);
+  const costTimer = useRef<number | undefined>(undefined);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
@@ -444,15 +446,37 @@ export function App() {
   }, [loadModel]);
 
   // Auto-play: advance one step on a timer while playing; stop at the end.
+  // Cost is about a transition — surface the HUD when the user steps or plays,
+  // then auto-hide (so it isn't "just sitting there" while editing).
+  const pulseCost = useCallback(() => {
+    setCostPulse(true);
+    window.clearTimeout(costTimer.current);
+    costTimer.current = window.setTimeout(() => setCostPulse(false), 2600);
+  }, []);
+
+  // Dismiss the open rail drawer when clicking anywhere outside the rail/drawer.
+  useEffect(() => {
+    if (!drawer) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Element | null;
+      if (t && !t.closest(".rail") && !t.closest(".drawer")) setDrawer(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [drawer]);
+
   useEffect(() => {
     if (!playing) return;
     if (curStep >= ops.length) {
       setPlaying(false);
       return;
     }
-    const id = window.setTimeout(() => setStep((s) => s + 1), 1300 / speed);
+    const id = window.setTimeout(() => {
+      setStep((s) => s + 1);
+      pulseCost();
+    }, 1300 / speed);
     return () => window.clearTimeout(id);
-  }, [playing, curStep, ops.length, speed]);
+  }, [playing, curStep, ops.length, speed, pulseCost]);
 
   // The whole model (structure + data) as DSL text.
   const modelToText = (someOps: Op[]) =>
@@ -706,6 +730,7 @@ export function App() {
             onClick={() => {
               setPlaying(false);
               setStep(curStep - 1);
+              pulseCost();
             }}
             title="step back"
           >
@@ -719,6 +744,7 @@ export function App() {
             onClick={() => {
               setPlaying(false);
               setStep(curStep + 1);
+              pulseCost();
             }}
             title="step forward"
           >
@@ -850,7 +876,11 @@ export function App() {
         </div>
       )}
 
-      <CostBar cost={cost} bytes={opBytes} />
+      {cost && (playing || costPulse) && (
+        <div className="cost-hud" key={curStep}>
+          <CostBar cost={cost} bytes={opBytes} />
+        </div>
+      )}
 
       {pane === "split" ? (
         <div className="split">

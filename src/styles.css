@@ -1085,6 +1085,20 @@ body {
   background: var(--fill-3);
 }
 
+/* Cost is a transient HUD now — floats up on a step/playback, auto-hides. */
+.cost-hud {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  z-index: 60;
+  animation: toast-rise 0.24s var(--ease);
+}
+.cost-hud .costbar {
+  margin-bottom: 0;
+  box-shadow: var(--shadow-2);
+}
+
 .costbar {
   display: flex;
   align-items: center;
