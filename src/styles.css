@@ -26,6 +26,9 @@
   --accent-fill: linear-gradient(180deg, var(--accent), #4b86e6);
   --accent-fill-hover: linear-gradient(180deg, #6ea8ff, var(--accent));
 
+  /* form inputs (inset field) */
+  --input-bg: rgba(0, 0, 0, 0.25);
+
   /* editor (CodeMirror) surface — themable via custom props */
   --editor-bg: #12151c;
   --editor-fg: #e6e9ef;
@@ -81,22 +84,24 @@
 /* Paper theme — flat, printed-page minimal. No gloss: glass goes opaque and
    blur turns off; overlays flip dark; semantic colors darken for white. */
 [data-theme="paper"] {
-  --bg: #fbfcfd;
+  --bg: #fcfdfe;
   --panel: #ffffff;
-  --panel-2: #f2f4f7;
-  --line: #dfe3ea;
-  --hairline: #e9ecf1;
-  --text: #1a1d24;
-  --muted: #667085;
-  --accent: #2563eb;
+  --panel-2: #eef1f6;
+  --line: #d5dbe4;
+  --hairline: #e4e8ee;
+  --text: #12151b;
+  --muted: #556072;
+  --accent: #1f6bff;
   --accent-2: #6d5cf0;
-  --enter: #12885a;
-  --key: #a16207;
-  --danger: #dc2626;
-  --warn: #b45309;
+  --enter: #16a34a;
+  --key: #b26a00;
+  --danger: #e5352b;
+  --warn: #c2680a;
 
-  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.12);
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.07);
+  --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.14);
+
+  --input-bg: #f4f6f9;
 
   --fill-1: rgba(16, 24, 40, 0.035);
   --fill-2: rgba(16, 24, 40, 0.055);
@@ -136,6 +141,14 @@
 }
 [data-theme="paper"] .toolbar h1::before {
   box-shadow: none;
+}
+/* Diff tints are pale on white — strengthen so added/removed rows read clearly. */
+[data-theme="paper"] .ptable tr.row-added td {
+  background: rgba(22, 163, 74, 0.11);
+}
+[data-theme="paper"] .ptable tr.row-removed td {
+  background: rgba(229, 53, 43, 0.09);
+  color: #a23f38;
 }
 
 * {
@@ -802,9 +815,9 @@ body {
 .query-panel input,
 .query-panel select {
   padding: 6px 9px;
-  border: 1px solid var(--glass-line);
+  border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--input-bg);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
