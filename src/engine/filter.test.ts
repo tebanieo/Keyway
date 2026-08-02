@@ -64,9 +64,12 @@ describe("functions", () => {
     expect(match("size(name) >= 3", { name: "Ada" })).toBe(true);
     expect(match("size(name) <= 20", { name: "Ada Lovelace" })).toBe(true);
   });
-  it("attribute_type is S for our flat string model", () => {
+  it("attribute_type infers N for numeric values, S otherwise (consistent with compare)", () => {
     expect(match("attribute_type(name, S)", { name: "Ada" })).toBe(true);
     expect(match("attribute_type(name, N)", { name: "Ada" })).toBe(false);
+    // numeric-looking values report N, matching how `compare` orders them
+    expect(match("attribute_type(total, N)", { total: "42.00" })).toBe(true);
+    expect(match("attribute_type(total, S)", { total: "42.00" })).toBe(false);
   });
 });
 
