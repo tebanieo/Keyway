@@ -107,8 +107,8 @@ function Icon({
 function Logo() {
   return (
     <svg
-      width="40"
-      height="56"
+      width="32"
+      height="45"
       viewBox="0 0 44 62"
       fill="none"
       stroke="var(--accent)"
