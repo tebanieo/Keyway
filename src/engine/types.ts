@@ -1,6 +1,8 @@
 // Core domain types for the single-table model.
 // Everything here is plain data — no DOM, no React, no async.
 
+import type { FilterNode } from "./filter";
+
 /**
  * A stored item. `id` is a stable identity that survives across index views
  * and across edits — it's what animation keys (and, later,
@@ -44,10 +46,21 @@ export interface IndexSpec {
   projection?: ProjectionSpec;
 }
 
+/**
+ * A condition expression guarding a write (`@if <expr>`). The write applies only
+ * if `ast` holds against the item's CURRENT state; otherwise it's rejected (a
+ * DynamoDB ConditionalCheckFailed) and nothing changes. `text` is the original
+ * expression, kept so the DSL round-trips.
+ */
+export interface Condition {
+  ast: FilterNode;
+  text: string;
+}
+
 /** A single write against the table. The atoms a transaction is built from. */
 export type WriteAction =
-  | { kind: "put"; item: Item }
-  | { kind: "delete"; id: string };
+  | { kind: "put"; item: Item; condition?: Condition }
+  | { kind: "delete"; id: string; condition?: Condition };
 
 /**
  * The op log. Folding it left-to-right yields the current table state.

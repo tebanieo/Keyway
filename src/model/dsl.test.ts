@@ -250,3 +250,51 @@ describe("parseDoc — directives & diagnostics", () => {
     expect(warns("x1: name=nope").some((d) => /key/.test(d.message))).toBe(true);
   });
 });
+
+describe("parseDoc — conditional writes (@if)", () => {
+  it("parses a trailing @if guard onto a put", () => {
+    const { ops, diagnostics } = parseDoc(
+      "u1: PK=U#1  SK=P  name=Ada  @if attribute_not_exists(PK)",
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(ops[0]).toMatchObject({
+      kind: "put",
+      item: { attrs: { PK: "U#1", SK: "P", name: "Ada" } },
+      condition: { text: "attribute_not_exists(PK)" },
+    });
+    // the condition text must NOT leak into the item's attrs
+    expect((ops[0] as { item: { attrs: Record<string, string> } }).item.attrs).not.toHaveProperty("attribute_not_exists(PK)");
+  });
+
+  it("puts the @if guard on the put action of a key-change transact", () => {
+    const { ops } = parseDoc(
+      "t1: PK=U#1  SK=T#open\nt1: PK=U#2  SK=T#open  @if status=pending",
+      BASE,
+    );
+    expect(ops[1]).toMatchObject({
+      kind: "transact",
+      actions: [{ kind: "delete" }, { kind: "put", condition: { text: "status=pending" } }],
+    });
+  });
+
+  it("parses an @if guard on a delete", () => {
+    const { ops } = parseDoc("delete o1  @if status=shipped", BASE);
+    expect(ops[0]).toMatchObject({ kind: "delete", id: "o1", condition: { text: "status=shipped" } });
+  });
+
+  it("flags a malformed condition as an error", () => {
+    const { diagnostics } = parseDoc("u1: PK=U#1  SK=P  @if status =", BASE);
+    expect(diagnostics.some((d) => d.severity === "error" && /@if/.test(d.message))).toBe(true);
+  });
+
+  it("round-trips the guard through serializeOps", () => {
+    const src = "u1: PK=U#1  SK=P  name=Ada  @if attribute_not_exists(PK)";
+    const { ops, base } = parseDoc(src, BASE);
+    const text = serializeOps(ops, base);
+    expect(text).toContain("@if attribute_not_exists(PK)");
+    // and re-parsing the serialized text yields the same guard
+    const again = parseDoc(text, BASE);
+    expect(again.ops[0]).toMatchObject({ condition: { text: "attribute_not_exists(PK)" } });
+  });
+});

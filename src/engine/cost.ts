@@ -1,5 +1,14 @@
 import type { IndexSpec, Item, Op } from "./types";
-import { applyAction, keyOf, partitionLabel, pkAttrs, projectItem, skAttrs } from "./engine";
+import {
+  applyAction,
+  conditionRejected,
+  findById,
+  keyOf,
+  partitionLabel,
+  pkAttrs,
+  projectItem,
+  skAttrs,
+} from "./engine";
 import { itemSize, wcu } from "./itemsize";
 
 /**
@@ -32,6 +41,8 @@ export interface OpCost {
   transactional: boolean;
   /** Base + every index. Each unit is ~1 WCU for an item up to 1 KB. */
   totalWrites: number;
+  /** A `@if` guard failed: no change landed, but the attempt is still billed. */
+  rejected?: boolean;
 }
 
 /** Does this index carry an attribute that changed between prev and next? */
@@ -99,11 +110,6 @@ function removalCost(prev: Item | undefined, g: IndexSpec, baseIndex: IndexSpec)
   return { index: g.name, effect: "none", writes: 0 };
 }
 
-function findById(state: Map<string, Item>, id: string): Item | undefined {
-  for (const it of state.values()) if (it.id === id) return it;
-  return undefined;
-}
-
 const sumWrites = (costs: IndexCost[]) => costs.reduce((n, c) => n + c.writes, 0);
 
 /** Merge several per-action costs on the same index into one combined cost. */
@@ -148,6 +154,22 @@ export function writeCost(
   baseIndex: IndexSpec,
   gsis: readonly IndexSpec[],
 ): OpCost {
+  // A failed `@if` guard: the write never lands, so no index maintenance runs.
+  // The check itself still costs a flat 1 WCU (2 inside a transaction), NOT the
+  // item's size-based cost — you're billed for the attempt, not the write.
+  if (conditionRejected(prevState, op, baseIndex)) {
+    const transactional = op.kind === "transact";
+    const baseWrites = transactional ? 2 : 1;
+    return {
+      base: op.kind,
+      baseWrites,
+      indexes: gsis.map((g) => ({ index: g.name, effect: "none" as const, writes: 0 })),
+      transactional,
+      totalWrites: baseWrites,
+      rejected: true,
+    };
+  }
+
   if (op.kind === "put") {
     const baseKey = keyOf(op.item, baseIndex);
     const prev = baseKey ? prevState.get(baseKey) ?? null : null;

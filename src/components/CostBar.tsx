@@ -17,6 +17,20 @@ export function CostBar({ cost, bytes }: { cost: OpCost | null; bytes: number })
       </div>
     );
   }
+  if (cost.rejected) {
+    // A failed `@if` guard: nothing landed, but a standard table still bills the
+    // attempt. Show that plainly, since "it still cost you" is the whole lesson.
+    return (
+      <div className="costbar rejected">
+        <span className="reject-tag">✗ condition not met · write rejected</span>
+        <span className="total">
+          <b>{cost.totalWrites}</b>
+          <span className="unit">WCU</span>
+        </span>
+        <span className="reject-note">billed for the attempt, nothing changed</span>
+      </div>
+    );
+  }
   return (
     <div className="costbar">
       <span className="total">

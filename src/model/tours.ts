@@ -103,11 +103,80 @@ t1: PK=USER#2  SK=TICKET#open  title=Fix the export  status=open  owner=bob  _ty
 t1: PK=USER#2  SK=TICKET#open  title=Fix the CSV export  status=open  owner=bob  _type=ticket
 `;
 
+// The modeling WORKFLOW: patterns first, then keys, then items. Editor stays
+// open so you read the @table / @ap / @gsi directives as the story plays.
+const MODELING = `# How to Model: in Keyway you design top-down. Start from the questions your app
+# asks (the access patterns), then shape the table and indexes to answer them.
+# The @ lines are structure; the plain lines are data. Step through and read how
+# it comes together.
+
+# 1. Name the base table and its primary key. Every item needs a PK and an SK.
+@table AppTable pk=PK sk=SK
+
+# 2. Write the access patterns as @ap lines: one plain-language question each.
+# They are the SPEC. The rail tracks which ones your design actually serves.
+@ap Get a user and their orders -> AppTable PK=USER#1
+@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@keyway.dev
+@ap List pending orders -> GSI1 GSI1PK=STATUS#pending
+
+# 3. Two of those questions do not fit the base key, so add a GSI to answer them.
+# A GSI is a second view of the same items under different keys. Overload it: it
+# carries emails AND order status, keyed by whatever each item puts in GSI1PK.
+@gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
+
+# 4. Now the data. A user profile, carrying the GSI1 email key so pattern 2 works.
+u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@keyway.dev  GSI1PK=EMAIL#ada@keyway.dev  GSI1SK=USER#1  _type=user-profile
+
+# An order under the same user, carrying STATUS#pending so pattern 3 works. It
+# shares USER#1, so pattern 1 reads the profile and the orders in one query.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=pending  GSI1PK=STATUS#pending  GSI1SK=2024-01-14  _type=order
+
+# A second order for the same user, same pattern.
+o2: PK=USER#1  SK=ORDER#2  total=17  status=pending  GSI1PK=STATUS#pending  GSI1SK=2024-02-03  _type=order
+
+# One more, for a different user. That is the whole loop: patterns, then keys,
+# then items that carry those keys. Open Access Patterns on the rail: all served.
+o3: PK=USER#2  SK=ORDER#3  total=99  status=pending  GSI1PK=STATUS#pending  GSI1SK=2024-03-21  _type=order
+`;
+
+// Guarded writes: @if applies a write only when its condition holds. Watch the
+// panes NOT move on a rejected step, while the cost still ticks up.
+const CONDITIONAL = `# Conditional Writes: a write can carry a guard, "@if <condition>", as the LAST
+# thing on the line. DynamoDB applies the write only if the condition holds
+# against the CURRENT item; otherwise it is rejected and nothing changes, and you
+# still pay a flat 1 WCU for the failed check.
+@table AppTable pk=PK sk=SK
+
+# Create-if-not-exists: attribute_not_exists(PK) is true only when the row is
+# absent, so this first insert lands.
+u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  @if attribute_not_exists(PK)
+
+# The same guarded insert again is REJECTED: PK now exists, so the guard fails.
+# Ada is not overwritten by the impostor, but the failed check still bills 1 WCU.
+u1: PK=USER#1  SK=PROFILE  name=Ada Impostor  @if attribute_not_exists(PK)
+
+# An order lands, pending.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=pending  _type=order
+
+# Optimistic ship: move to shipped only if it is still pending. It is, so it ships.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if status=pending
+
+# A second worker tries to ship the same order. Now status is shipped, so
+# @if status=pending fails: the double-ship is rejected. No lost update.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if status=pending
+`;
+
 export const TOURS: Tour[] = [
   {
     name: "Getting Started",
     blurb: "learn the ropes: how the script, steps, and panes work before the modeling",
     dsl: GETTING_STARTED,
+    focus: "editor",
+  },
+  {
+    name: "How to Model",
+    blurb: "the workflow: declare access patterns, then add the @table and @gsi keys that serve them",
+    dsl: MODELING,
     focus: "editor",
   },
   {
@@ -124,5 +193,10 @@ export const TOURS: Tour[] = [
     name: "Atomic Key Change",
     blurb: "repeat a label with a changed PK or SK and it becomes a delete + put: a move, not an edit",
     dsl: ATOMIC,
+  },
+  {
+    name: "Conditional Writes",
+    blurb: "guard a write with @if: it only applies when the condition holds, and a failed check still costs a WCU",
+    dsl: CONDITIONAL,
   },
 ];

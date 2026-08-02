@@ -1156,6 +1156,26 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* A rejected conditional write (an `@if` guard that failed): framed in the
+   danger hue because nothing landed, though a flat WCU was still billed. */
+.costbar.rejected {
+  border-color: var(--danger);
+}
+.reject-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.reject-note {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.narration.rejected .narr-step {
+  background: var(--danger);
+}
+
 .seg-cost {
   display: inline-flex;
   align-items: center;

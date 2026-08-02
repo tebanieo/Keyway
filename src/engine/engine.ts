@@ -1,4 +1,5 @@
-import type { IndexSpec, Item, Op, Partition, View, WriteAction } from "./types";
+import type { Condition, IndexSpec, Item, Op, Partition, View, WriteAction } from "./types";
+import { evalFilter } from "./filter";
 
 /**
  * Separator joining pk and sk into a composite key string. A NUL control
@@ -81,25 +82,74 @@ export function partitionLabel(item: Item, index: IndexSpec): string {
  *
  * Pure: same (ops, baseIndex) always yields the same Map.
  */
-/** Apply one write action to a state map in place. */
+/** Find the row carrying a given stable id, or undefined. */
+export function findById(state: Map<string, Item>, id: string): Item | undefined {
+  for (const it of state.values()) if (it.id === id) return it;
+  return undefined;
+}
+
+/**
+ * Whether a write's guard holds against the item currently at its target. A
+ * missing item is evaluated as an empty item, so `attribute_not_exists(PK)` is
+ * true (create-if-not-exists) and `status=pending` is false (no item to match).
+ * No condition always holds.
+ */
+export function conditionHolds(condition: Condition | undefined, existing: Item | null): boolean {
+  if (!condition) return true;
+  return evalFilter(condition.ast, existing ?? { id: "", attrs: {} });
+}
+
+/**
+ * Would this op be rejected by its `@if` guard, given the state just before it?
+ * A rejected op is a DynamoDB ConditionalCheckFailed: no change, but still
+ * billed. Pure — used by both the cost model and the rejected-step UI.
+ */
+export function conditionRejected(
+  prevState: Map<string, Item>,
+  op: Op,
+  baseIndex: IndexSpec,
+): boolean {
+  const fails = (action: WriteAction): boolean => {
+    if (!action.condition) return false;
+    let existing: Item | null;
+    if (action.kind === "put") {
+      const key = keyOf(action.item, baseIndex);
+      existing = key !== null ? prevState.get(key) ?? null : null;
+    } else {
+      existing = findById(prevState, action.id) ?? null;
+    }
+    return !conditionHolds(action.condition, existing);
+  };
+  return op.kind === "transact" ? op.actions.some(fails) : fails(op);
+}
+
+/**
+ * Apply one write action to a state map in place. Returns whether it applied:
+ * `false` when its `@if` guard fails (a rejected write) or its base key is
+ * incomplete, so a rejected write leaves state untouched — exactly as DynamoDB
+ * does on a ConditionalCheckFailed.
+ */
 export function applyAction(
   state: Map<string, Item>,
   action: WriteAction,
   baseIndex: IndexSpec,
-): void {
+): boolean {
   if (action.kind === "put") {
     const key = keyOf(action.item, baseIndex);
-    if (key === null) return; // incomplete base key — not a valid row
+    if (key === null) return false; // incomplete base key — not a valid row
+    if (!conditionHolds(action.condition, state.get(key) ?? null)) return false;
     state.set(key, action.item);
-  } else {
-    // delete by stable id: find and remove whichever row carries it
-    for (const [key, item] of state) {
-      if (item.id === action.id) {
-        state.delete(key);
-        break;
-      }
+    return true;
+  }
+  // delete by stable id: find and remove whichever row carries it
+  for (const [key, item] of state) {
+    if (item.id === action.id) {
+      if (!conditionHolds(action.condition, item)) return false;
+      state.delete(key);
+      return true;
     }
   }
+  return false;
 }
 
 export function fold(ops: readonly Op[], baseIndex: IndexSpec): Map<string, Item> {

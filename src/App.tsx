@@ -527,7 +527,7 @@ export function App() {
       )}
 
       {narration && (playing || costPulse) && (
-        <div className="narration" key={`narr-${curStep}`}>
+        <div className={cost?.rejected ? "narration rejected" : "narration"} key={`narr-${curStep}`}>
           <span className="narr-step">{curStep}</span>
           <span className="narr-text">{narration}</span>
         </div>

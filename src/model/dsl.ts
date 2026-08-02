@@ -1,5 +1,6 @@
 import { keyOf } from "../engine/engine";
-import type { IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
+import { parseFilter } from "../engine/filter";
+import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
 import type { CondOp } from "../engine/query";
 
 /**
@@ -152,13 +153,14 @@ function itemLine(item: Item, baseIndex: IndexSpec): string {
  * transaction, so the round-trip is stable.
  */
 export function serializeOps(ops: readonly Op[], baseIndex: IndexSpec): string {
+  const guard = (c: Condition | undefined) => (c ? `${SP}${SP}@if${SP}${c.text}` : "");
   const lines = ops.map((op) => {
-    if (op.kind === "delete") return `delete${SP}${op.id}`;
+    if (op.kind === "delete") return `delete${SP}${op.id}${guard(op.condition)}`;
     if (op.kind === "transact") {
       const put = op.actions.find((a) => a.kind === "put");
-      return put && put.kind === "put" ? itemLine(put.item, baseIndex) : "";
+      return put && put.kind === "put" ? itemLine(put.item, baseIndex) + guard(put.condition) : "";
     }
-    return itemLine(op.item, baseIndex);
+    return itemLine(op.item, baseIndex) + guard(op.condition);
   });
   return lines.filter((l) => l !== "").join("\n") + "\n";
 }
@@ -334,15 +336,35 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       return;
     }
 
-    const del = DELETE.exec(s);
+    // A trailing `@if <expr>` guards the write (put or delete). It must be the
+    // LAST clause on the line: everything after `@if` is the condition, so its
+    // spaces and `=` never collide with the item's own key=value pairs.
+    let condition: Condition | undefined;
+    let core = s;
+    const ifm = /\s@if\s+(.+)$/i.exec(s);
+    if (ifm) {
+      core = s.slice(0, ifm.index);
+      const parsed = parseFilter(ifm[1]);
+      if (!parsed.ast) {
+        diagnostics.push({
+          line,
+          message: `@if condition: ${parsed.error ?? "empty"}`,
+          severity: "error",
+        });
+      } else {
+        condition = { ast: parsed.ast, text: ifm[1].trim() };
+      }
+    }
+
+    const del = DELETE.exec(core);
     if (del) {
-      ops.push({ kind: "delete", id: del[1] });
+      ops.push({ kind: "delete", id: del[1], condition });
       notes.push(takeNote());
       lastKey.delete(del[1]);
       return;
     }
 
-    const m = LABEL.exec(s);
+    const m = LABEL.exec(core);
     if (!m) {
       diagnostics.push({
         line,
@@ -368,13 +390,14 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
 
     const prevKey = lastKey.get(label);
     if (prevKey && newKey && prevKey !== newKey) {
-      // key changed -> atomic delete-old + put-new (a TransactWriteItems)
+      // key changed -> atomic delete-old + put-new (a TransactWriteItems); the
+      // guard rides the put action.
       ops.push({
         kind: "transact",
-        actions: [{ kind: "delete", id: label }, { kind: "put", item }],
+        actions: [{ kind: "delete", id: label }, { kind: "put", item, condition }],
       });
     } else {
-      ops.push({ kind: "put", item });
+      ops.push({ kind: "put", item, condition });
     }
     notes.push(takeNote());
     if (newKey) lastKey.set(label, newKey);
