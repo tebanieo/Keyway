@@ -590,7 +590,7 @@ export function App() {
       <div className="toolbar">
         <h1>
           <Logo />
-          keyway
+          Keyway
         </h1>
 
         <div className="seg">
