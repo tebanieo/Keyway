@@ -1,0 +1,17 @@
+# Pre-commit gate. Everything runs on commit (the suite is ~1s here), in
+# parallel. Formatting and lint are scoped to the staged files; typecheck and
+# tests cover the whole project. Installed by `npm install` via the prepare
+# script, or manually with `npx lefthook install`.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,css,md,json,html}"
+      run: npx prettier --check {staged_files}
+    - name: lint
+      glob: "*.{ts,tsx}"
+      run: npx eslint {staged_files}
+    - name: typecheck
+      run: npx tsc -b
+    - name: test
+      run: npm test
