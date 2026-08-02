@@ -19,6 +19,24 @@ export function skAttrs(index: IndexSpec): string[] {
   return index.sks ?? (index.sk ? [index.sk] : []);
 }
 
+/**
+ * Order items within a partition: by every sort attribute in turn (multi-key
+ * safe), then by id as a stable tie-break. Shared by `project` and the diff so
+ * the two can never disagree on row order.
+ */
+export function bySortThenId(index: IndexSpec): (a: Item, b: Item) => number {
+  const sks = skAttrs(index);
+  return (a, b) => {
+    for (const attr of sks) {
+      const va = a.attrs[attr] ?? "";
+      const vb = b.attrs[attr] ?? "";
+      if (va < vb) return -1;
+      if (va > vb) return 1;
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  };
+}
+
 /** Values of the given attributes, or null if any is missing/empty (sparse). */
 function values(item: Item, attrs: string[]): string[] | null {
   const out: string[] = [];
@@ -158,18 +176,10 @@ export function project(
     g.items.push(projectItem(item, index, baseIndex));
   }
 
-  const sks = skAttrs(index);
+  const cmp = bySortThenId(index);
   const partitions: Partition[] = [];
   for (const { pk, items } of groups.values()) {
-    items.sort((a, b) => {
-      for (const attr of sks) {
-        const va = a.attrs[attr] ?? "";
-        const vb = b.attrs[attr] ?? "";
-        if (va < vb) return -1;
-        if (va > vb) return 1;
-      }
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
+    items.sort(cmp);
     partitions.push({ pk, items });
   }
 

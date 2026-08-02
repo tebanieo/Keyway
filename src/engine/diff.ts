@@ -1,3 +1,4 @@
+import { bySortThenId } from "./engine";
 import type { IndexSpec, Item, View } from "./types";
 
 /**
@@ -85,20 +86,6 @@ export interface DiffPartition {
   rows: DiffRow[];
 }
 
-function sortKey(item: Item, index: IndexSpec): string {
-  return index.sk ? (item.attrs[index.sk] ?? "") : "";
-}
-
-function bySortKey(index: IndexSpec) {
-  return (a: DiffRow, b: DiffRow): number => {
-    const sa = sortKey(a.item, index);
-    const sb = sortKey(b.item, index);
-    if (sa < sb) return -1;
-    if (sa > sb) return 1;
-    return a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0;
-  };
-}
-
 function attrsDiffer(a: Item, b: Item): boolean {
   const keys = new Set([...Object.keys(a.attrs), ...Object.keys(b.attrs)]);
   for (const k of keys) if (a.attrs[k] !== b.attrs[k]) return true;
@@ -169,8 +156,10 @@ export function diffPartitions(
     }
   }
 
+  // Same comparator `project` uses, so diff rows order identically (multi-key safe).
+  const cmp = bySortThenId(index);
   return order.map((pk) => ({
     pk,
-    rows: byPk.get(pk)!.sort(bySortKey(index)),
+    rows: byPk.get(pk)!.sort((a, b) => cmp(a.item, b.item)),
   }));
 }

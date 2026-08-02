@@ -66,4 +66,21 @@ describe("diffPartitions", () => {
     const m = statusMap(diffPartitions(view(before, BASE), view(after, BASE), BASE));
     expect(m.o1).toEqual(["U#1:modified"]);
   });
+
+  // Regression (S2): on a multi-key GSI the diff must order rows by the FULL
+  // sort tuple, identically to `project` — not by the first sort attr alone.
+  it("orders multi-key GSI rows by the whole sort tuple, like project", () => {
+    const MK: IndexSpec = { name: "MK", pk: "P", sk: "status", pks: ["P"], sks: ["status", "date"] };
+    // same status, different dates → the second sort attr decides order
+    const ops = [
+      put("a", { PK: "x", SK: "a", P: "t", status: "open", date: "2024-03" }),
+      put("b", { PK: "x", SK: "b", P: "t", status: "open", date: "2024-01" }),
+      put("c", { PK: "x", SK: "c", P: "t", status: "open", date: "2024-02" }),
+    ];
+    const v = view(ops, MK);
+    const projectOrder = v.partitions[0].items.map((i) => i.id);
+    const diffOrder = diffPartitions(view([], MK), v, MK)[0].rows.map((r) => r.item.id);
+    expect(projectOrder).toEqual(["b", "c", "a"]); // by date: 01, 02, 03
+    expect(diffOrder).toEqual(projectOrder); // diff agrees (was ["a","b","c"] by id before the fix)
+  });
 });
