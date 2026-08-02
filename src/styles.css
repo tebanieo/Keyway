@@ -90,14 +90,14 @@
   --panel-2: #eef1f6;
   --line: #d5dbe4;
   --hairline: #e4e8ee;
-  --text: #12151b;
-  --muted: #556072;
-  --accent: #1f6bff;
+  --text: #11141a;
+  --muted: #5b6474;
+  --accent: #2f6bff;
   --accent-2: #6d5cf0;
-  --enter: #16a34a;
-  --key: #b26a00;
+  --enter: #12a150;
+  --key: #c07c05;
   --danger: #e5352b;
-  --warn: #c2680a;
+  --warn: #e07407;
 
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.07);
   --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.14);
