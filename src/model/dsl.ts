@@ -406,3 +406,13 @@ export function serializeAps(aps: readonly AccessPattern[]): string {
       .join("\n") + "\n"
   );
 }
+
+/** The whole model (structure + access patterns + data) as one DSL document. */
+export function serializeModel(
+  base: IndexSpec,
+  gsis: readonly IndexSpec[],
+  aps: readonly AccessPattern[],
+  ops: readonly Op[],
+): string {
+  return serializeTable(base) + serializeGsis(gsis) + serializeAps(aps) + "\n" + serializeOps(ops, base);
+}

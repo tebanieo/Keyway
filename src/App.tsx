@@ -8,8 +8,9 @@ import { diffPartitions } from "./engine/diff";
 import type { DiffRow } from "./engine/diff";
 import type { IndexSpec, Item, Op, View } from "./engine/types";
 import { BASE_INDEX } from "./model/seed";
-import { parseDoc, serializeAps, serializeGsis, serializeOps, serializeTable } from "./model/dsl";
+import { parseDoc, serializeModel } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
+import { describe, editToOps, nextItemLabel } from "./model/actions";
 import { apCoverage } from "./model/coverage";
 import type { CoverageStatus } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
@@ -282,39 +283,6 @@ const MARKER: Record<string, string> = {
   same: "",
 };
 
-/**
- * Next free `i1`, `i2`, … label for a new canvas-created item. It doubles as the
- * item's stable id AND its DSL label when serialized to the editor, so it must
- * be grammar-valid — a UUID has hyphens and breaks the label rule.
- */
-function nextItemLabel(ops: readonly Op[]): string {
-  const used = new Set<string>();
-  for (const op of ops) {
-    const it = putItemOf(op);
-    if (it) used.add(it.id);
-    else if (op.kind === "delete") used.add(op.id);
-  }
-  let n = 1;
-  while (used.has(`i${n}`)) n++;
-  return `i${n}`;
-}
-
-/**
- * Turn a single cell edit into ops. A non-key change is one clean `put`. A base
- * key change is identity-changing, which DynamoDB models as an atomic
- * TransactWriteItems (delete old + put new) — billed at 2× base.
- */
-function editToOps(item: Item, key: string, value: string, base: IndexSpec): Op[] {
-  const attrs = { ...item.attrs, [key]: value };
-  const next: Item = { id: item.id, attrs };
-  if (key === base.pk || key === base.sk) {
-    return [
-      { kind: "transact", actions: [{ kind: "delete", id: item.id }, { kind: "put", item: next }] },
-    ];
-  }
-  return [{ kind: "put", item: next }];
-}
-
 interface LinkProps {
   hoveredId: string | null;
   pinnedId: string | null;
@@ -327,22 +295,6 @@ interface EditProps {
   onEdit: (item: Item, key: string, value: string) => void;
   onDelete: (id: string) => void;
   onAddItem: (pkValue: string) => void;
-}
-
-function keyLabel(attrs: Record<string, string>, base: IndexSpec): string {
-  const pk = attrs[base.pk] ?? "?";
-  return base.sk ? `${pk} / ${attrs[base.sk] ?? "?"}` : pk;
-}
-
-function describe(op: Op | undefined, base: IndexSpec): { verb: string; detail: string } {
-  if (!op) return { verb: "start", detail: "empty table" };
-  if (op.kind === "delete") return { verb: "delete", detail: op.id };
-  if (op.kind === "transact") {
-    const p = op.actions.find((a) => a.kind === "put");
-    const a = p?.kind === "put" ? p.item.attrs : undefined;
-    return { verb: "transact", detail: a ? `${keyLabel(a, base)} (key change)` : "delete + put" };
-  }
-  return { verb: "put", detail: keyLabel(op.item.attrs, base) };
 }
 
 function unionKeys(rows: DiffRow[], index: IndexSpec): string[] {
@@ -498,8 +450,7 @@ export function App() {
   }, [playing, curStep, ops.length, speed, pulseCost]);
 
   // The whole model (structure + data) as DSL text.
-  const modelToText = (someOps: Op[]) =>
-    serializeTable(base) + serializeGsis(gsis) + serializeAps(aps) + "\n" + serializeOps(someOps, base);
+  const modelToText = (someOps: Op[]) => serializeModel(base, gsis, aps, someOps);
 
   const enterEditor = () => {
     setDocText(modelToText(ops)); // one source: reflect current state as text
