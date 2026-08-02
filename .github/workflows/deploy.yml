@@ -30,6 +30,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # Reference manual (VitePress) → served at <site>/docs alongside the app.
+      - run: npm run docs:build
+      - run: cp -r docs/.vitepress/dist dist/docs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
