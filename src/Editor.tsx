@@ -291,16 +291,20 @@ const dslLinter = linter((view): CmDiagnostic[] => {
 
 const theme = EditorView.theme(
   {
-    "&": { backgroundColor: "#12151c", color: "#e6e9ef", fontSize: "13px" },
+    "&": { backgroundColor: "var(--editor-bg)", color: "var(--editor-fg)", fontSize: "13px" },
     ".cm-content": {
-      fontFamily: 'var(--font-mono)',
-      caretColor: "#5b9dff",
+      fontFamily: "var(--font-mono)",
+      caretColor: "var(--accent)",
     },
-    ".cm-gutters": { backgroundColor: "#12151c", color: "#5b6172", border: "none" },
-    ".cm-activeLine": { backgroundColor: "rgba(255,255,255,0.03)" },
-    ".cm-activeLineGutter": { backgroundColor: "rgba(255,255,255,0.03)" },
+    ".cm-gutters": {
+      backgroundColor: "var(--editor-bg)",
+      color: "var(--editor-gutter)",
+      border: "none",
+    },
+    ".cm-activeLine": { backgroundColor: "var(--fill-1)" },
+    ".cm-activeLineGutter": { backgroundColor: "var(--fill-1)" },
     "&.cm-focused": { outline: "none" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(91,157,255,0.25)" },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
   },
   { dark: true },
 );

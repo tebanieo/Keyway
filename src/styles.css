@@ -14,6 +14,24 @@
   --danger: #ff7a7a;
   --warn: #ffb020;
 
+  /* surface fills (overlay tints) + on-colors — flipped per theme */
+  --fill-1: rgba(255, 255, 255, 0.03);
+  --fill-2: rgba(255, 255, 255, 0.06);
+  --fill-3: rgba(255, 255, 255, 0.08);
+  --fill-4: rgba(255, 255, 255, 0.14);
+  --btn-hi: rgba(255, 255, 255, 0.25);
+  --grid: rgba(255, 255, 255, 0.02);
+  --on-accent: #06101f;
+  --on-warn: #1a1200;
+  --accent-fill: linear-gradient(180deg, var(--accent), #4b86e6);
+  --accent-fill-hover: linear-gradient(180deg, #6ea8ff, var(--accent));
+
+  /* editor (CodeMirror) surface — themable via custom props */
+  --editor-bg: #12151c;
+  --editor-fg: #e6e9ef;
+  --editor-gutter: #5b6172;
+  --editor-sel: rgba(91, 157, 255, 0.25);
+
   /* type */
   --font-ui: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -43,8 +61,8 @@
   /* liquid-glass surfaces (chrome only — data stays crisp) */
   --glass-bg: rgba(24, 28, 37, 0.62);
   --glass-bg-2: rgba(38, 44, 57, 0.55);
-  --glass-line: rgba(255, 255, 255, 0.08);
-  --glass-hi: rgba(255, 255, 255, 0.14);
+  --glass-line: var(--fill-3);
+  --glass-hi: var(--fill-4);
   --glass-blur: blur(18px) saturate(1.4);
 
   /* scrollbars — themed, a notch above the table surface for contrast */
@@ -60,6 +78,66 @@
   font-family: var(--font-ui);
 }
 
+/* Paper theme — flat, printed-page minimal. No gloss: glass goes opaque and
+   blur turns off; overlays flip dark; semantic colors darken for white. */
+[data-theme="paper"] {
+  --bg: #fbfcfd;
+  --panel: #ffffff;
+  --panel-2: #f2f4f7;
+  --line: #dfe3ea;
+  --hairline: #e9ecf1;
+  --text: #1a1d24;
+  --muted: #667085;
+  --accent: #2563eb;
+  --accent-2: #6d5cf0;
+  --enter: #12885a;
+  --key: #a16207;
+  --danger: #dc2626;
+  --warn: #b45309;
+
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.12);
+
+  --fill-1: rgba(16, 24, 40, 0.035);
+  --fill-2: rgba(16, 24, 40, 0.055);
+  --fill-3: rgba(16, 24, 40, 0.08);
+  --fill-4: rgba(16, 24, 40, 0.1);
+  --btn-hi: rgba(255, 255, 255, 0.28);
+  --grid: rgba(16, 24, 40, 0.04);
+  --on-accent: #ffffff;
+  --on-warn: #ffffff;
+  --accent-fill: var(--accent);
+  --accent-fill-hover: #1d4ed8;
+
+  --glass-bg: #ffffff;
+  --glass-bg-2: #f2f4f7;
+  --glass-blur: none;
+
+  --scroll: #c8cdd6;
+  --scroll-hover: #aab2bf;
+
+  --accent-glow: 0 0 0 0 rgba(0, 0, 0, 0);
+  --ring: 0 0 0 2px rgba(37, 99, 235, 0.35);
+
+  --editor-bg: #ffffff;
+  --editor-fg: #1a1d24;
+  --editor-gutter: #9aa2af;
+  --editor-sel: rgba(37, 99, 235, 0.16);
+}
+
+/* A couple of bespoke rules that need per-theme values (not pure token swaps). */
+[data-theme="paper"] .share {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+[data-theme="paper"] .share:hover {
+  background: var(--accent-fill-hover);
+}
+[data-theme="paper"] .toolbar h1::before {
+  box-shadow: none;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -71,8 +149,8 @@ body {
      panels sit on top, so the grid only shows around/behind them. */
   background-color: var(--bg);
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 28px 28px;
   background-position: -1px -1px;
 }
@@ -159,8 +237,8 @@ body {
   padding: 3px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: var(--fill-1);
+  box-shadow: inset 0 1px 0 var(--fill-1);
 }
 
 .seg button {
@@ -177,7 +255,7 @@ body {
 
 .seg button:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--fill-2);
 }
 
 .seg button:active {
@@ -185,10 +263,10 @@ body {
 }
 
 .seg button.active {
-  background: linear-gradient(180deg, var(--accent), #4b86e6);
-  color: #06101f;
+  background: var(--accent-fill);
+  color: var(--on-accent);
   font-weight: 600;
-  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
 }
 
 .seg-label {
@@ -220,7 +298,7 @@ body {
   padding: 3px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 
 .stepper button {
@@ -242,7 +320,7 @@ body {
 }
 
 .stepper button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-3);
   transform: scale(1.08);
 }
 
@@ -268,18 +346,18 @@ body {
 
 /* Playback controls. */
 .stepper .play {
-  color: #06101f;
-  background: linear-gradient(180deg, var(--accent), #4b86e6);
-  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
 }
 .stepper .play:hover:not(:disabled) {
-  background: linear-gradient(180deg, #6ea8ff, var(--accent));
+  background: var(--accent-fill-hover);
 }
 .stepper .speed {
   height: 30px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--fill-1);
   color: var(--text);
   font-size: var(--fs-sm);
   padding: 0 var(--s2);
@@ -337,7 +415,7 @@ body {
   place-items: center;
   border-radius: 50%;
   background: var(--accent);
-  color: #06101f;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 700;
 }
@@ -382,7 +460,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   border-bottom: 1px solid var(--glass-line);
 }
 .drawer-title {
@@ -413,7 +491,7 @@ body {
   transition: background var(--tf), border-color var(--tf);
 }
 .ex-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--fill-2);
   border-color: var(--glass-line);
 }
 .ex-title {
@@ -572,7 +650,7 @@ body {
   place-items: center;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   color: var(--muted);
   cursor: pointer;
   transition: color var(--tf), background var(--tf), transform var(--tf);
@@ -583,7 +661,7 @@ body {
 }
 .rail-btn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-3);
 }
 .rail-btn:active {
   transform: scale(0.94);
@@ -628,7 +706,7 @@ body {
   place-items: center;
   border-radius: var(--r-pill);
   background: var(--warn);
-  color: #1a1200;
+  color: var(--on-warn);
   font-size: 10px;
   font-weight: 700;
   box-shadow: 0 0 0 2px var(--bg);
@@ -643,10 +721,11 @@ body {
   white-space: nowrap;
   padding: 4px 10px;
   border-radius: var(--r-sm);
-  background: #1c212b;
-  border: 1px solid var(--glass-line);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
   color: var(--text);
   font-size: var(--fs-xs);
+  box-shadow: var(--shadow-1);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--tf);
@@ -693,7 +772,7 @@ body {
   padding: var(--s3) var(--s4);
 }
 .query-head {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   border-bottom: 1px solid var(--glass-line);
 }
 .query-keys {
@@ -748,12 +827,12 @@ body {
   padding: 6px 18px;
   border: 0;
   border-radius: var(--r-sm);
-  background: linear-gradient(180deg, var(--accent), #4b86e6);
-  color: #06101f;
+  background: var(--accent-fill);
+  color: var(--on-accent);
   font-weight: 600;
   font-size: var(--fs-sm);
   cursor: pointer;
-  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
   transition: transform var(--tf), filter var(--tf);
 }
 .q-run:hover {
@@ -766,7 +845,7 @@ body {
   padding: 6px 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -774,7 +853,7 @@ body {
 }
 .q-clear:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-3);
 }
 /* Shared close (×) button — query panel + AP drawer. */
 .q-close {
@@ -784,7 +863,7 @@ body {
   height: 28px;
   border: 1px solid var(--glass-line);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   color: var(--muted);
   font-size: 16px;
   line-height: 1;
@@ -793,7 +872,7 @@ body {
 }
 .q-close:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-3);
 }
 .q-close:active {
   transform: scale(0.9);
@@ -815,7 +894,7 @@ body {
   align-items: center;
   gap: var(--s4);
   padding: var(--s3) var(--s4);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   font-size: var(--fs-sm);
 }
 .query-result.err {
@@ -879,7 +958,7 @@ body {
   transition: background var(--tf), border-color var(--tf);
 }
 .editor-head:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 .editor-wrap.collapsed .editor-head {
   border-bottom-color: transparent;
@@ -966,12 +1045,12 @@ body {
   padding: 6px 14px;
   border: 0;
   border-radius: var(--r-sm);
-  background: linear-gradient(180deg, var(--accent), #4b86e6);
-  color: #06101f;
+  background: var(--accent-fill);
+  color: var(--on-accent);
   font-weight: 600;
   font-size: var(--fs-sm);
   cursor: pointer;
-  box-shadow: var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
   transition: filter var(--tf), transform var(--tf);
 }
 .backfill .do:hover {
@@ -985,7 +1064,7 @@ body {
   padding: 6px 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -994,7 +1073,7 @@ body {
 
 .backfill .ghost:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-3);
 }
 
 .costbar {
@@ -1030,7 +1109,7 @@ body {
   gap: 4px;
   padding: 4px 12px;
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--fill-2);
 }
 
 .costbar .total b {
@@ -1123,7 +1202,7 @@ body {
   padding: 1px 6px;
   border-radius: 5px;
   background: var(--accent);
-  color: #06101f;
+  color: var(--on-accent);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -1193,7 +1272,7 @@ body {
   gap: 10px;
   padding: 9px 14px;
   border-bottom: 1px solid var(--glass-line);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 
 .partition-head .pk {
@@ -1451,6 +1530,31 @@ body {
   color: var(--enter);
 }
 
+/* Small square icon button (theme toggle, and future utility icons). */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--tf), background var(--tf), transform var(--tf);
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--fill-2);
+}
+.icon-btn:active {
+  transform: scale(0.94);
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .reset {
   display: inline-flex;
   align-items: center;
@@ -1458,7 +1562,7 @@ body {
   padding: 6px 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -1466,7 +1570,7 @@ body {
 }
 .reset:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-3);
 }
 .reset:active {
   transform: scale(0.97);

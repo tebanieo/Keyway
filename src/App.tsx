@@ -27,7 +27,11 @@ type Mode = "canvas" | "editor";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Crisp inline icons (no dependency) that inherit color and animate fluidly. */
-function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" }) {
+function Icon({
+  name,
+}: {
+  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme";
+}) {
   const s = {
     width: 16,
     height: 16,
@@ -78,6 +82,13 @@ function Icon({ name }: { name: "play" | "pause" | "prev" | "next" | "patterns" 
           <rect x="14" y="3" width="7" height="7" rx="1.5" />
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      );
+    case "theme":
+      return (
+        <svg {...s}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
         </svg>
       );
   }
@@ -301,6 +312,14 @@ export function App() {
   // editor's React key so it remounts with the new text. Typing must not bump it.
   const [docVersion, setDocVersion] = useState(0);
   const [mode, setMode] = useState<Mode>("canvas");
+  // Visual theme: dark "instrument" or light "paper". Persisted locally.
+  const [theme, setTheme] = useState<"dark" | "paper">(
+    () => (localStorage.getItem("dc-theme") === "paper" ? "paper" : "dark"),
+  );
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("dc-theme", theme);
+  }, [theme]);
   const [step, setStep] = useState(0);
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
@@ -601,6 +620,15 @@ export function App() {
             Query
           </button>
         </div>
+
+        <button
+          className="icon-btn"
+          onClick={() => setTheme((t) => (t === "paper" ? "dark" : "paper"))}
+          title={theme === "paper" ? "switch to dark" : "switch to paper"}
+          aria-label="toggle theme"
+        >
+          <Icon name="theme" />
+        </button>
 
         <button className="share" onClick={onShare} title="copy a shareable link to this model">
           Share
