@@ -94,13 +94,45 @@ function Icon({
   }
 }
 
-/** The Keyway mark — a keyhole (a keyway is the slot a key fits into; keys are
- *  the heart of NoSQL modeling). A round head + a flared slot, filled in accent. */
+/** The Keyway mark — an outlined keyhole (a keyway is the slot a key fits into).
+ *  Inside: a node-graph in the head (relationships) and key-teeth / table rows in
+ *  the slot (tabular + key-value) — graph, table, and key in one mark. */
 function Logo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="var(--accent)">
-      <circle cx="12" cy="8.5" r="3.6" />
-      <path d="M10.6 10.9 L9.6 17.9 a1.1 1.1 0 0 0 1.09 1.25 h2.62 a1.1 1.1 0 0 0 1.09 -1.25 L13.4 10.9 Z" />
+    <svg
+      width="20"
+      height="28"
+      viewBox="0 0 44 62"
+      fill="none"
+      stroke="var(--accent)"
+      aria-hidden
+    >
+      {/* keyhole outline */}
+      <path
+        d="M28.88 29.83 A12 12 0 1 0 15.12 29.83 L14 50 Q14 53 17 53 L27 53 Q30 53 30 50 Z"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      {/* node-graph in the head (edges, then nodes) */}
+      <path
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        d="M22 17.5 L22 11 M22 17.5 L28.5 15.5 M22 17.5 L25.5 23 M22 17.5 L18.5 23 M22 17.5 L15.5 15.5 M22 11 L28.5 15.5 M18.5 23 L15.5 15.5"
+      />
+      <g fill="var(--accent)" stroke="none">
+        <circle cx="22" cy="17.5" r="1.7" />
+        <circle cx="22" cy="11" r="1.7" />
+        <circle cx="28.5" cy="15.5" r="1.7" />
+        <circle cx="25.5" cy="23" r="1.7" />
+        <circle cx="18.5" cy="23" r="1.7" />
+        <circle cx="15.5" cy="15.5" r="1.7" />
+      </g>
+      {/* key-teeth / table rows in the slot */}
+      <path
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        d="M18.5 34 H25 M18.5 37.5 H22 M18.5 41 H26.5 M18.5 44.5 H23 M18.5 48 H25.5"
+      />
     </svg>
   );
 }
