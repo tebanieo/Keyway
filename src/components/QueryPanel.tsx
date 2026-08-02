@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { pkAttrs, skAttrs } from "./engine/engine";
-import { runQuery } from "./engine/query";
-import type { Cond, CondOp } from "./engine/query";
-import { parseFilter } from "./engine/filter";
-import type { IndexSpec, Item } from "./engine/types";
+import { pkAttrs, skAttrs } from "../engine/engine";
+import { runQuery } from "../engine/query";
+import type { Cond, CondOp } from "../engine/query";
+import { parseFilter } from "../engine/filter";
+import type { IndexSpec, Item } from "../engine/types";
 
 const OPS: CondOp[] = ["=", "begins_with", "<", "<=", ">", ">=", "between"];
 

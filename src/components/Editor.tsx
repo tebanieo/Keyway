@@ -17,12 +17,12 @@ import {
 import type { CompletionContext } from "@codemirror/autocomplete";
 import { forceLinting, linter, lintGutter } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
-import { fold, pkAttrs, skAttrs } from "./engine/engine";
-import { parseDoc } from "./model/dsl";
-import { BASE_INDEX } from "./model/seed";
-import { allAttrNames, deriveEntities, TYPE_ATTR } from "./model/entities";
-import type { EntityTemplate } from "./model/entities";
-import type { IndexSpec } from "./engine/types";
+import { fold, pkAttrs, skAttrs } from "../engine/engine";
+import { parseDoc } from "../model/dsl";
+import { BASE_INDEX } from "../model/seed";
+import { allAttrNames, deriveEntities, TYPE_ATTR } from "../model/entities";
+import type { EntityTemplate } from "../model/entities";
+import type { IndexSpec } from "../engine/types";
 
 // Two-space separator built via char code so no literal space sits in a string.
 const SP2 = String.fromCharCode(32, 32);

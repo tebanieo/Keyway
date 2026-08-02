@@ -25,10 +25,10 @@ import { apCoverage } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
 import { computeBackfill, putItemOf } from "./model/backfill";
-import { Editor } from "./Editor";
-import type { EditorHandle } from "./Editor";
-import { QueryPanel } from "./QueryPanel";
-import type { QueryHighlight } from "./QueryPanel";
+import { Editor } from "./components/Editor";
+import type { EditorHandle } from "./components/Editor";
+import { QueryPanel } from "./components/QueryPanel";
+import type { QueryHighlight } from "./components/QueryPanel";
 
 export function App() {
   const [ops, setOps] = useState<Op[]>([]);

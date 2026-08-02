@@ -15,10 +15,18 @@ stored anywhere but your tab.
 - **The text is the model.** A tiny, readable DSL — diffable in a PR, editable in
   vim, pasteable in Slack. The format _is_ the sharing mechanism.
 - **A pure, tested engine.** `fold(ops) → state` and `project(state, index) → view`
-  are DOM-free and covered by 117 unit tests. The UI is just a lens on them.
+  are DOM-free and covered by 162 unit tests. The UI is just a lens on them.
+- **Access patterns are first-class.** Declare what your design must serve with
+  `@ap`, and the app runs each one against the model, so you see at a glance which
+  patterns are covered and which are still gaps.
 - **It teaches the mechanics that bite people:** GSI overloading, sparse indexes,
   the reindex cost of a key change, transactional (2×) writes, projection modes,
-  native multi-key GSIs, and why a filter doesn't reduce a query's read cost.
+  native multi-key GSIs, conditional writes (`@if`) and what a failed condition
+  still costs you, and why a filter doesn't reduce a query's read cost.
+- **Guided tours built in.** The **Learn** menu plays short narrated scenarios —
+  from "how the editor works" to GSI overloading, sparse indexes, atomic key
+  changes, and conditional writes — each loading a model and stepping through it
+  for you.
 
 ## Privacy
 

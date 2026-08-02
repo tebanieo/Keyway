@@ -6,7 +6,7 @@ import { pkAttrs, skAttrs } from "../engine/engine";
 import { diffPartitions } from "../engine/diff";
 import type { DiffRow } from "../engine/diff";
 import type { IndexSpec, Item, View } from "../engine/types";
-import type { QueryHighlight } from "../QueryPanel";
+import type { QueryHighlight } from "./QueryPanel";
 
 /** Hover/pin/copy wiring, shared by every row across every pane. */
 export interface LinkProps {
