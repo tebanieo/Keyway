@@ -126,6 +126,58 @@ describe("writeCost — transact (atomic key rename)", () => {
   });
 });
 
+describe("writeCost — INCLUDE projection", () => {
+  const INC = { ...GSI1, projection: ["total"] as string[] };
+  const base = { PK: "U#1", SK: "O#1", GSI1PK: "S#p", GSI1SK: "d", total: "1", note: "a" };
+  it("rewrites the GSI when an INCLUDED attribute changes", () => {
+    const prior = fold([put("o1", base)], BASE);
+    const cost = writeCost(prior, put("o1", { ...base, total: "2" }), BASE, [INC]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "update", writes: 1 });
+  });
+  it("does NOT rewrite the GSI when a non-included, non-key attribute changes", () => {
+    const prior = fold([put("o1", base)], BASE);
+    const cost = writeCost(prior, put("o1", { ...base, note: "b" }), BASE, [INC]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "none", writes: 0 });
+    expect(cost.totalWrites).toBe(1); // base only
+  });
+});
+
+describe("writeCost — item size drives WCU", () => {
+  it("an item over 1 KB costs 2 base WCU", () => {
+    const op = put("big", { PK: "U#1", SK: "O#1", data: "x".repeat(1100) });
+    expect(writeCost(empty, op, BASE, [GSI1]).baseWrites).toBe(2);
+  });
+});
+
+describe("writeCost — transact merge branches", () => {
+  it("insert one + delete another on the same GSI merges to a reindex (2 writes)", () => {
+    const prior = fold([put("o2", { PK: "U#2", SK: "O#2", GSI1PK: "S#p", GSI1SK: "d" })], BASE);
+    const op: Op = {
+      kind: "transact",
+      actions: [
+        { kind: "delete", id: "o2" },
+        { kind: "put", item: { id: "o1", attrs: { PK: "U#1", SK: "O#1", GSI1PK: "S#q", GSI1SK: "d" } } },
+      ],
+    };
+    const cost = writeCost(prior, op, BASE, [GSI1]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "reindex", writes: 2 });
+    expect(cost.baseWrites).toBe(4); // two base items x2 transactional
+  });
+
+  it("a transact touching no GSI keys leaves the GSI untouched (none)", () => {
+    const op: Op = {
+      kind: "transact",
+      actions: [
+        { kind: "put", item: { id: "s1", attrs: { PK: "U#1", SK: "S#1" } } },
+        { kind: "put", item: { id: "s2", attrs: { PK: "U#1", SK: "S#2" } } },
+      ],
+    };
+    const cost = writeCost(empty, op, BASE, [GSI1]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "none", writes: 0 });
+    expect(cost.baseWrites).toBe(4);
+  });
+});
+
 describe("writeCost — delete", () => {
   it("deleting an indexed item removes it from base and GSI (2 WCU)", () => {
     const prior = fold(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeModel, encodeModel, modelFromLocation } from "./share";
+import { decodeModel, encodeModel, modelFromLocation, shareUrl, SAFE_URL_LEN } from "./share";
 import { DEFAULT_DOC } from "./doc";
 
 describe("share encode/decode", () => {
@@ -29,5 +29,20 @@ describe("share encode/decode", () => {
     expect(modelFromLocation(hash)).toBe(text);
     expect(modelFromLocation("#other=1")).toBeNull();
     expect(modelFromLocation("")).toBeNull();
+  });
+
+  it("shareUrl builds an origin+path#m= link that round-trips back", () => {
+    (globalThis as unknown as { location: { origin: string; pathname: string } }).location = {
+      origin: "https://ex.com",
+      pathname: "/keyway/",
+    };
+    const text = "u1: PK=A  SK=B  name=Ada";
+    const url = shareUrl(text);
+    expect(url.startsWith("https://ex.com/keyway/#m=")).toBe(true);
+    expect(modelFromLocation(new URL(url).hash)).toBe(text);
+  });
+
+  it("SAFE_URL_LEN is a sane paste ceiling", () => {
+    expect(SAFE_URL_LEN).toBeGreaterThan(1000);
   });
 });

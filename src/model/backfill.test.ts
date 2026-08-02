@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fold } from "../engine/engine";
-import { computeBackfill } from "./backfill";
+import { computeBackfill, putItemOf } from "./backfill";
 import type { IndexSpec, Op } from "../engine/types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
@@ -60,5 +60,20 @@ describe("computeBackfill", () => {
       BASE,
     );
     expect(b).toBeNull();
+  });
+});
+
+describe("putItemOf", () => {
+  it("extracts the put item from put / transact, and null otherwise", () => {
+    expect(putItemOf({ kind: "put", item: { id: "a", attrs: {} } })!.id).toBe("a");
+    expect(
+      putItemOf({
+        kind: "transact",
+        actions: [{ kind: "delete", id: "a" }, { kind: "put", item: { id: "b", attrs: {} } }],
+      })!.id,
+    ).toBe("b");
+    expect(putItemOf({ kind: "delete", id: "a" })).toBeNull();
+    expect(putItemOf(undefined)).toBeNull();
+    expect(putItemOf({ kind: "transact", actions: [{ kind: "delete", id: "a" }] })).toBeNull();
   });
 });

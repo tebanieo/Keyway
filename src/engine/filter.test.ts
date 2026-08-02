@@ -93,3 +93,53 @@ describe("logic + precedence", () => {
     expect(match('name = "Ada Lovelace"', { name: "Ada Lovelace" })).toBe(true);
   });
 });
+
+describe("comparators — full op matrix (string semantics)", () => {
+  it("<, <=, >, >= and <> on strings", () => {
+    expect(match("s < b", { s: "a" })).toBe(true);
+    expect(match("s <= a", { s: "a" })).toBe(true);
+    expect(match("s > a", { s: "b" })).toBe(true);
+    expect(match("s >= b", { s: "b" })).toBe(true);
+    expect(match("s <> a", { s: "b" })).toBe(true);
+    expect(match("s <> a", { s: "a" })).toBe(false);
+  });
+});
+
+describe("size() operand positions", () => {
+  it("size on the right, and in BETWEEN", () => {
+    expect(match("size(name) between 1 and 3", { name: "Ada" })).toBe(true);
+    expect(match("size(name) between 4 and 10", { name: "Ada" })).toBe(false);
+  });
+  it("size() of a missing attribute is undefined → comparison false", () => {
+    expect(match("size(missing) > 0", {})).toBe(false);
+  });
+});
+
+describe("parse errors surface a message", () => {
+  it("unterminated string / unexpected char / keyword-as-attr / no comparator", () => {
+    expect(parseFilter('name = "abc').error).toMatch(/unterminated/);
+    expect(parseFilter("name = %").error).toBeTruthy();
+    expect(parseFilter("and = 1").error).toMatch(/keyword/);
+    expect(parseFilter("status pending").error).toMatch(/comparator/);
+    expect(parseFilter("attribute_type(x)").error).toBeTruthy(); // missing comma/type
+  });
+});
+
+describe("deep nesting and NOT chains", () => {
+  it("doubled NOT and nested parens evaluate", () => {
+    expect(match("NOT NOT status = a", { status: "a" })).toBe(true);
+    expect(match("(((status = a)))", { status: "a" })).toBe(true);
+  });
+});
+
+describe("proto-key hygiene (SEC1)", () => {
+  it("inherited keys are not attributes", () => {
+    expect(match("attribute_exists(constructor)", {})).toBe(false);
+    expect(match("attribute_not_exists(toString)", {})).toBe(true);
+    expect(match("attribute_type(hasOwnProperty, S)", {})).toBe(false);
+  });
+  it("a real own attribute of that name still works", () => {
+    expect(match("attribute_exists(constructor)", { constructor: "x" })).toBe(true);
+    expect(match("constructor = x", { constructor: "x" })).toBe(true);
+  });
+});

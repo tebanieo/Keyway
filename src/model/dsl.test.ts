@@ -218,3 +218,35 @@ describe("parseDoc", () => {
     expect(ids.sort()).toEqual(["o1", "o3", "s1", "u1", "u2"].sort());
   });
 });
+
+describe("parseDoc — directives & diagnostics", () => {
+  const errs = (t: string) => parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "error");
+  const warns = (t: string) => parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "warning");
+
+  it("@table requires pk=", () => {
+    expect(errs("@table AppTable sk=SK").some((d) => /pk=/.test(d.message))).toBe(true);
+  });
+  it("@gsi requires a name and pk=", () => {
+    expect(errs("@gsi").length).toBeGreaterThan(0);
+    expect(errs("@gsi GSI1").length).toBeGreaterThan(0);
+  });
+  it("a PK-only table (@table pk= only) folds items keyed by PK alone", () => {
+    const { base, ops } = parseDoc("@table Events pk=PK\ne1: PK=EVENT#1  name=x", BASE);
+    expect(base.sk).toBeUndefined();
+    expect(fold(ops, base).size).toBe(1);
+  });
+  it("parses projection modes: keys → KEYS_ONLY, comma-list → array", () => {
+    const { gsis } = parseDoc("@gsi G1 pk=A projection=keys\n@gsi G2 pk=B projection=x,y", BASE);
+    expect(gsis[0].projection).toBe("KEYS_ONLY");
+    expect(gsis[1].projection).toEqual(["x", "y"]);
+  });
+  it("warns on an unknown directive", () => {
+    expect(warns("@wat foo").length).toBeGreaterThan(0);
+  });
+  it("@ap requires a description", () => {
+    expect(errs("@ap  -> GSI1").length).toBeGreaterThan(0);
+  });
+  it("warns when an item is missing its key", () => {
+    expect(warns("x1: name=nope").some((d) => /key/.test(d.message))).toBe(true);
+  });
+});

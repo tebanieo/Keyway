@@ -265,11 +265,16 @@ export function parseFilter(text: string): ParsedFilter {
 
 const NUM = /^-?\d+(\.\d+)?$/;
 
+/** Own-property read only — so inherited keys like `constructor`/`toString`
+ *  never masquerade as attributes (attribute_exists(constructor) must be false). */
+const own = (attrs: Record<string, string>, k: string): string | undefined =>
+  Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : undefined;
+
 /** Resolve an operand to a string value (or undefined if a path is missing). */
 function resolve(o: Operand, item: Item): string | undefined {
   if (o.kind === "lit") return o.value;
-  if (o.kind === "attr") return item.attrs[o.name];
-  const v = item.attrs[o.attr]; // size(attr)
+  if (o.kind === "attr") return own(item.attrs, o.name);
+  const v = own(item.attrs, o.attr); // size(attr)
   return v === undefined ? undefined : String(v.length);
 }
 
@@ -314,24 +319,24 @@ export function evalFilter(node: FilterNode, item: Item): boolean {
       return node.list.some((l) => compare(v, resolve(l, item), "="));
     }
     case "exists": {
-      const present = item.attrs[node.attr] !== undefined;
+      const present = own(item.attrs, node.attr) !== undefined;
       return node.negate ? !present : present;
     }
     case "type": {
       // No explicit types yet, so infer: numeric-looking values report N, else S
       // — kept consistent with how `compare` orders them (real N/S/B typing is
       // backlogged). Fixes the "says S but sorts as a Number" contradiction.
-      const v = item.attrs[node.attr];
+      const v = own(item.attrs, node.attr);
       if (v === undefined) return false;
       return node.type === (NUM.test(v) ? "N" : "S");
     }
     case "begins": {
-      const v = item.attrs[node.attr];
+      const v = own(item.attrs, node.attr);
       const sub = resolve(node.value, item);
       return v !== undefined && sub !== undefined && v.startsWith(sub);
     }
     case "contains": {
-      const v = item.attrs[node.attr];
+      const v = own(item.attrs, node.attr);
       const sub = resolve(node.value, item);
       return v !== undefined && sub !== undefined && v.includes(sub);
     }

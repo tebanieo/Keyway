@@ -131,6 +131,49 @@ describe("runQuery — scan", () => {
   });
 });
 
+describe("runQuery — sort-key condition matrix", () => {
+  it("= exact, and each range op on the sort key", () => {
+    const eq = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "=", value: "ORDER#2024-02" }] }));
+    expect(eq.items.map((i) => i.id)).toEqual(["o2"]);
+
+    const lt = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "<", value: "ORDER#2024-02" }] }));
+    expect(lt.items.map((i) => i.id)).toEqual(["o1"]);
+
+    const lte = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "<=", value: "ORDER#2024-02" }] }));
+    expect(lte.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
+
+    // "PROFILE" sorts lexically AFTER "ORDER#..." so the > ranges include it —
+    // a real DynamoDB gotcha (mixed SK prefixes in one partition).
+    const gt = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: ">", value: "ORDER#2024-02" }] }));
+    expect(gt.items.map((i) => i.id).sort()).toEqual(["o3", "p"]);
+
+    const gte = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: ">=", value: "ORDER#2024-02" }] }));
+    expect(gte.items.map((i) => i.id).sort()).toEqual(["o2", "o3", "p"]);
+  });
+
+  it("a query with no sort condition reads the whole partition (incl. the profile)", () => {
+    const r = runQuery(state, BASE, spec({ pk: ["U#1"] }));
+    expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o2", "o3", "p"]);
+    expect(r.scanned).toBe(4);
+  });
+
+  it("an empty partition reads nothing but still costs the 1-unit RCU floor", () => {
+    const r = runQuery(state, BASE, spec({ pk: ["U#404"] }));
+    expect(r.items).toHaveLength(0);
+    expect(r.scanned).toBe(0);
+    expect(r.rcu).toBe(0.5); // even a zero-item read bills the minimum eventual unit
+  });
+});
+
+describe("runQuery — read consistency (RCU)", () => {
+  it("a strongly-consistent get costs 1 RCU vs 0.5 eventual", () => {
+    const strong = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"], consistent: true }));
+    expect(strong.rcu).toBe(1);
+    const eventual = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"] }));
+    expect(eventual.rcu).toBe(0.5);
+  });
+});
+
 describe("runQuery — validation (multi-key rules)", () => {
   const MGSI: IndexSpec = {
     name: "M",
