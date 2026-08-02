@@ -1231,14 +1231,16 @@ body {
   letter-spacing: 0.4px;
 }
 
-.split {
+/* Panes auto-flow: each selected pane grows to fill; ≥3 wrap to the next row. */
+.panes {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--s4);
   align-items: flex-start;
 }
 
-.split > .panel {
-  flex: 1;
+.panes > .panel {
+  flex: 1 1 420px;
   min-width: 0;
 }
 

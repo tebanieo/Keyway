@@ -367,7 +367,13 @@ export function App() {
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
   const [editorCollapsed, setEditorCollapsed] = useState(false);
-  const [pane, setPane] = useState<string>("split"); // "base" | "split" | gsi name
+  // Which panes are shown (multi-select). Default = base + the last GSI; the
+  // reconcile effect keeps it valid as the model's indexes change.
+  const [visible, setVisible] = useState<Set<string>>(() => {
+    const p = parseDoc(EMPTY_DOC, BASE_INDEX);
+    const names = [p.base.name, ...p.gsis.map((g) => g.name)];
+    return new Set([names[0], names[names.length - 1]].filter(Boolean));
+  });
   const [diffOn, setDiffOn] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
@@ -565,6 +571,18 @@ export function App() {
     () => fold(ops.slice(0, Math.max(0, curStep - 1)), base),
     [ops, curStep, base],
   );
+  const paneNames = useMemo(() => [base.name, ...gsis.map((g) => g.name)], [base, gsis]);
+  const namesKey = paneNames.join("|");
+  // Reconcile the visible set when the index set changes (model load / @gsi edit):
+  // drop panes that vanished; if nothing's left, default to base + the last GSI.
+  useEffect(() => {
+    const names = namesKey.split("|");
+    setVisible((prev) => {
+      const kept = new Set([...prev].filter((n) => names.includes(n)));
+      return kept.size ? kept : new Set([names[0], names[names.length - 1]].filter(Boolean));
+    });
+  }, [namesKey]);
+
   const baseView = useMemo(() => project(state, base), [state, base]);
   const prevBaseView = useMemo(() => project(prevState, base), [prevState, base]);
   // One view per declared GSI.
@@ -641,6 +659,40 @@ export function App() {
   // Editing lives on the base pane, and only in canvas mode.
   const baseEdit = editing ? undefined : edit;
 
+  const togglePane = (name: string) =>
+    setVisible((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        if (next.size > 1) next.delete(name); // always keep at least one pane
+      } else next.add(name);
+      return next;
+    });
+  const allVisible = visible.size === paneNames.length;
+  const toggleAll = () =>
+    setVisible(
+      allVisible
+        ? new Set([paneNames[0], paneNames[paneNames.length - 1]].filter(Boolean))
+        : new Set(paneNames),
+    );
+
+  // The panes to render, in index order, filtered to the visible set.
+  const shownPanes = [
+    {
+      name: base.name,
+      view: baseView,
+      prev: prevBaseView,
+      edit: baseEdit,
+      subtitle: editing ? "you write here · via script" : "you write here",
+    },
+    ...gsiViews.map((gv) => ({
+      name: gv.index.name,
+      view: gv.view,
+      prev: gv.prev,
+      edit: undefined as EditProps | undefined,
+      subtitle: `read-only · ${projLabel(gv.index)}`,
+    })),
+  ].filter((p) => visible.has(p.name));
+
   return (
     <div className="app">
       <div className="toolbar">
@@ -661,16 +713,21 @@ export function App() {
           ))}
         </div>
 
-        <div className="seg">
-          {[base.name, ...gsis.map((g) => g.name), "split"].map((p) => (
+        <div className="seg" title="toggle which panes are shown">
+          {paneNames.map((name) => (
             <button
-              key={p}
-              className={p === pane ? "active" : ""}
-              onClick={() => setPane(p)}
+              key={name}
+              className={visible.has(name) ? "active" : ""}
+              onClick={() => togglePane(name)}
             >
-              {p === "split" ? "Split" : p}
+              {name}
             </button>
           ))}
+          {gsis.length > 0 && (
+            <button className={allVisible ? "active" : ""} onClick={toggleAll}>
+              All
+            </button>
+          )}
         </div>
 
         <div className="seg">
@@ -882,59 +939,21 @@ export function App() {
         </div>
       )}
 
-      {pane === "split" ? (
-        <div className="split">
+      <div className="panes">
+        {shownPanes.map((p) => (
           <Panel
-            view={baseView}
-            prev={prevBaseView}
+            key={p.name}
+            view={p.view}
+            prev={p.prev}
             diffOn={diffOn}
             link={link}
-            edit={baseEdit}
+            edit={p.edit}
             query={qhl}
             focusId={focusId}
-            subtitle={editing ? "you write here · via script" : "you write here"}
+            subtitle={p.subtitle}
           />
-          {gsiViews.map((gv) => (
-            <Panel
-              key={gv.index.name}
-              view={gv.view}
-              prev={gv.prev}
-              diffOn={diffOn}
-              link={link}
-              query={qhl}
-              focusId={focusId}
-              subtitle={`read-only · ${projLabel(gv.index)}`}
-            />
-          ))}
-        </div>
-      ) : pane === base.name ? (
-        <Panel
-          view={baseView}
-          prev={prevBaseView}
-          diffOn={diffOn}
-          link={link}
-          edit={baseEdit}
-          query={qhl}
-          focusId={focusId}
-        />
-      ) : (
-        (() => {
-          const gv = gsiViews.find((g) => g.index.name === pane) ?? gsiViews[0];
-          return gv ? (
-            <Panel
-              view={gv.view}
-              prev={gv.prev}
-              diffOn={diffOn}
-              link={link}
-              query={qhl}
-              focusId={focusId}
-              subtitle={`read-only · ${projLabel(gv.index)}`}
-            />
-          ) : (
-            <Panel view={baseView} prev={prevBaseView} diffOn={diffOn} link={link} query={qhl} focusId={focusId} />
-          );
-        })()
-      )}
+        ))}
+      </div>
 
       <p className="hint">
         {editing ? (
