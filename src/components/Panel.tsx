@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components -- Panel co-locates its
+   small pure helpers (projLabel, unionKeys, isKeyAttr) with the components that
+   use them; the only cost is coarser HMR for this file, which is fine. */
 import { useState } from "react";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { diffPartitions } from "../engine/diff";
