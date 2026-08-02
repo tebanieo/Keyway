@@ -760,7 +760,7 @@ body {
   }
 }
 
-/* Query panel — an on-demand read console, themed to the token system. */
+/* Query panel — a read console that lives in a right rail drawer. */
 .query-panel {
   margin-bottom: var(--s5);
   border: 1px solid var(--glass-line);
@@ -768,6 +768,16 @@ body {
   background: var(--panel);
   box-shadow: var(--shadow-1), inset 0 0 0 1px rgba(91, 157, 255, 0.08);
   overflow: hidden;
+}
+/* As a drawer: wider than the others (the form needs room), scrolls if tall. */
+.query-panel.drawer {
+  width: min(520px, 96vw);
+  border: 0;
+  border-left: 1px solid var(--glass-line);
+  border-radius: 0;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .query-head,
 .query-keys,
@@ -1229,6 +1239,15 @@ body {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.4px;
+}
+
+/* Table-controls header — pane selector + Diff, next to what they act on. */
+.panes-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s3);
 }
 
 /* Panes auto-flow: each selected pane grows to fill; ≥3 wrap to the next row. */

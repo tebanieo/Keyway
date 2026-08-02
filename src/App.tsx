@@ -30,7 +30,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 function Icon({
   name,
 }: {
-  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme";
+  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme" | "query";
 }) {
   const s = {
     width: 16,
@@ -89,6 +89,13 @@ function Icon({
         <svg {...s}>
           <circle cx="12" cy="12" r="9" />
           <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "query":
+      return (
+        <svg {...s}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.35-4.35" />
         </svg>
       );
   }
@@ -381,8 +388,7 @@ export function App() {
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   // Which right-rail drawer is open (only one at a time — they share the edge).
-  const [drawer, setDrawer] = useState<null | "patterns" | "examples">(null);
-  const [queryOpen, setQueryOpen] = useState(false);
+  const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query">(null);
   const [costPulse, setCostPulse] = useState(false);
   const costTimer = useRef<number | undefined>(undefined);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
@@ -459,6 +465,11 @@ export function App() {
     window.clearTimeout(costTimer.current);
     costTimer.current = window.setTimeout(() => setCostPulse(false), 2600);
   }, []);
+
+  // Query highlights (teal rows) only make sense while the Query drawer is open.
+  useEffect(() => {
+    if (drawer !== "query") setQhl({ matched: new Set(), scanned: new Set() });
+  }, [drawer]);
 
   // Dismiss the open rail drawer when clicking anywhere outside the rail/drawer.
   useEffect(() => {
@@ -713,41 +724,6 @@ export function App() {
           ))}
         </div>
 
-        <div className="seg" title="toggle which panes are shown">
-          {paneNames.map((name) => (
-            <button
-              key={name}
-              className={visible.has(name) ? "active" : ""}
-              onClick={() => togglePane(name)}
-            >
-              {name}
-            </button>
-          ))}
-          {gsis.length > 0 && (
-            <button className={allVisible ? "active" : ""} onClick={toggleAll}>
-              All
-            </button>
-          )}
-        </div>
-
-        <div className="seg">
-          <button
-            className={diffOn ? "active" : ""}
-            onClick={() => setDiffOn((v) => !v)}
-          >
-            Diff
-          </button>
-        </div>
-
-        <div className="seg">
-          <button
-            className={queryOpen ? "active" : ""}
-            onClick={() => setQueryOpen((v) => !v)}
-          >
-            Query
-          </button>
-        </div>
-
         <button
           className="icon-btn"
           onClick={() => setTheme((t) => (t === "paper" ? "dark" : "paper"))}
@@ -838,7 +814,7 @@ export function App() {
                 <>
                   <b>{fullState.size}</b> {fullState.size === 1 ? "item" : "items"}
                   <i className="sep">·</i>
-                  <b>{1 + gsis.length}</b> {1 + gsis.length === 1 ? "index" : "indexes"}
+                  <b>{gsis.length}</b> {gsis.length === 1 ? "index" : "indexes"}
                   {aps.length > 0 && (
                     <>
                       <i className="sep">·</i>
@@ -871,18 +847,14 @@ export function App() {
         </div>
       )}
 
-      {queryOpen && (
-        <QueryPanel
-          base={base}
-          gsis={gsis}
-          state={state}
-          onHighlight={setQhl}
-          onClose={() => {
-            setQueryOpen(false);
-            setQhl({ matched: new Set(), scanned: new Set() });
-          }}
-        />
-      )}
+      <QueryPanel
+        open={drawer === "query"}
+        base={base}
+        gsis={gsis}
+        state={state}
+        onHighlight={setQhl}
+        onClose={() => setDrawer(null)}
+      />
 
       <RightRail
         reveal={ops.length === 0}
@@ -893,6 +865,13 @@ export function App() {
             icon: <Icon name="examples" />,
             active: drawer === "examples",
             onClick: () => setDrawer((d) => (d === "examples" ? null : "examples")),
+          },
+          {
+            id: "query",
+            label: "Read / Query",
+            icon: <Icon name="query" />,
+            active: drawer === "query",
+            onClick: () => setDrawer((d) => (d === "query" ? null : "query")),
           },
           ...(aps.length > 0
             ? [
@@ -938,6 +917,30 @@ export function App() {
           <CostBar cost={cost} bytes={opBytes} />
         </div>
       )}
+
+      <div className="panes-bar">
+        <div className="seg" title="toggle which panes are shown">
+          {paneNames.map((name) => (
+            <button
+              key={name}
+              className={visible.has(name) ? "active" : ""}
+              onClick={() => togglePane(name)}
+            >
+              {name}
+            </button>
+          ))}
+          {gsis.length > 0 && (
+            <button className={allVisible ? "active" : ""} onClick={toggleAll}>
+              All
+            </button>
+          )}
+        </div>
+        <div className="seg">
+          <button className={diffOn ? "active" : ""} onClick={() => setDiffOn((v) => !v)}>
+            Diff
+          </button>
+        </div>
+      </div>
 
       <div className="panes">
         {shownPanes.map((p) => (

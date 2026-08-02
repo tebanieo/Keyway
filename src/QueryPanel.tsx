@@ -20,12 +20,14 @@ export interface QueryHighlight {
  * NOTE: first-cut UX — functional, not yet styled to the "professional" bar.
  */
 export function QueryPanel({
+  open,
   base,
   gsis,
   state,
   onHighlight,
   onClose,
 }: {
+  open: boolean;
   base: IndexSpec;
   gsis: IndexSpec[];
   state: Map<string, Item>;
@@ -95,7 +97,7 @@ export function QueryPanel({
   };
 
   return (
-    <div className="query-panel">
+    <div className={open ? "query-panel drawer open" : "query-panel drawer"} aria-hidden={!open}>
       <div className="query-head">
         <span className="q-title">Read</span>
         <div className="seg">
