@@ -51,9 +51,11 @@ It's a static single-page app, so GitHub Pages is ideal and free.
 
 1. Push this repo to GitHub.
 2. **Settings → Pages → Build and deployment → Source = "GitHub Actions".**
-3. The included workflow (`.github/workflows/deploy.yml`) builds and publishes on
-   every push to `main`. Vite's `base: "./"` makes it work at any subpath, so you
-   don't need to configure the repo name.
+3. The included workflow (`.github/workflows/deploy.yml`) builds the app **and**
+   the reference docs on every push to `main`, serving the docs at `/docs`
+   alongside it. Vite's `base: "./"` makes the app work at any subpath; for a
+   project-Pages URL, set the VitePress `base` in `docs/.vitepress/config.ts` to
+   `/<repo>/docs/`.
 
 ## Sharing a model
 
@@ -61,26 +63,56 @@ It's a static single-page app, so GitHub Pages is ideal and free.
 - **Example** — pick one from the **examples** menu.
 - **Copy-paste** — the model is just text; paste it anywhere. Always works.
 
+## Learn it / docs
+
+- **In the app** — the **Learn** menu plays guided, narrated tours (start with
+  "Getting Started" and "How to Model"), and the **Docs** link opens the reference.
+- **Reference manual** — a VitePress site under `docs/` (the DSL grammar, the
+  editor, filters, the cost model, access patterns, sharing) that publishes at
+  `/<site>/docs`. Run it locally with `npm run docs:dev`.
+
 ## Contributing an example
 
 Add an entry to `src/model/examples.ts` (a name, a description, and the DSL text).
 A test asserts every example parses cleanly, so a broken one fails CI.
 
+## Development
+
+```bash
+npm run dev          # Vite dev server
+npm test             # Vitest engine + model tests
+npm run lint         # ESLint (flat config)
+npm run format       # Prettier
+```
+
+A **Lefthook** pre-commit hook runs format, lint, typecheck, and the full test
+suite on every commit; `npm install` wires it up automatically (no Python
+needed). The engine lives in `src/engine/` (pure, DOM-free), the DSL and model
+logic in `src/model/`, and the React UI in `src/components/`.
+
 ## The DSL, briefly
 
 ```
-@table pk=PK sk=SK                       # optional; base keys default to PK/SK
+@table AppTable pk=PK sk=SK              # optional; base keys default to PK/SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK            # declare an index (one pane per @gsi)
 @gsi ByRegion pk=tenant,region sk=status,date   # native multi-key GSI
+
+@ap List a user's orders -> AppTable PK=USER#1 SK begins_with ORDER#   # a requirement
+@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@x.io              # the app runs it + grades coverage
 
 u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user   # label: attrs (label = stable id)
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace      # same label = update
 o1: PK=USER#2  SK=PROFILE                          # a new PK = atomic key change
+u2: PK=USER#3  SK=PROFILE  @if attribute_not_exists(PK)   # conditional write (create-only)
 delete o1                                          # remove an item
 ```
 
-The `_type` attribute groups items into entities the editor can scaffold and
-backfill. Comments (`#`) are free text.
+- **`@ap`** declares an access pattern (a requirement); the app runs it against the
+  model and shows which patterns are served and which aren't.
+- **`@if`**, as the last clause on a put/delete, is a conditional write: it applies
+  only if the condition holds, else it's rejected (and a failed check still costs).
+- **`_type`** groups items into entities the editor can scaffold and backfill.
+- Comments (`#`) are free text; a comment directly above a line narrates that step.
 
 ---
 
