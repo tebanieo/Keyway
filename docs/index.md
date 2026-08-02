@@ -3,7 +3,7 @@
 **Keyway** is a 100% client-side tool for designing and _teaching_ DynamoDB
 single-table data models. You write your model as plain text, and the app
 projects it into the base table and every secondary index, steps through the
-writes, shows the real capacity cost of each one, and lets you query it — all in
+writes, shows the real capacity cost of each one, and lets you query it, all in
 the browser tab.
 
 ## The text is the single artifact
@@ -19,9 +19,9 @@ that one string:
 
 Because the text is the whole artifact, it is diffable in a pull request,
 editable in vim, and pasteable into Slack. The format _is_ the sharing
-mechanism — there is nothing else to move around.
+mechanism: there is nothing else to move around.
 
-## 100% client-side — no backend, no telemetry
+## 100% client-side: no backend, no telemetry
 
 The app makes no network calls beyond loading its own static assets:
 
@@ -35,7 +35,7 @@ The app makes no network calls beyond loading its own static assets:
 You can model a sensitive schema without anything leaving your machine. See
 [Share links & examples](/sharing) for the details.
 
-## A 60-second quick start
+## Quick start
 
 1. **Open the app.** It loads with a worked "Users & orders" example already in
    the editor.
@@ -50,18 +50,18 @@ You can model a sensitive schema without anything leaving your machine. See
    ```
 
 3. **Edit an item and watch it project.** Add an attribute, or repeat a label to
-   update the same item — the base table and GSI panes update live.
+   update the same item: the base table and GSI panes update live.
 4. **Change a GSI key** (e.g. `GSI1PK=STATUS#shipped`) and watch the item hop
-   partitions on the index — and the cost bar bill it as a **reindex** (a
+   partitions on the index, and the cost bar bills it as a **reindex** (a
    delete + a put), not one write.
 5. **Declare an access pattern** with `@ap … -> GSI1 …` and see whether the
    model actually _serves_ it.
-6. **Share it** — the share button copies a link with the whole model inside.
+6. **Share it**: the share button copies a link with the whole model inside.
 
 From here, jump to:
 
-- [The DSL](/dsl) — the full grammar you write in the editor.
-- [Editor & autocomplete](/editor) — the completions and Tab behavior.
-- [Filters & query conditions](/filters) — how reads are shaped and trimmed.
-- [The cost model](/cost) — exactly how WCU/RCU are computed.
-- [Access-pattern coverage](/access-patterns) — grading a design against its queries.
+- [The DSL](/dsl): the full grammar you write in the editor.
+- [Editor & autocomplete](/editor): the completions and Tab behavior.
+- [Filters & query conditions](/filters): how reads are shaped and trimmed.
+- [The cost model](/cost): exactly how WCU/RCU are computed.
+- [Access-pattern coverage](/access-patterns): grading a design against its queries.

@@ -1,9 +1,9 @@
 # Filters & query conditions
 
-Keyway has two distinct places where you constrain a read, and it's worth keeping
-them apart:
+Keyway has two distinct places where you constrain a read, and they are not
+interchangeable:
 
-1. **Key conditions** shape _what a Query reads_ — they run on the index's keys
+1. **Key conditions** shape _what a Query reads_: they run on the index's keys
    and are restricted to what a real DynamoDB Query allows.
 2. **Filter expressions** run _after_ the read to trim what's returned.
 
@@ -34,7 +34,7 @@ cost.
 
 ## Filter grammar
 
-Values are written **inline** — there is no `:placeholder` / `#name` indirection.
+Values are written **inline**: there is no `:placeholder` / `#name` indirection.
 The **left** side of a comparison is an attribute path; the **right** side is a
 literal. Quote a value if it contains spaces:
 
@@ -89,7 +89,7 @@ size(attr)                       # usable on either side of a comparison
 - `attribute_exists` / `attribute_not_exists` test presence. Reads are
   own-property only, so inherited names like `constructor` never masquerade as
   attributes.
-- `attribute_type` — since the model is currently all strings, a value is
+- `attribute_type`: since the model is currently all strings, a value is
   reported as `N` if it looks numeric, else `S` (real N/S/B typing is
   backlogged). This keeps typing consistent with how comparisons order values.
 - `size(attr)` resolves to the string length and can appear on either side, e.g.
@@ -105,7 +105,7 @@ NOT contains(tags, archived)
 
 ## Query sort-key conditions are a restricted set
 
-A Query's key condition is not the free filter grammar — it mirrors DynamoDB's
+A Query's key condition is not the free filter grammar: it mirrors DynamoDB's
 real rules (enforced in `validate()` and `runQuery()`):
 
 - The **partition key** must be **equality** (`=`) for **every** partition
@@ -117,10 +117,10 @@ real rules (enforced in `validate()` and `runQuery()`):
   ```
 
 - On a **multi-key** sort key, only the **last supplied** sort attribute may use
-  a range — every earlier sort attribute must be `=`. You also can't skip a sort
+  a range: every earlier sort attribute must be `=`. You also can't skip a sort
   attribute; conditions apply as a left prefix.
 
-Breaking a rule doesn't silently misbehave — the query returns an error that
+Breaking a rule doesn't silently misbehave: the query returns an error that
 names the rule, e.g. _"only the last sort key (date) can use a range; status must
 be `=`"_. That error is exactly what drives the `invalid` status in
 [Access-pattern coverage](/access-patterns).

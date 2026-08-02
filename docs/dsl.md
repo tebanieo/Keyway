@@ -8,11 +8,11 @@ it in vim, no special editor required. This page is the grammar, faithful to
 A document has two kinds of lines:
 
 - **Directives** (`@table`, `@gsi`, `@ap`) declare structure and access patterns.
-- **Item / delete lines** are the operations — the data and the steps.
+- **Item / delete lines** are the operations: the data and the steps.
 
 Blank lines and comments are ignored except where noted below.
 
-## `@table` — the base table
+## `@table`: the base table
 
 ```text
 @table [Name] pk=<attr> sk=<attr>
@@ -20,7 +20,7 @@ Blank lines and comments are ignored except where noted below.
 
 - A leading bareword (one with no `=`) names the table; omit it to leave the
   table unnamed.
-- `pk=` is required. `sk=` is **optional** — leave it out for a **PK-only
+- `pk=` is required. `sk=` is **optional**: leave it out for a **PK-only
   table** (a `GetItem`/partition-only design).
 
 ```text
@@ -33,7 +33,7 @@ If `pk=` is missing you get an error:
 `@table needs pk= (e.g. @table AppTable pk=PK sk=SK, or pk= alone for a PK-only table)`.
 A plain unnamed `PK`/`SK` table is the implicit default and need not be declared.
 
-## `@gsi` — a secondary index
+## `@gsi`: a secondary index
 
 ```text
 @gsi <Name> pk=<attrs> [sk=<attrs>] [projection=all|keys|<comma-list>]
@@ -66,7 +66,7 @@ warning: _"multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=`."_
 More than 4 pk or 4 sk attributes is also warned.
 :::
 
-## `@ap` — a declared access pattern
+## `@ap`: a declared access pattern
 
 An access pattern is the **spec**: what your design must be able to serve. They
 are auto-numbered (AP1, AP2, …) in declaration order.
@@ -94,11 +94,11 @@ are auto-numbered (AP1, AP2, …) in declaration order.
 @ap Get a user's notification settings by type
 ```
 
-The last line declares a pattern with **no index yet** — a coverage gap that the
+The last line declares a pattern with **no index yet**: a coverage gap that the
 app surfaces. See [Access-pattern coverage](/access-patterns) for how each
 pattern is graded by actually running its query.
 
-## Item lines — a put (and updates)
+## Item lines: a put (and updates)
 
 ```text
 <label>: <attr>=<value>  <attr>=<value>  …
@@ -107,7 +107,7 @@ pattern is graded by actually running its query.
 - The **label** before the colon is the item's **stable id**. A pin follows the
   label across steps, so repeating a label refers to the _same_ item.
 - Attributes are `key=value`, separated by spaces. **Values may contain spaces**
-  — a value runs until the next ` key=` or the end of the line, so no quoting is
+  a value runs until the next ` key=` or the end of the line, so no quoting is
   needed:
 
   ```text
@@ -115,13 +115,13 @@ pattern is graded by actually running its query.
   ```
 
 - An item must carry its base key (its `PK`, and `SK` too on a composite table)
-  or it won't appear — you get a warning: _"item … is missing its key … it won't
+  or it won't appear: you get a warning: _"item … is missing its key … it won't
   appear."_
 
 ### Repeated label = update
 
 A repeated label with the **same base key** is a **put that overwrites** the
-prior item — an update:
+prior item, an update:
 
 ```text
 o1: PK=USER#1  SK=ORDER#1  status=pending
@@ -139,7 +139,7 @@ o1: PK=USER#1  SK=ORDER#1  status=shipped
 o1: PK=USER#2  SK=ORDER#1  status=shipped     # new key -> atomic transact (delete+put)
 ```
 
-This is why a key change is billed differently — see [The cost model](/cost).
+This is why a key change is billed differently. See [The cost model](/cost).
 
 ## Delete lines
 
@@ -170,7 +170,7 @@ line to keep it a silent header.
 
 `_type` is a reserved attribute that tags an item's **entity type** (facet). The
 engine treats it like any other attribute, but the authoring layer reads it to
-group items and derive **per-type templates** — so typing `order` on a fresh
+group items and derive **per-type templates**, so typing `order` on a fresh
 line can scaffold a whole row with that entity's usual attributes (see
 [Editor & autocomplete](/editor)). The schema is _inferred from the data_, never
 declared separately, so it can't drift from what's actually in the model.
