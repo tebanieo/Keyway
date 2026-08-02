@@ -12,6 +12,7 @@ import { Panel, projLabel } from "./components/Panel";
 import type { EditProps, LinkProps } from "./components/Panel";
 import { RightRail } from "./components/Rail";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
+import { LearnDrawer } from "./components/LearnDrawer";
 import { AccessPatterns } from "./components/AccessPatterns";
 import { useTheme } from "./hooks/useTheme";
 import { usePlayback } from "./hooks/usePlayback";
@@ -54,7 +55,7 @@ export function App() {
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   // Which right-rail drawer is open (only one at a time — they share the edge).
-  const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query">(null);
+  const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query" | "learn">(null);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
@@ -117,6 +118,20 @@ export function App() {
     setMode("editor");
     setDocVersion((v) => v + 1); // remount the editor with the loaded text
   }, []);
+
+  // Play a guided tour: load its curated model, then collapse the editor and
+  // auto-play from step 0 so the tables are the focus and the narration reads
+  // like a lesson. These setters batch, so the net effect is one clean start.
+  const playTour = useCallback(
+    (dsl: string) => {
+      loadModel(dsl);
+      setStep(0);
+      setEditorCollapsed(true);
+      setPlaying(true);
+      setDrawer(null);
+    },
+    [loadModel, setPlaying],
+  );
 
   // On open: if the URL carries a model (`#m=…`), load it.
   useEffect(() => {
@@ -447,6 +462,13 @@ export function App() {
             active: drawer === "examples",
             onClick: () => setDrawer((d) => (d === "examples" ? null : "examples")),
           },
+          {
+            id: "learn",
+            label: "Learn",
+            icon: <Icon name="learn" />,
+            active: drawer === "learn",
+            onClick: () => setDrawer((d) => (d === "learn" ? null : "learn")),
+          },
           // Query only appears once there's data — you can't query an empty table.
           ...(fullState.size > 0
             ? [
@@ -471,6 +493,14 @@ export function App() {
                 },
               ]
             : []),
+          // Docs opens the VitePress site in a new tab, so it never owns a drawer.
+          {
+            id: "docs",
+            label: "Docs",
+            icon: <Icon name="docs" />,
+            active: false,
+            onClick: () => window.open(`${import.meta.env.BASE_URL}docs/`, "_blank", "noopener"),
+          },
         ]}
       />
 
@@ -479,6 +509,8 @@ export function App() {
         onClose={() => setDrawer(null)}
         onLoad={loadModel}
       />
+
+      <LearnDrawer open={drawer === "learn"} onClose={() => setDrawer(null)} onPlay={playTour} />
 
       {aps.length > 0 && (
         <AccessPatterns

@@ -2,7 +2,7 @@
 export function Icon({
   name,
 }: {
-  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme" | "query";
+  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme" | "query" | "learn" | "docs";
 }) {
   const s = {
     width: 16,
@@ -68,6 +68,24 @@ export function Icon({
         <svg {...s}>
           <circle cx="11" cy="11" r="7" />
           <path d="M21 21l-4.35-4.35" />
+        </svg>
+      );
+    case "learn":
+      // An open book — a guided lesson.
+      return (
+        <svg {...s}>
+          <path d="M12 6v14" />
+          <path d="M12 6C10 4.5 6.5 4.5 4 5.5V19c2.5-1 6-1 8 .5" />
+          <path d="M12 6c2-1.5 5.5-1.5 8-.5V19c-2.5-1-6-1-8 .5" />
+        </svg>
+      );
+    case "docs":
+      // A box with an arrow leaving it — opens in a new tab.
+      return (
+        <svg {...s}>
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          <path d="M15 3h6v6" />
+          <path d="M10 14 21 3" />
         </svg>
       );
   }
