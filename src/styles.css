@@ -61,12 +61,13 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-2: 0 10px 34px rgba(0, 0, 0, 0.5);
 
-  /* liquid-glass surfaces (chrome only — data stays crisp) */
-  --glass-bg: rgba(24, 28, 37, 0.62);
-  --glass-bg-2: rgba(38, 44, 57, 0.55);
+  /* Floating surfaces (rail, drawers, toasts) — flat + opaque like paper, no
+     gloss; the clean shadow does the "elevated" work in both themes. */
+  --glass-bg: #191e27;
+  --glass-bg-2: #232935;
   --glass-line: var(--fill-3);
   --glass-hi: var(--fill-4);
-  --glass-blur: blur(18px) saturate(1.4);
+  --glass-blur: none;
 
   /* scrollbars — themed, a notch above the table surface for contrast */
   --scroll: #363d4b;
