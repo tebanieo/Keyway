@@ -21,3 +21,7 @@ coverage
 *.local
 .vite
 .DS_Store
+
+# internal-only notes (kept locally, never published)
+REVIEW.md
+docs/CODE_REVIEW.md
