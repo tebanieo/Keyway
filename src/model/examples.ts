@@ -12,7 +12,7 @@ export interface Example {
   dsl: string;
 }
 
-const SAAS = `# Multi-tenant SaaS — tenants, users, and projects, all scoped by tenant.
+const SAAS = `# Multi-tenant SaaS - tenants, users, and projects, all scoped by tenant.
 @table SaasTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
@@ -27,7 +27,7 @@ p1: PK=TENANT#acme  SK=PROJECT#apollo  name=Apollo  status=active  GSI1PK=STATUS
 p2: PK=TENANT#acme  SK=PROJECT#gemini  name=Gemini  status=archived  GSI1PK=STATUS#archived  GSI1SK=2023-11-20  _type=project
 `;
 
-const SOCIAL = `# Social graph — profiles, follows (adjacency-list edges), and posts.
+const SOCIAL = `# Social graph - profiles, follows (adjacency-list edges), and posts.
 @table SocialTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
@@ -45,7 +45,7 @@ p1: PK=USER#ada  SK=POST#2024-03-02  text=Hello world  GSI1PK=FEED#ada  GSI1SK=2
 p2: PK=USER#ada  SK=POST#2024-03-05  text=Second post  GSI1PK=FEED#ada  GSI1SK=2024-03-05  _type=post
 `;
 
-const EVENTS = `# Event ticketing — events, and tickets scoped to an event.
+const EVENTS = `# Event ticketing - events, and tickets scoped to an event.
 @table EventsTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
@@ -59,7 +59,7 @@ k2: PK=EVENT#reinvent  SK=TICKET#0002  tier=general  holder=bob@x.io  GSI1PK=HOL
 k3: PK=EVENT#reinvent  SK=TICKET#0003  tier=general  holder=ada@x.io  GSI1PK=HOLDER#ada@x.io  GSI1SK=EVENT#reinvent  _type=ticket
 `;
 
-const MULTIKEY = `# Native multi-key GSI — up to 4 partition + 4 sort attributes as SEPARATE,
+const MULTIKEY = `# Native multi-key GSI - up to 4 partition + 4 sort attributes as SEPARATE,
 # natively-typed columns (no string concatenation). "ByRegion" partitions by
 # (tenant, region) and sorts by (status, date). In a query, all partition attrs
 # are equality; of the sort attrs only the LAST (date) can take a range.
@@ -79,12 +79,12 @@ o4: PK=ORDER#4  SK=META  tenant=globex  region=us  status=open  date=2024-01-20 
 export const EXAMPLES: Example[] = [
   {
     name: "Users & orders",
-    description: "the guided tour — GSI overloading, a sparse index, a reindex on ship",
+    description: "the guided tour - GSI overloading, a sparse index, a reindex on ship",
     dsl: DEFAULT_DOC,
   },
   {
     name: "Multi-tenant SaaS",
-    description: "tenants, users, projects — everything scoped per tenant",
+    description: "tenants, users, projects - everything scoped per tenant",
     dsl: SAAS,
   },
   {
@@ -99,7 +99,7 @@ export const EXAMPLES: Example[] = [
   },
   {
     name: "Multi-key GSI",
-    description: "native composite keys — partition by (tenant, region), sort by (status, date)",
+    description: "native composite keys - partition by (tenant, region), sort by (status, date)",
     dsl: MULTIKEY,
   },
 ];

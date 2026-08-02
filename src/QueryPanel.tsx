@@ -108,7 +108,7 @@ export function QueryPanel({
                 key={o}
                 className={o === op ? "active" : ""}
                 disabled={disabled}
-                title={disabled ? "GetItem is base-table only — GSIs support query/scan" : undefined}
+                title={disabled ? "GetItem is base-table only - GSIs support query/scan" : undefined}
                 onClick={() => setOp(o)}
               >
                 {o.charAt(0).toUpperCase() + o.slice(1)}
@@ -214,7 +214,7 @@ export function QueryPanel({
           spellCheck={false}
         />
         <span className="q-hint">
-          applied after the read — trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND OR NOT ( )
+          applied after the read - trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND OR NOT ( )
           begins_with contains attribute_exists size
         </span>
       </div>
@@ -239,7 +239,7 @@ export function QueryPanel({
               </span>
               {result.scanned > result.returned && (
                 <span className="q-note">
-                  you paid to read {result.scanned} but a filter kept {result.returned} — filters don't save RCU
+                  you paid to read {result.scanned} but a filter kept {result.returned} - filters don't save RCU
                 </span>
               )}
             </>

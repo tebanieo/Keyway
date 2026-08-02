@@ -8,13 +8,13 @@ import type { AccessPattern, ApCond } from "./dsl";
  * v2 access-pattern coverage: instead of "does the named index exist?", we build
  * the AP's declared query and actually RUN it against the folded model, then
  * grade the result. This is the original "can my design serve all my access
- * patterns?" check — and it teaches, because an invalid query surfaces the exact
+ * patterns?" check - and it teaches, because an invalid query surfaces the exact
  * key rule it broke.
  *
  *  - served     ✓ the query is valid and returns ≥1 item
  *  - empty      ⚠ valid query, but no item matches (the model can't answer it yet)
  *  - invalid    ⚠ the key conditions break a query rule (missing PK, range on a
- *                 non-last SK, a non-key attribute…) — the teaching case
+ *                 non-last SK, a non-key attribute…) - the teaching case
  *  - assigned   ~ an index is named but no key condition is given to verify
  *  - no-index   ✗ names an index that isn't defined
  *  - unassigned ✗ no index named at all
@@ -65,7 +65,7 @@ function buildSpec(
     return { op: "get", pk, sk, skParts: [], filter: null, consistent: false };
   }
 
-  // query: the sort-key prefix — leading contiguous sort attributes that have a
+  // query: the sort-key prefix - leading contiguous sort attributes that have a
   // condition. validate() (inside runQuery) enforces equality-except-last.
   const skParts: Cond[] = [];
   for (const a of sks) {
@@ -82,7 +82,7 @@ export function apCoverage(
   state: Map<string, Item>,
 ): Coverage {
   if (!ap.index) {
-    return { status: "unassigned", message: "no index assigned — add `-> Index`", returned: 0, scanned: 0 };
+    return { status: "unassigned", message: "no index assigned - add `-> Index`", returned: 0, scanned: 0 };
   }
   const index = indexes.find((i) => i.name === ap.index);
   if (!index) {
@@ -94,7 +94,7 @@ export function apCoverage(
   if (conds.length === 0 && readOp !== "scan") {
     return {
       status: "assigned",
-      message: "index exists, but no key condition to verify — add e.g. `PK=USER#1`",
+      message: "index exists, but no key condition to verify - add e.g. `PK=USER#1`",
       returned: 0,
       scanned: 0,
     };
@@ -112,7 +112,7 @@ export function apCoverage(
   if (r.items.length === 0) {
     return {
       status: "empty",
-      message: "valid query, but no item matches — the model can't answer it yet",
+      message: "valid query, but no item matches - the model can't answer it yet",
       returned: 0,
       scanned: r.scanned,
     };

@@ -107,8 +107,8 @@ function Icon({
 function Logo() {
   return (
     <svg
-      width="20"
-      height="28"
+      width="40"
+      height="56"
       viewBox="0 0 44 62"
       fill="none"
       stroke="var(--accent)"
@@ -551,13 +551,13 @@ export function App() {
   const onShare = async () => {
     const url = shareUrl(currentDoc());
     if (url.length > SAFE_URL_LEN) {
-      setShareMsg("model too large to link — copy the text instead");
+      setShareMsg("model too large to link - copy the text instead");
     } else {
       try {
         await navigator.clipboard.writeText(url);
         setShareMsg("link copied to clipboard");
       } catch {
-        setShareMsg("couldn't copy — link logged to console");
+        setShareMsg("couldn't copy - link logged to console");
         console.log(url);
       }
     }
@@ -805,7 +805,7 @@ export function App() {
           <button
             className="editor-head"
             onClick={() => setEditorCollapsed((v) => !v)}
-            title={editorCollapsed ? "expand the editor" : "collapse the editor — focus the tables"}
+            title={editorCollapsed ? "expand the editor" : "collapse the editor - focus the tables"}
           >
             <span className="chev" aria-hidden>
               ▸
@@ -813,7 +813,7 @@ export function App() {
             <span className="eh-title">Editor</span>
             <span className="eh-stats">
               {fullState.size === 0 ? (
-                "empty — load an example or start typing"
+                "empty - load an example or start typing"
               ) : (
                 <>
                   <b>{fullState.size}</b> {fullState.size === 1 ? "item" : "items"}
@@ -915,14 +915,14 @@ export function App() {
       )}
 
       {narration && (
-        <div className="narration" key={curStep}>
+        <div className="narration" key={`narr-${curStep}`}>
           <span className="narr-step">{curStep}</span>
           <span className="narr-text">{narration}</span>
         </div>
       )}
 
       {cost && (playing || costPulse) && (
-        <div className="cost-hud" key={curStep}>
+        <div className="cost-hud" key={`cost-${curStep}`}>
           <CostBar cost={cost} bytes={opBytes} />
         </div>
       )}
@@ -1061,7 +1061,7 @@ function AccessPatterns({
       </div>
       <div className="ap-foot">
         Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the
-        query — <b>served</b> means it returns data.
+        query - <b>served</b> means it returns data.
       </div>
     </Drawer>
   );
@@ -1161,7 +1161,7 @@ function Panel({
         {parts.length === 0 &&
           (edit ? (
             <div className="empty">
-              <span>empty table — add an item, author in the editor, or load an example</span>
+              <span>empty table - add an item, author in the editor, or load an example</span>
               <button className="add-item" onClick={() => edit.onAddItem("ITEM#1")}>
                 + add an item
               </button>

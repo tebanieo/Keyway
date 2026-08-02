@@ -1,17 +1,17 @@
 /**
- * The seed scenario written in the DSL — the default editor document. Parsing
+ * The seed scenario written in the DSL - the default editor document. Parsing
  * this yields the same 8-step story as SEED_OPS, but now it's authored text you
  * can edit live. Items carry a `_type` tag so the editor can derive entity
  * templates (type `order` on a fresh line to scaffold one).
  */
 /** The blank slate the app opens on (and `reset` returns to): structure, no data. */
-export const EMPTY_DOC = `# Empty model — start typing items below, or load an example from the rail.
+export const EMPTY_DOC = `# Empty model - start typing items below, or load an example from the rail.
 # @table names the base table; add @gsi to create an index when an access
 # pattern needs one. Then add items:  label: PK=…  SK=…
 @table AppTable pk=PK sk=SK
 `;
 
-export const DEFAULT_DOC = `# Keyway — a single-table model as a script.
+export const DEFAULT_DOC = `# Keyway - a single-table model as a script.
 # One line = one operation = one step. "label:" puts an item; the label is its
 # stable id, so repeating it edits the same item. Change a PK/SK on a repeated
 # label and it becomes an atomic key change (delete + put). "delete label" removes.
@@ -22,9 +22,9 @@ export const DEFAULT_DOC = `# Keyway — a single-table model as a script.
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-# Access patterns are the SPEC — what the design must serve. "-> Index" plus key
+# Access patterns are the SPEC - what the design must serve. "-> Index" plus key
 # conditions makes it a real query the panel RUNS against the model; "served"
-# means it returns data. The last one names no index yet — a coverage gap.
+# means it returns data. The last one names no index yet - a coverage gap.
 @ap Get a user's profile and orders -> AppTable PK=USER#1
 @ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@analytical.io
 @ap List pending orders -> GSI1 GSI1PK=STATUS#pending
@@ -40,7 +40,7 @@ o1: PK=USER#1  SK=ORDER#2024-01  total=42.00  status=pending  GSI1PK=STATUS#pend
 o2: PK=USER#1  SK=ORDER#2024-02  total=17.50  status=pending  GSI1PK=STATUS#pending  GSI1SK=2024-02-03  _type=order
 o3: PK=USER#2  SK=ORDER#2024-03  total=99.99  status=pending  GSI1PK=STATUS#pending  GSI1SK=2024-03-21  _type=order
 
-# order ships: same key, so a plain put — but GSI1 reindexes (pending -> shipped)
+# order ships: same key, so a plain put - but GSI1 reindexes (pending -> shipped)
 o1: PK=USER#1  SK=ORDER#2024-01  total=42.00  status=shipped  GSI1PK=STATUS#shipped  GSI1SK=2024-01-14  _type=order
 
 delete o2

@@ -232,7 +232,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       if (dupPk || dupSk) {
         diagnostics.push({
           line,
-          message: "multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=` — only the last was kept",
+          message: "multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=` - only the last was kept",
           severity: "warning",
         });
       }

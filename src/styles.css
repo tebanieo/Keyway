@@ -223,7 +223,7 @@ body {
   align-items: center;
   gap: 8px;
   font-family: var(--font-mono);
-  font-size: var(--fs-md);
+  font-size: calc(var(--fs-md) * 1.5);
   font-weight: 600;
   letter-spacing: 0.3px;
   color: var(--text);
@@ -1254,7 +1254,7 @@ body {
 .panes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s4);
+  gap: 11px; /* ~1/3 tighter than --s4 (16px) */
   align-items: flex-start;
 }
 
