@@ -17,10 +17,11 @@ coverage
 .env.*
 !.env.example
 
-# editor / OS
+# editor / OS / local tool settings
 *.local
 .vite
 .DS_Store
+.claude/
 
 # internal-only notes (kept locally, never published)
 REVIEW.md
