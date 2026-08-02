@@ -1,4 +1,4 @@
-# data-canvas
+# Keyway
 
 An interactive, **100% client-side** tool for designing and *teaching* DynamoDB
 single-table data models. Write your model as plain text, watch it project into
