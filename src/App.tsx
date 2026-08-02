@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { fold, project } from "./engine/engine";
 import { itemSize } from "./engine/itemsize";
 import { writeCost } from "./engine/cost";
 import type { OpCost } from "./engine/cost";
-import type { IndexSpec, Item, Op } from "./engine/types";
+import type { IndexSpec, Op } from "./engine/types";
 import { Icon, Logo } from "./components/icons";
 import { CostBar } from "./components/CostBar";
 import { Panel, projLabel } from "./components/Panel";
 import type { EditProps, LinkProps } from "./components/Panel";
+import { RightRail } from "./components/Rail";
+import { ExamplesDrawer } from "./components/ExamplesDrawer";
+import { AccessPatterns } from "./components/AccessPatterns";
 import { BASE_INDEX } from "./model/seed";
 import { parseDoc, serializeModel } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
 import { describe, editToOps, nextItemLabel } from "./model/actions";
 import { apCoverage } from "./model/coverage";
-import type { CoverageStatus } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
-import { EXAMPLES } from "./model/examples";
 import { computeBackfill, putItemOf } from "./model/backfill";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
@@ -28,127 +28,6 @@ type Mode = "canvas" | "editor";
 
 /** Title-case a single-word action label (identifiers are shown verbatim). */
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** A right-side glass drawer shell (header + close). Content is passed in, so
- *  new rail sections just drop their body inside one of these. */
-function Drawer({
-  open,
-  title,
-  head,
-  onClose,
-  children,
-}: {
-  open: boolean;
-  title: string;
-  head?: ReactNode;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className={open ? "drawer open" : "drawer"} aria-hidden={!open}>
-      <div className="drawer-head">
-        <span className="drawer-title">{title}</span>
-        {head}
-        <div className="spacer" />
-        <button className="q-close" onClick={onClose} title="close">
-          &times;
-        </button>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/** Examples gallery as a rail drawer — same load path a shared link uses. */
-function ExamplesDrawer({
-  open,
-  onClose,
-  onLoad,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onLoad: (dsl: string) => void;
-}) {
-  return (
-    <Drawer open={open} title="Examples" onClose={onClose}>
-      <div className="ex-list">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex.name}
-            className="ex-item"
-            onClick={() => {
-              onLoad(ex.dsl);
-              onClose();
-            }}
-          >
-            <span className="ex-title">{ex.name}</span>
-            <span className="ex-desc">{ex.description}</span>
-          </button>
-        ))}
-      </div>
-    </Drawer>
-  );
-}
-
-/** One entry in the right activity rail. */
-interface RailItem {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  /** A count worth reacting to (e.g. uncovered patterns) → badge + attention. */
-  badge?: number;
-  active: boolean;
-  onClick: () => void;
-}
-
-/**
- * A right-edge activity rail: the launcher for the side drawers. It tucks to a
- * slim pull-tab when nothing needs attention (hover to reveal), and auto-reveals
- * with a badge + pulse when an item has something to react to (an uncovered
- * access pattern today; query / warnings / helpers later).
- */
-function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boolean }) {
-  const total = items.reduce((n, i) => n + (i.badge ?? 0), 0);
-  // When the last badge clears (>0 → 0), flash a green "resolved" ✓ and keep the
-  // rail out for a beat before it floats back to its tab — a reward for fixing it.
-  const [resolved, setResolved] = useState(false);
-  const prev = useRef(total);
-  useEffect(() => {
-    if (prev.current > 0 && total === 0) {
-      setResolved(true);
-      const t = window.setTimeout(() => setResolved(false), 1600);
-      prev.current = total;
-      return () => window.clearTimeout(t);
-    }
-    prev.current = total;
-  }, [total]);
-
-  if (items.length === 0) return null;
-  const signal = total > 0 || resolved || reveal || items.some((i) => i.active);
-  return (
-    <div
-      className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}${reveal ? " hint" : ""}`}
-    >
-      {items.map((it) => {
-        const badge = it.badge ?? 0;
-        return (
-          <button
-            key={it.id}
-            className={`rail-btn${it.active ? " active" : ""}${badge > 0 ? " warn" : ""}${resolved ? " ok" : ""}`}
-            onClick={it.onClick}
-            title={it.label}
-            aria-label={it.label}
-          >
-            {it.icon}
-            {badge > 0 && <span className="rail-badge">{badge}</span>}
-            {resolved && badge === 0 && <span className="rail-badge ok">✓</span>}
-            <span className="rail-label">{it.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export function App() {
   const [ops, setOps] = useState<Op[]>([]);
@@ -785,79 +664,3 @@ export function App() {
     </div>
   );
 }
-
-/** How each coverage status renders: mark glyph + severity class. */
-const COVER_UI: Record<CoverageStatus, { mark: string; kind: "ok" | "warn" | "bad" }> = {
-  served: { mark: "✓", kind: "ok" },
-  empty: { mark: "⚠", kind: "warn" },
-  invalid: { mark: "⚠", kind: "warn" },
-  assigned: { mark: "~", kind: "warn" },
-  "no-index": { mark: "✗", kind: "bad" },
-  unassigned: { mark: "✗", kind: "bad" },
-};
-
-/**
- * The access-pattern SPEC + coverage (v2). Each `@ap` carries a declared query
- * (`-> Index` + key conditions); we RUN it against the finished model and grade
- * the result — served / empty / invalid / assigned / gap. This is the original
- * "does my design serve all my access patterns?" validation, and an invalid
- * query shows the exact key rule it broke.
- */
-function AccessPatterns({
-  open,
-  aps,
-  base,
-  gsis,
-  state,
-  onClose,
-}: {
-  open: boolean;
-  aps: AccessPattern[];
-  base: IndexSpec;
-  gsis: IndexSpec[];
-  state: Map<string, Item>;
-  onClose: () => void;
-}) {
-  const indexes = [base, ...gsis];
-  const rows = aps.map((ap) => ({ ap, cov: apCoverage(ap, indexes, state) }));
-  const served = rows.filter((r) => r.cov.status === "served").length;
-  const gaps = rows.filter((r) => COVER_UI[r.cov.status].kind === "bad").length;
-
-  return (
-    <Drawer
-      open={open}
-      title="Access Patterns"
-      onClose={onClose}
-      head={
-        <>
-          <span className={served === aps.length ? "ap-count all" : "ap-count"}>
-            {served}/{aps.length} served
-          </span>
-          {gaps > 0 && <span className="ap-gaps">{gaps} unserved</span>}
-        </>
-      }
-    >
-      <div className="ap-list">
-        {rows.map(({ ap, cov }) => {
-          const ui = COVER_UI[cov.status];
-          return (
-            <div className={`ap-row ${ui.kind}`} key={ap.n}>
-              <div className="ap-row-top">
-                <span className={`ap-mark ${ui.kind}`}>{ui.mark}</span>
-                <span className="ap-n">AP{ap.n}</span>
-                <span className="ap-desc">{ap.description}</span>
-                {ap.index && <span className="ap-idx">{ap.index}</span>}
-              </div>
-              <div className={`ap-msg ${ui.kind}`}>{cov.message}</div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="ap-foot">
-        Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the
-        query - <b>served</b> means it returns data.
-      </div>
-    </Drawer>
-  );
-}
-
