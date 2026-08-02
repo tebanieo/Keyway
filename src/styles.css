@@ -852,18 +852,14 @@ body {
 /* The editor is the hero: an unbounded surface (no boxed card), collapsible by
    its header so the tables below take the whole screen. */
 .editor-wrap {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   margin-bottom: var(--s5);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--panel);
   box-shadow: var(--shadow-1);
   overflow: hidden;
-  transition: grid-template-rows 0.28s var(--ease);
-}
-.editor-wrap.collapsed {
-  grid-template-rows: auto 0fr;
 }
 
 .editor-head {
@@ -925,14 +921,19 @@ body {
   font-style: normal;
 }
 
+/* Collapse by clipping the wrapper (fixed CM height inside → no reflow, no
+   compress-then-extend flicker on expand). */
 .editor-body {
-  min-height: 0;
   overflow: hidden;
+  max-height: 48vh;
+  transition: max-height 0.3s var(--ease);
+}
+.editor-wrap.collapsed .editor-body {
+  max-height: 0;
 }
 
 .editor .cm-editor {
-  min-height: 220px;
-  max-height: 58vh;
+  height: 48vh;
 }
 
 .editor .cm-scroller {
