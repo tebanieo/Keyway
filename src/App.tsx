@@ -94,26 +94,13 @@ function Icon({
   }
 }
 
-/** The brand mark. Two candidates: a folded-corner page (paper + "fold"), or a
- *  keyed 2×2 grid (single-table + a lit index). Swap `variant` to compare. */
-function Logo({ variant = "fold" }: { variant?: "fold" | "grid" }) {
-  if (variant === "grid") {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-        <rect x="3" y="3" width="8" height="8" rx="2" fill="var(--accent)" />
-        <rect x="13" y="3" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <rect x="3" y="13" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <rect x="13" y="13" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      </svg>
-    );
-  }
+/** The Keyway mark — a keyhole (a keyway is the slot a key fits into; keys are
+ *  the heart of NoSQL modeling). A round head + a flared slot, filled in accent. */
+function Logo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M6 2.5h8l5 5v12a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 19.5V5A2.5 2.5 0 0 1 6 2.5z"
-        fill="var(--accent)"
-      />
-      <path d="M13.5 2.5v4.5a1 1 0 0 0 1 1H19" fill="none" stroke="var(--bg)" strokeWidth="1.6" />
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="var(--accent)">
+      <circle cx="12" cy="8.5" r="3.6" />
+      <path d="M10.6 10.9 L9.6 17.9 a1.1 1.1 0 0 0 1.09 1.25 h2.62 a1.1 1.1 0 0 0 1.09 -1.25 L13.4 10.9 Z" />
     </svg>
   );
 }
@@ -602,8 +589,8 @@ export function App() {
     <div className="app">
       <div className="toolbar">
         <h1>
-          <Logo variant="fold" />
-          data-canvas
+          <Logo />
+          keyway
         </h1>
 
         <div className="seg">
