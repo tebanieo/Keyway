@@ -1,9 +1,23 @@
+# dependencies
 node_modules
+
+# build output
 dist
 dist-ssr
-*.local
-.DS_Store
-.vite
-*.tsbuildinfo
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# test / lint caches
+coverage
+.eslintcache
+*.tsbuildinfo
+
+# local env + secrets
+.env
+.env.*
+!.env.example
+
+# editor / OS
+*.local
+.vite
+.DS_Store
