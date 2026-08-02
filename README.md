@@ -15,7 +15,7 @@ stored anywhere but your tab.
 - **The text is the model.** A tiny, readable DSL — diffable in a PR, editable in
   vim, pasteable in Slack. The format *is* the sharing mechanism.
 - **A pure, tested engine.** `fold(ops) → state` and `project(state, index) → view`
-  are DOM-free and covered by ~70 unit tests. The UI is just a lens on them.
+  are DOM-free and covered by 117 unit tests. The UI is just a lens on them.
 - **It teaches the mechanics that bite people:** GSI overloading, sparse indexes,
   the reindex cost of a key change, transactional (2×) writes, projection modes,
   native multi-key GSIs, and why a filter doesn't reduce a query's read cost.
@@ -76,4 +76,5 @@ backfill. Comments (`#`) are free text.
 
 ---
 
-Built with React + Vite + CodeMirror. MIT-licensed — use it, fork it, teach with it.
+Created by [**Esteban Serna**](https://github.com/tebanieo) with ♥.
+Built with React · Vite · CodeMirror. **MIT-licensed** — use it, fork it, teach with it.
