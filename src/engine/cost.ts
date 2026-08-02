@@ -172,7 +172,7 @@ export function writeCost(
 
   if (op.kind === "put") {
     const baseKey = keyOf(op.item, baseIndex);
-    const prev = baseKey ? prevState.get(baseKey) ?? null : null;
+    const prev = baseKey ? (prevState.get(baseKey) ?? null) : null;
     const indexes = gsis.map((g) => transitionCost(prev, op.item, g, baseIndex));
     const baseWrites = wcu(itemSize(op.item));
     return {
@@ -206,7 +206,7 @@ export function writeCost(
   for (const action of op.actions) {
     if (action.kind === "put") {
       const baseKey = keyOf(action.item, baseIndex);
-      const prev = baseKey ? running.get(baseKey) ?? null : null;
+      const prev = baseKey ? (running.get(baseKey) ?? null) : null;
       for (const g of gsis) {
         perIndexParts.get(g.name)!.push(transitionCost(prev, action.item, g, baseIndex));
       }

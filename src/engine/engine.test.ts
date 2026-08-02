@@ -83,11 +83,7 @@ describe("project", () => {
   it("groups by base partition and sorts by sk", () => {
     const view = project(fold(ops, BASE), BASE);
     const u1 = view.partitions.find((p) => p.pk === "U#1")!;
-    expect(u1.items.map((i) => i.attrs.SK)).toEqual([
-      "ORDER#1",
-      "ORDER#2",
-      "PROFILE",
-    ]);
+    expect(u1.items.map((i) => i.attrs.SK)).toEqual(["ORDER#1", "ORDER#2", "PROFILE"]);
   });
 
   it("regroups items into GSI partitions", () => {
@@ -110,18 +106,14 @@ describe("project", () => {
     const view = project(fold(ops, BASE), projected, BASE);
     const anyItem = view.partitions[0].items[0];
     // GSI keys + base keys (PK, SK) + the include — but not name/total/etc.
-    expect(Object.keys(anyItem.attrs).sort()).toEqual(
-      ["GSI1PK", "GSI1SK", "PK", "SK"].sort(),
-    );
+    expect(Object.keys(anyItem.attrs).sort()).toEqual(["GSI1PK", "GSI1SK", "PK", "SK"].sort());
   });
 
   it("KEYS_ONLY keeps only the index keys and base keys", () => {
     const projected: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
     const view = project(fold(ops, BASE), projected, BASE);
     const anyItem = view.partitions[0].items[0];
-    expect(Object.keys(anyItem.attrs).sort()).toEqual(
-      ["GSI1PK", "GSI1SK", "PK", "SK"].sort(),
-    );
+    expect(Object.keys(anyItem.attrs).sort()).toEqual(["GSI1PK", "GSI1SK", "PK", "SK"].sort());
   });
 });
 
@@ -135,9 +127,36 @@ describe("project — multi-key GSI", () => {
     sks: ["status", "date"],
   };
   const ops: Op[] = [
-    put(item("a", { PK: "U#1", SK: "A", tenant: "acme", region: "us", status: "open", date: "2024-01" })),
-    put(item("b", { PK: "U#1", SK: "B", tenant: "acme", region: "us", status: "open", date: "2024-02" })),
-    put(item("c", { PK: "U#1", SK: "C", tenant: "acme", region: "eu", status: "open", date: "2024-01" })),
+    put(
+      item("a", {
+        PK: "U#1",
+        SK: "A",
+        tenant: "acme",
+        region: "us",
+        status: "open",
+        date: "2024-01",
+      }),
+    ),
+    put(
+      item("b", {
+        PK: "U#1",
+        SK: "B",
+        tenant: "acme",
+        region: "us",
+        status: "open",
+        date: "2024-02",
+      }),
+    ),
+    put(
+      item("c", {
+        PK: "U#1",
+        SK: "C",
+        tenant: "acme",
+        region: "eu",
+        status: "open",
+        date: "2024-01",
+      }),
+    ),
     put(item("d", { PK: "U#1", SK: "D", tenant: "acme" })), // missing region/status/date
   ];
 

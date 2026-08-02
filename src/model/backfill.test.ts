@@ -69,7 +69,10 @@ describe("putItemOf", () => {
     expect(
       putItemOf({
         kind: "transact",
-        actions: [{ kind: "delete", id: "a" }, { kind: "put", item: { id: "b", attrs: {} } }],
+        actions: [
+          { kind: "delete", id: "a" },
+          { kind: "put", item: { id: "b", attrs: {} } },
+        ],
       })!.id,
     ).toBe("b");
     expect(putItemOf({ kind: "delete", id: "a" })).toBeNull();

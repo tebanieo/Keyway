@@ -3,7 +3,10 @@ import { describe as describeOp, editToOps, keyLabel, nextItemLabel } from "./ac
 import type { IndexSpec, Op } from "../engine/types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
-const put = (id: string, attrs: Record<string, string>): Op => ({ kind: "put", item: { id, attrs } });
+const put = (id: string, attrs: Record<string, string>): Op => ({
+  kind: "put",
+  item: { id, attrs },
+});
 
 describe("nextItemLabel", () => {
   it("returns the first free i-label over the op log", () => {
@@ -31,11 +34,20 @@ describe("keyLabel / describe", () => {
   });
   it("describe summarizes each op kind", () => {
     expect(describeOp(undefined, BASE).verb).toBe("start");
-    expect(describeOp({ kind: "delete", id: "o1" }, BASE)).toEqual({ verb: "delete", detail: "o1" });
-    expect(describeOp(put("o", { PK: "A", SK: "B" }), BASE)).toEqual({ verb: "put", detail: "A / B" });
+    expect(describeOp({ kind: "delete", id: "o1" }, BASE)).toEqual({
+      verb: "delete",
+      detail: "o1",
+    });
+    expect(describeOp(put("o", { PK: "A", SK: "B" }), BASE)).toEqual({
+      verb: "put",
+      detail: "A / B",
+    });
     const tx: Op = {
       kind: "transact",
-      actions: [{ kind: "delete", id: "o" }, { kind: "put", item: { id: "o", attrs: { PK: "C", SK: "D" } } }],
+      actions: [
+        { kind: "delete", id: "o" },
+        { kind: "put", item: { id: "o", attrs: { PK: "C", SK: "D" } } },
+      ],
     };
     expect(describeOp(tx, BASE).verb).toBe("transact");
   });

@@ -257,7 +257,10 @@ body {
   font-size: var(--fs-md);
   font-weight: 500;
   cursor: pointer;
-  transition: color var(--tf), background var(--tf), transform var(--tf);
+  transition:
+    color var(--tf),
+    background var(--tf),
+    transform var(--tf);
 }
 
 .seg button:hover {
@@ -273,7 +276,9 @@ body {
   background: var(--accent-fill);
   color: var(--on-accent);
   font-weight: 600;
-  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
+  box-shadow:
+    var(--accent-glow),
+    inset 0 1px 0 var(--btn-hi);
 }
 
 .seg-label {
@@ -318,7 +323,10 @@ body {
   background: transparent;
   color: var(--text);
   cursor: pointer;
-  transition: background var(--tf), transform var(--tf), color var(--tf);
+  transition:
+    background var(--tf),
+    transform var(--tf),
+    color var(--tf);
 }
 
 .stepper button svg {
@@ -355,7 +363,9 @@ body {
 .stepper .play {
   color: var(--on-accent);
   background: var(--accent-fill);
-  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
+  box-shadow:
+    var(--accent-glow),
+    inset 0 1px 0 var(--btn-hi);
 }
 .stepper .play:hover:not(:disabled) {
   background: var(--accent-fill-hover);
@@ -397,7 +407,9 @@ body {
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-line);
   border-radius: var(--r-pill);
-  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 1px 0 var(--glass-hi);
   animation: narr-drop 0.3s var(--ease);
 }
 /* Keyframes keep translate(-50%) so centering survives the animation. */
@@ -451,11 +463,15 @@ body {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.5), inset 1px 0 0 var(--glass-hi);
+  box-shadow:
+    -24px 0 48px rgba(0, 0, 0, 0.5),
+    inset 1px 0 0 var(--glass-hi);
   transform: translateX(100%);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+  transition:
+    transform 0.3s var(--ease),
+    opacity 0.3s var(--ease);
 }
 .drawer.open {
   transform: translateX(0);
@@ -495,7 +511,9 @@ body {
   background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: background var(--tf), border-color var(--tf);
+  transition:
+    background var(--tf),
+    border-color var(--tf);
 }
 .ex-item:hover {
   background: var(--fill-2);
@@ -622,7 +640,9 @@ body {
   border: 1px solid var(--glass-line);
   border-right: 0;
   border-radius: var(--r-md) 0 0 var(--r-md);
-  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 1px 0 var(--glass-hi);
   transform: translate(calc(100% - 12px), -50%); /* tucked: a slim tab peeks */
   transition: transform 0.3s var(--ease);
 }
@@ -660,7 +680,10 @@ body {
   background: var(--fill-1);
   color: var(--muted);
   cursor: pointer;
-  transition: color var(--tf), background var(--tf), transform var(--tf);
+  transition:
+    color var(--tf),
+    background var(--tf),
+    transform var(--tf);
 }
 .rail-btn svg {
   width: 18px;
@@ -687,7 +710,10 @@ body {
   color: var(--enter);
   border-color: rgba(55, 214, 122, 0.5);
   background: rgba(55, 214, 122, 0.14);
-  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+  transition:
+    color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
 }
 .rail.revealed .rail-btn.warn {
   animation: rail-pulse 2.2s var(--ease) infinite;
@@ -766,7 +792,9 @@ body {
   border: 1px solid var(--glass-line);
   border-radius: var(--r-md);
   background: var(--panel);
-  box-shadow: var(--shadow-1), inset 0 0 0 1px rgba(91, 157, 255, 0.08);
+  box-shadow:
+    var(--shadow-1),
+    inset 0 0 0 1px rgba(91, 157, 255, 0.08);
   overflow: hidden;
 }
 /* As a drawer: wider than the others (the form needs room), scrolls if tall. */
@@ -825,7 +853,9 @@ body {
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  transition: border-color var(--tf), box-shadow var(--tf);
+  transition:
+    border-color var(--tf),
+    box-shadow var(--tf);
 }
 .query-panel input:focus,
 .query-panel select:focus {
@@ -849,8 +879,12 @@ body {
   font-weight: 600;
   font-size: var(--fs-sm);
   cursor: pointer;
-  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
-  transition: transform var(--tf), filter var(--tf);
+  box-shadow:
+    var(--accent-glow),
+    inset 0 1px 0 var(--btn-hi);
+  transition:
+    transform var(--tf),
+    filter var(--tf);
 }
 .q-run:hover {
   filter: brightness(1.08);
@@ -866,7 +900,9 @@ body {
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--tf), color var(--tf);
+  transition:
+    background var(--tf),
+    color var(--tf);
 }
 .q-clear:hover {
   color: var(--text);
@@ -885,7 +921,10 @@ body {
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  transition: background var(--tf), color var(--tf), transform var(--tf);
+  transition:
+    background var(--tf),
+    color var(--tf),
+    transform var(--tf);
 }
 .q-close:hover {
   color: var(--text);
@@ -976,7 +1015,9 @@ body {
   font-size: var(--fs-sm);
   text-align: left;
   cursor: pointer;
-  transition: background var(--tf), border-color var(--tf);
+  transition:
+    background var(--tf),
+    border-color var(--tf);
 }
 .editor-head:hover {
   background: var(--fill-1);
@@ -1069,8 +1110,12 @@ body {
   font-weight: 600;
   font-size: var(--fs-sm);
   cursor: pointer;
-  box-shadow: var(--accent-glow), inset 0 1px 0 var(--btn-hi);
-  transition: filter var(--tf), transform var(--tf);
+  box-shadow:
+    var(--accent-glow),
+    inset 0 1px 0 var(--btn-hi);
+  transition:
+    filter var(--tf),
+    transform var(--tf);
 }
 .backfill .do:hover {
   filter: brightness(1.08);
@@ -1087,7 +1132,9 @@ body {
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--tf), color var(--tf);
+  transition:
+    background var(--tf),
+    color var(--tf);
 }
 
 .backfill .ghost:hover {
@@ -1539,7 +1586,9 @@ body {
   color: var(--text);
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--tf), transform var(--tf);
+  transition:
+    background var(--tf),
+    transform var(--tf);
 }
 .pin-chip:hover {
   background: rgba(91, 157, 255, 0.22);
@@ -1579,7 +1628,10 @@ body {
   font-size: var(--fs-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--tf), box-shadow var(--tf), transform var(--tf);
+  transition:
+    background var(--tf),
+    box-shadow var(--tf),
+    transform var(--tf);
 }
 .share:hover {
   background: linear-gradient(180deg, rgba(91, 157, 255, 0.32), rgba(91, 157, 255, 0.16));
@@ -1605,7 +1657,10 @@ body {
   background: var(--fill-1);
   color: var(--muted);
   cursor: pointer;
-  transition: color var(--tf), background var(--tf), transform var(--tf);
+  transition:
+    color var(--tf),
+    background var(--tf),
+    transform var(--tf);
 }
 .icon-btn:hover {
   color: var(--text);
@@ -1630,7 +1685,10 @@ body {
   color: var(--muted);
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--tf), color var(--tf), transform var(--tf);
+  transition:
+    background var(--tf),
+    color var(--tf),
+    transform var(--tf);
 }
 .reset:hover {
   color: var(--text);
@@ -1733,7 +1791,9 @@ body {
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid rgba(55, 214, 122, 0.5);
   border-radius: var(--r-pill);
-  box-shadow: var(--shadow-2), inset 0 1px 0 var(--glass-hi);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 1px 0 var(--glass-hi);
   font-size: var(--fs-sm);
   color: var(--muted);
   animation: toast-rise 0.2s var(--ease);
@@ -1770,4 +1830,3 @@ body {
 .del-btn:hover {
   color: #ff7a7a;
 }
-

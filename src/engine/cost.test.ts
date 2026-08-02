@@ -156,7 +156,10 @@ describe("writeCost — transact merge branches", () => {
       kind: "transact",
       actions: [
         { kind: "delete", id: "o2" },
-        { kind: "put", item: { id: "o1", attrs: { PK: "U#1", SK: "O#1", GSI1PK: "S#q", GSI1SK: "d" } } },
+        {
+          kind: "put",
+          item: { id: "o1", attrs: { PK: "U#1", SK: "O#1", GSI1PK: "S#q", GSI1SK: "d" } },
+        },
       ],
     };
     const cost = writeCost(prior, op, BASE, [GSI1]);

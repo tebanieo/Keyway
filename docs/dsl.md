@@ -62,7 +62,7 @@ A plain unnamed `PK`/`SK` table is the implicit default and need not be declared
 ::: warning The multi-key trap
 Writing `pk=a pk=b` (repeated `pk=`) instead of `pk=a,b` keeps **only the last**
 key and silently collapses the index to a single key. Keyway flags this with a
-warning: *"multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=`."*
+warning: _"multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=`."_
 More than 4 pk or 4 sk attributes is also warned.
 :::
 
@@ -79,7 +79,7 @@ are auto-numbered (AP1, AP2, …) in declaration order.
 - `-> <Index>` names the index that should serve it.
 - The read op defaults to `query`; you can write `get` or `scan` explicitly.
 - **Key conditions** reuse the item/query key syntax so the pattern becomes a
-  *real, runnable query*:
+  _real, runnable query_:
   - `attr=value` for equality (compact form).
   - `attr <op> value` for a sort-key range, where `<op>` is one of
     `= begins_with < <= > >= between`.
@@ -105,7 +105,7 @@ pattern is graded by actually running its query.
 ```
 
 - The **label** before the colon is the item's **stable id**. A pin follows the
-  label across steps, so repeating a label refers to the *same* item.
+  label across steps, so repeating a label refers to the _same_ item.
 - Attributes are `key=value`, separated by spaces. **Values may contain spaces**
   — a value runs until the next ` key=` or the end of the line, so no quoting is
   needed:
@@ -115,8 +115,8 @@ pattern is graded by actually running its query.
   ```
 
 - An item must carry its base key (its `PK`, and `SK` too on a composite table)
-  or it won't appear — you get a warning: *"item … is missing its key … it won't
-  appear."*
+  or it won't appear — you get a warning: _"item … is missing its key … it won't
+  appear."_
 
 ### Repeated label = update
 
@@ -172,7 +172,7 @@ line to keep it a silent header.
 engine treats it like any other attribute, but the authoring layer reads it to
 group items and derive **per-type templates** — so typing `order` on a fresh
 line can scaffold a whole row with that entity's usual attributes (see
-[Editor & autocomplete](/editor)). The schema is *inferred from the data*, never
+[Editor & autocomplete](/editor)). The schema is _inferred from the data_, never
 declared separately, so it can't drift from what's actually in the model.
 
 ```text

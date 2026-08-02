@@ -31,10 +31,7 @@ export interface Backfill {
  * the first drifting (type, attribute), or null. Key attributes and `_type`
  * are never considered.
  */
-export function computeBackfill(
-  cur: Map<string, Item>,
-  baseIndex: IndexSpec,
-): Backfill | null {
+export function computeBackfill(cur: Map<string, Item>, baseIndex: IndexSpec): Backfill | null {
   const skip = new Set(
     [TYPE_ATTR, baseIndex.pk, baseIndex.sk].filter((k): k is string => Boolean(k)),
   );

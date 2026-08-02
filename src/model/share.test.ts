@@ -13,9 +13,7 @@ describe("share encode/decode", () => {
   });
 
   it("compresses (encoded is shorter than naive encodeURIComponent for real docs)", () => {
-    expect(encodeModel(DEFAULT_DOC).length).toBeLessThan(
-      encodeURIComponent(DEFAULT_DOC).length,
-    );
+    expect(encodeModel(DEFAULT_DOC).length).toBeLessThan(encodeURIComponent(DEFAULT_DOC).length);
   });
 
   it("returns null for garbage payloads", () => {

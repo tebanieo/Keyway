@@ -1,13 +1,13 @@
 # Access-pattern coverage
 
 Declaring access patterns with `@ap` isn't just documentation. Keyway answers the
-real question — *"can my design serve all of its access patterns?"* — by
+real question — _"can my design serve all of its access patterns?"_ — by
 **building each pattern's declared query and running it against the finished
 model**, then grading the result. The logic is in
 [`src/model/coverage.ts`](https://github.com/).
 
 This is stronger than "does the named index exist?". Because the query actually
-runs, an unserved pattern tells you *why*, and an invalid one surfaces the exact
+runs, an unserved pattern tells you _why_, and an invalid one surfaces the exact
 key rule it broke.
 
 ## How a pattern becomes a runnable query
@@ -25,18 +25,18 @@ For each `@ap … -> Index [op] [conditions]`:
    folded state.
 
 A condition on an attribute that **isn't a key** of the index is rejected before
-running: *"`x` isn't a key of this index (keys: …)"*.
+running: _"`x` isn't a key of this index (keys: …)"_.
 
 ## The six statuses
 
-| Status       | Symbol | Meaning                                                                                  |
-| ------------ | ------ | ---------------------------------------------------------------------------------------- |
-| `served`     | ✓      | the query is valid **and returns ≥ 1 item**                                               |
-| `empty`      | ⚠      | valid query, but **no item matches** — the model can't answer it yet                      |
+| Status       | Symbol | Meaning                                                                                                            |
+| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `served`     | ✓      | the query is valid **and returns ≥ 1 item**                                                                        |
+| `empty`      | ⚠      | valid query, but **no item matches** — the model can't answer it yet                                               |
 | `invalid`    | ⚠      | the key conditions **break a query rule** (missing PK, range on a non-last SK, a non-key attr) — the teaching case |
-| `assigned`   | ~      | an index is named but **no key condition** was given to verify                           |
-| `no-index`   | ✗      | names an index that **isn't defined**                                                    |
-| `unassigned` | ✗      | **no index named at all** (`-> Index` is missing)                                         |
+| `assigned`   | ~      | an index is named but **no key condition** was given to verify                                                     |
+| `no-index`   | ✗      | names an index that **isn't defined**                                                                              |
+| `unassigned` | ✗      | **no index named at all** (`-> Index` is missing)                                                                  |
 
 Only `served` counts as truly covered (`isServed`). Each result also reports
 `returned` (items after filter) and `scanned` (items charged), so a pattern that
@@ -58,7 +58,7 @@ Only `served` counts as truly covered (`isServed`). Each result also reports
 #   -> invalid if it violates the multi-key sort rule; the message names it.
 ```
 
-Because coverage runs the *actual* query, editing your data changes the verdict
+Because coverage runs the _actual_ query, editing your data changes the verdict
 live: ship the last pending order and "List pending orders" flips from `served`
 to `empty`. That's the point — the spec is checked against the real model, not
 against your intentions. See [Filters & query conditions](/filters) for the

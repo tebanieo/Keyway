@@ -16,9 +16,27 @@ function put(id: string, attrs: Record<string, string>): Op {
 
 const data: Op[] = [
   put("p", { PK: "U#1", SK: "PROFILE", name: "Ada" }),
-  put("o1", { PK: "U#1", SK: "ORDER#2024-01", status: "shipped", GSI1PK: "STATUS#shipped", GSI1SK: "2024-01" }),
-  put("o2", { PK: "U#1", SK: "ORDER#2024-02", status: "pending", GSI1PK: "STATUS#pending", GSI1SK: "2024-02" }),
-  put("o3", { PK: "U#1", SK: "ORDER#2024-03", status: "pending", GSI1PK: "STATUS#pending", GSI1SK: "2024-03" }),
+  put("o1", {
+    PK: "U#1",
+    SK: "ORDER#2024-01",
+    status: "shipped",
+    GSI1PK: "STATUS#shipped",
+    GSI1SK: "2024-01",
+  }),
+  put("o2", {
+    PK: "U#1",
+    SK: "ORDER#2024-02",
+    status: "pending",
+    GSI1PK: "STATUS#pending",
+    GSI1SK: "2024-02",
+  }),
+  put("o3", {
+    PK: "U#1",
+    SK: "ORDER#2024-03",
+    status: "pending",
+    GSI1PK: "STATUS#pending",
+    GSI1SK: "2024-03",
+  }),
   put("q", { PK: "U#2", SK: "PROFILE", name: "Alan" }),
 ];
 const state = fold(data, BASE);
@@ -107,7 +125,10 @@ describe("runQuery — query", () => {
     const r = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: "between", value: "ORDER#2024-02", value2: "ORDER#2024-99" }] }),
+      spec({
+        pk: ["U#1"],
+        skParts: [{ op: "between", value: "ORDER#2024-02", value2: "ORDER#2024-99" }],
+      }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
   });
@@ -133,21 +154,41 @@ describe("runQuery — scan", () => {
 
 describe("runQuery — sort-key condition matrix", () => {
   it("= exact, and each range op on the sort key", () => {
-    const eq = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "=", value: "ORDER#2024-02" }] }));
+    const eq = runQuery(
+      state,
+      BASE,
+      spec({ pk: ["U#1"], skParts: [{ op: "=", value: "ORDER#2024-02" }] }),
+    );
     expect(eq.items.map((i) => i.id)).toEqual(["o2"]);
 
-    const lt = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "<", value: "ORDER#2024-02" }] }));
+    const lt = runQuery(
+      state,
+      BASE,
+      spec({ pk: ["U#1"], skParts: [{ op: "<", value: "ORDER#2024-02" }] }),
+    );
     expect(lt.items.map((i) => i.id)).toEqual(["o1"]);
 
-    const lte = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: "<=", value: "ORDER#2024-02" }] }));
+    const lte = runQuery(
+      state,
+      BASE,
+      spec({ pk: ["U#1"], skParts: [{ op: "<=", value: "ORDER#2024-02" }] }),
+    );
     expect(lte.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
 
     // "PROFILE" sorts lexically AFTER "ORDER#..." so the > ranges include it —
     // a real DynamoDB gotcha (mixed SK prefixes in one partition).
-    const gt = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: ">", value: "ORDER#2024-02" }] }));
+    const gt = runQuery(
+      state,
+      BASE,
+      spec({ pk: ["U#1"], skParts: [{ op: ">", value: "ORDER#2024-02" }] }),
+    );
     expect(gt.items.map((i) => i.id).sort()).toEqual(["o3", "p"]);
 
-    const gte = runQuery(state, BASE, spec({ pk: ["U#1"], skParts: [{ op: ">=", value: "ORDER#2024-02" }] }));
+    const gte = runQuery(
+      state,
+      BASE,
+      spec({ pk: ["U#1"], skParts: [{ op: ">=", value: "ORDER#2024-02" }] }),
+    );
     expect(gte.items.map((i) => i.id).sort()).toEqual(["o2", "o3", "p"]);
   });
 
@@ -167,7 +208,11 @@ describe("runQuery — sort-key condition matrix", () => {
 
 describe("runQuery — read consistency (RCU)", () => {
   it("a strongly-consistent get costs 1 RCU vs 0.5 eventual", () => {
-    const strong = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"], consistent: true }));
+    const strong = runQuery(
+      state,
+      BASE,
+      spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"], consistent: true }),
+    );
     expect(strong.rcu).toBe(1);
     const eventual = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"] }));
     expect(eventual.rcu).toBe(0.5);
@@ -190,7 +235,13 @@ describe("runQuery — validation (multi-key rules)", () => {
     const r = runQuery(
       state,
       MGSI,
-      spec({ pk: ["acme", "us"], skParts: [{ op: ">", value: "open" }, { op: "=", value: "x" }] }),
+      spec({
+        pk: ["acme", "us"],
+        skParts: [
+          { op: ">", value: "open" },
+          { op: "=", value: "x" },
+        ],
+      }),
     );
     expect(r.error).toMatch(/only the last sort key/);
   });
@@ -198,7 +249,13 @@ describe("runQuery — validation (multi-key rules)", () => {
     const r = runQuery(
       state,
       MGSI,
-      spec({ pk: ["acme", "us"], skParts: [{ op: "=", value: "open" }, { op: ">", value: "2024-01" }] }),
+      spec({
+        pk: ["acme", "us"],
+        skParts: [
+          { op: "=", value: "open" },
+          { op: ">", value: "2024-01" },
+        ],
+      }),
     );
     expect(r.error).toBeNull();
   });

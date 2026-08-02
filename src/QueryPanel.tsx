@@ -46,7 +46,13 @@ export function QueryPanel({
   const [skConds, setSkConds] = useState<Record<string, Cond>>({});
   const [filterText, setFilterText] = useState("");
   const [consistent, setConsistent] = useState(false);
-  const [result, setResult] = useState<{ scanned: number; bytes: number; returned: number; rcu: number; error: string | null } | null>(null);
+  const [result, setResult] = useState<{
+    scanned: number;
+    bytes: number;
+    returned: number;
+    rcu: number;
+    error: string | null;
+  } | null>(null);
 
   const setPk = (a: string, v: string) => setPkVals((p) => ({ ...p, [a]: v }));
   const setSk = (a: string, patch: Partial<Cond>) =>
@@ -78,7 +84,13 @@ export function QueryPanel({
     }
     const filter = parsed.ast ?? null;
     const r = runQuery(state, index, { ...common, filter });
-    setResult({ scanned: r.scanned, bytes: r.bytes, returned: r.items.length, rcu: r.rcu, error: r.error });
+    setResult({
+      scanned: r.scanned,
+      bytes: r.bytes,
+      returned: r.items.length,
+      rcu: r.rcu,
+      error: r.error,
+    });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
@@ -108,7 +120,9 @@ export function QueryPanel({
                 key={o}
                 className={o === op ? "active" : ""}
                 disabled={disabled}
-                title={disabled ? "GetItem is base-table only - GSIs support query/scan" : undefined}
+                title={
+                  disabled ? "GetItem is base-table only - GSIs support query/scan" : undefined
+                }
                 onClick={() => setOp(o)}
               >
                 {o.charAt(0).toUpperCase() + o.slice(1)}
@@ -135,7 +149,11 @@ export function QueryPanel({
           </select>
         </label>
         <label className="q-check">
-          <input type="checkbox" checked={consistent} onChange={(e) => setConsistent(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={consistent}
+            onChange={(e) => setConsistent(e.target.checked)}
+          />
           strong
         </label>
         <div className="spacer" />
@@ -156,7 +174,11 @@ export function QueryPanel({
             <label key={a} className="q-field">
               <span className="q-key">{a}</span>
               <span className="q-eq">=</span>
-              <input value={pkVals[a] ?? ""} placeholder="value" onChange={(e) => setPk(a, e.target.value)} />
+              <input
+                value={pkVals[a] ?? ""}
+                placeholder="value"
+                onChange={(e) => setPk(a, e.target.value)}
+              />
             </label>
           ))}
           {op === "query" &&
@@ -167,7 +189,10 @@ export function QueryPanel({
                 <label key={a} className="q-field">
                   <span className="q-key">{a}</span>
                   {last ? (
-                    <select value={c.op} onChange={(e) => setSk(a, { op: e.target.value as CondOp })}>
+                    <select
+                      value={c.op}
+                      onChange={(e) => setSk(a, { op: e.target.value as CondOp })}
+                    >
                       {OPS.map((o) => (
                         <option key={o} value={o}>
                           {o}
@@ -179,9 +204,17 @@ export function QueryPanel({
                       =
                     </span>
                   )}
-                  <input value={c.value} placeholder="value" onChange={(e) => setSk(a, { value: e.target.value })} />
+                  <input
+                    value={c.value}
+                    placeholder="value"
+                    onChange={(e) => setSk(a, { value: e.target.value })}
+                  />
                   {last && c.op === "between" && (
-                    <input value={c.value2 ?? ""} placeholder="…and" onChange={(e) => setSk(a, { value2: e.target.value })} />
+                    <input
+                      value={c.value2 ?? ""}
+                      placeholder="…and"
+                      onChange={(e) => setSk(a, { value2: e.target.value })}
+                    />
                   )}
                 </label>
               );
@@ -214,8 +247,8 @@ export function QueryPanel({
           spellCheck={false}
         />
         <span className="q-hint">
-          applied after the read - trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND OR NOT ( )
-          begins_with contains attribute_exists size
+          applied after the read - trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND
+          OR NOT ( ) begins_with contains attribute_exists size
         </span>
       </div>
 
@@ -239,7 +272,8 @@ export function QueryPanel({
               </span>
               {result.scanned > result.returned && (
                 <span className="q-note">
-                  you paid to read {result.scanned} but a filter kept {result.returned} - filters don't save RCU
+                  you paid to read {result.scanned} but a filter kept {result.returned} - filters
+                  don't save RCU
                 </span>
               )}
             </>

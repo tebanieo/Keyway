@@ -33,10 +33,7 @@ describe("diffPartitions", () => {
   });
 
   it("a deletion leaves a tombstone in its partition", () => {
-    const before = [
-      put("a", { PK: "U#1", SK: "B" }),
-      put("b", { PK: "U#1", SK: "C" }),
-    ];
+    const before = [put("a", { PK: "U#1", SK: "B" }), put("b", { PK: "U#1", SK: "C" })];
     const after = [put("a", { PK: "U#1", SK: "B" })];
     const m = statusMap(diffPartitions(view(before, BASE), view(after, BASE), BASE));
     expect(m.a).toEqual(["U#1:same"]);
@@ -44,25 +41,15 @@ describe("diffPartitions", () => {
   });
 
   it("a GSI key change is removed-from-old + added-to-new (the reindex)", () => {
-    const before = [
-      put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#pending", GSI1SK: "d" }),
-    ];
-    const after = [
-      put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#shipped", GSI1SK: "d" }),
-    ];
+    const before = [put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#pending", GSI1SK: "d" })];
+    const after = [put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#shipped", GSI1SK: "d" })];
     const m = statusMap(diffPartitions(view(before, GSI1), view(after, GSI1), GSI1));
-    expect(m.o1.sort()).toEqual(
-      ["STATUS#pending:removed", "STATUS#shipped:added"].sort(),
-    );
+    expect(m.o1.sort()).toEqual(["STATUS#pending:removed", "STATUS#shipped:added"].sort());
   });
 
   it("the same key change is only a modify on the base table", () => {
-    const before = [
-      put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#pending", GSI1SK: "d" }),
-    ];
-    const after = [
-      put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#shipped", GSI1SK: "d" }),
-    ];
+    const before = [put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#pending", GSI1SK: "d" })];
+    const after = [put("o1", { PK: "U#1", SK: "O#1", GSI1PK: "STATUS#shipped", GSI1SK: "d" })];
     const m = statusMap(diffPartitions(view(before, BASE), view(after, BASE), BASE));
     expect(m.o1).toEqual(["U#1:modified"]);
   });
@@ -70,7 +57,13 @@ describe("diffPartitions", () => {
   // Regression (S2): on a multi-key GSI the diff must order rows by the FULL
   // sort tuple, identically to `project` — not by the first sort attr alone.
   it("orders multi-key GSI rows by the whole sort tuple, like project", () => {
-    const MK: IndexSpec = { name: "MK", pk: "P", sk: "status", pks: ["P"], sks: ["status", "date"] };
+    const MK: IndexSpec = {
+      name: "MK",
+      pk: "P",
+      sk: "status",
+      pks: ["P"],
+      sks: ["status", "date"],
+    };
     // same status, different dates → the second sort attr decides order
     const ops = [
       put("a", { PK: "x", SK: "a", P: "t", status: "open", date: "2024-03" }),

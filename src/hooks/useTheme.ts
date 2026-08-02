@@ -7,8 +7,8 @@ export type Theme = "dark" | "paper";
  * element as `data-theme` and persisted to localStorage.
  */
 export function useTheme(): { theme: Theme; toggle: () => void } {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("dc-theme") === "paper" ? "paper" : "dark"),
+  const [theme, setTheme] = useState<Theme>(() =>
+    localStorage.getItem("dc-theme") === "paper" ? "paper" : "dark",
   );
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

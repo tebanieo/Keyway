@@ -70,9 +70,7 @@ export type WriteAction =
  * do in place — as an atomic delete-old + put-new, rather than two separate
  * (and briefly inconsistent) writes.
  */
-export type Op =
-  | WriteAction
-  | { kind: "transact"; actions: WriteAction[] };
+export type Op = WriteAction | { kind: "transact"; actions: WriteAction[] };
 
 /** One partition (all items sharing a partition-key value) under some index. */
 export interface Partition {

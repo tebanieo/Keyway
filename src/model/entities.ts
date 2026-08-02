@@ -21,10 +21,7 @@ export interface EntityTemplate {
  * attributes. Pure — the schema is inferred from the data, never declared
  * separately, so it can't drift from what's actually in the model.
  */
-export function deriveEntities(
-  items: Iterable<Item>,
-  lead: string[] = [],
-): EntityTemplate[] {
+export function deriveEntities(items: Iterable<Item>, lead: string[] = []): EntityTemplate[] {
   const acc = new Map<string, { attrs: string[]; seen: Set<string>; count: number }>();
 
   for (const item of items) {

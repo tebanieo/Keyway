@@ -61,16 +61,10 @@ export function App() {
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
   );
-  const [aps, setAps] = useState<AccessPattern[]>(
-    () => parseDoc(EMPTY_DOC, BASE_INDEX).aps,
-  );
+  const [aps, setAps] = useState<AccessPattern[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).aps);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
-  const [base, setBase] = useState<IndexSpec>(
-    () => parseDoc(EMPTY_DOC, BASE_INDEX).base,
-  );
-  const [gsis, setGsis] = useState<IndexSpec[]>(
-    () => parseDoc(EMPTY_DOC, BASE_INDEX).gsis,
-  );
+  const [base, setBase] = useState<IndexSpec>(() => parseDoc(EMPTY_DOC, BASE_INDEX).base);
+  const [gsis, setGsis] = useState<IndexSpec[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).gsis);
   const editorRef = useRef<EditorHandle>(null);
 
   const editing = mode === "editor";
@@ -433,8 +427,8 @@ export function App() {
       {showBackfill && backfill && (
         <div className="backfill">
           <span className="msg">
-            <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but
-            not all. Add it to the {backfill.targets.length} without
+            <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but not all. Add it
+            to the {backfill.targets.length} without
             {backfill.targets.length === 1 ? "" : ""} it?
           </span>
           <button className="do" onClick={applyBackfill}>
@@ -527,7 +521,10 @@ export function App() {
       )}
 
       {narration && (playing || costPulse) && (
-        <div className={cost?.rejected ? "narration rejected" : "narration"} key={`narr-${curStep}`}>
+        <div
+          className={cost?.rejected ? "narration rejected" : "narration"}
+          key={`narr-${curStep}`}
+        >
           <span className="narr-step">{curStep}</span>
           <span className="narr-text">{narration}</span>
         </div>
@@ -582,15 +579,15 @@ export function App() {
       <p className="hint">
         {editing ? (
           <>
-            Type in the script above. <code>item</code>+Tab scaffolds a row.
-            Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new
-            pane appears. Each <code>@gsi</code> sets its own projection
-            (<code>all</code>/<code>keys</code>/comma-list). Panes reparse live.
+            Type in the script above. <code>item</code>+Tab scaffolds a row. Add{" "}
+            <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane appears. Each{" "}
+            <code>@gsi</code> sets its own projection (<code>all</code>/<code>keys</code>
+            /comma-list). Panes reparse live.
           </>
         ) : (
           <>
-            Double-click a base cell to edit; click a row to pin and follow it.
-            Switch to <b>editor</b> to author the same model as text.
+            Double-click a base cell to edit; click a row to pin and follow it. Switch to{" "}
+            <b>editor</b> to author the same model as text.
           </>
         )}
       </p>

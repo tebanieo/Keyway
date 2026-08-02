@@ -173,8 +173,7 @@ const authoringKeys = Prec.highest(
         (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
         acceptCompletion(v) ||
         tabForward(v),
-      shift: (v) =>
-        (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v),
+      shift: (v) => (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v),
     },
     {
       key: "Escape",
@@ -264,12 +263,7 @@ function completeDsl(ctx: CompletionContext) {
   } else {
     // line start: everything you can begin a line with — scaffold an item
     // (blank or from an entity template), delete, or an @ directive.
-    options = [
-      itemSnippet(base),
-      DELETE_SNIPPET,
-      ...DIRECTIVES,
-      ...entities.map(entityScaffold),
-    ];
+    options = [itemSnippet(base), DELETE_SNIPPET, ...DIRECTIVES, ...entities.map(entityScaffold)];
   }
 
   return { from: word.from, options };
@@ -326,33 +320,37 @@ export const Editor = forwardRef<
   const cb = useRef(onChange);
   cb.current = onChange;
 
-  useImperativeHandle(ref, () => ({
-    appendLines: (text: string) => {
-      const view = viewRef.current;
-      if (!view) return;
-      const end = view.state.doc.length;
-      const needsNL = end > 0 && view.state.doc.sliceString(end - 1) !== "\n";
-      view.dispatch({ changes: { from: end, insert: (needsNL ? "\n" : "") + text } });
-    },
-    patchItems: (patches) => {
-      const view = viewRef.current;
-      if (!view) return;
-      const doc = view.state.doc;
-      const sep = String.fromCharCode(32, 32);
-      const changes: { from: number; insert: string }[] = [];
-      for (const { label, append } of patches) {
-        // the LAST line for this label determines the item's final state
-        let target: { to: number } | null = null;
-        for (let i = 1; i <= doc.lines; i++) {
-          const line = doc.line(i);
-          const m = /^\s*([\w-]+)\s*:/.exec(line.text);
-          if (m && m[1] === label) target = line;
+  useImperativeHandle(
+    ref,
+    () => ({
+      appendLines: (text: string) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const end = view.state.doc.length;
+        const needsNL = end > 0 && view.state.doc.sliceString(end - 1) !== "\n";
+        view.dispatch({ changes: { from: end, insert: (needsNL ? "\n" : "") + text } });
+      },
+      patchItems: (patches) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const doc = view.state.doc;
+        const sep = String.fromCharCode(32, 32);
+        const changes: { from: number; insert: string }[] = [];
+        for (const { label, append } of patches) {
+          // the LAST line for this label determines the item's final state
+          let target: { to: number } | null = null;
+          for (let i = 1; i <= doc.lines; i++) {
+            const line = doc.line(i);
+            const m = /^\s*([\w-]+)\s*:/.exec(line.text);
+            if (m && m[1] === label) target = line;
+          }
+          if (target) changes.push({ from: target.to, insert: sep + append });
         }
-        if (target) changes.push({ from: target.to, insert: sep + append });
-      }
-      if (changes.length) view.dispatch({ changes });
-    },
-  }), []);
+        if (changes.length) view.dispatch({ changes });
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!host.current) return;

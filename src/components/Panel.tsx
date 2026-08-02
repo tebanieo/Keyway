@@ -116,7 +116,15 @@ export function Panel({
                 </button>
               )}
             </div>
-            <GridRows rows={part.rows} index={index} link={link} edit={edit} gutter={diffOn} query={query} focusId={focusId} />
+            <GridRows
+              rows={part.rows}
+              index={index}
+              link={link}
+              edit={edit}
+              gutter={diffOn}
+              query={query}
+              focusId={focusId}
+            />
           </div>
         ))}
       </div>

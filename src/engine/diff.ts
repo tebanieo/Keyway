@@ -107,11 +107,7 @@ function attrsDiffer(a: Item, b: Item): boolean {
  *
  * Pure: same (prev, curr, index) always yields the same partitions.
  */
-export function diffPartitions(
-  prev: View,
-  curr: View,
-  index: IndexSpec,
-): DiffPartition[] {
+export function diffPartitions(prev: View, curr: View, index: IndexSpec): DiffPartition[] {
   const prevPk = new Map<string, string>();
   const prevItem = new Map<string, Item>();
   for (const p of prev.partitions) {

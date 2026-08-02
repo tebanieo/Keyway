@@ -34,7 +34,13 @@ export function editToOps(item: Item, key: string, value: string, base: IndexSpe
   const next: Item = { id: item.id, attrs };
   if (key === base.pk || key === base.sk) {
     return [
-      { kind: "transact", actions: [{ kind: "delete", id: item.id }, { kind: "put", item: next }] },
+      {
+        kind: "transact",
+        actions: [
+          { kind: "delete", id: item.id },
+          { kind: "put", item: next },
+        ],
+      },
     ];
   }
   return [{ kind: "put", item: next }];

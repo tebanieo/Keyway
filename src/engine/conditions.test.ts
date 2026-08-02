@@ -22,7 +22,9 @@ const empty = new Map<string, Item>();
 
 describe("fold — conditional writes", () => {
   it("applies a create-if-not-exists when the row is absent", () => {
-    const ops: Op[] = [put("u1", { PK: "U#1", SK: "PROFILE", name: "Ada" }, cond("attribute_not_exists(PK)"))];
+    const ops: Op[] = [
+      put("u1", { PK: "U#1", SK: "PROFILE", name: "Ada" }, cond("attribute_not_exists(PK)")),
+    ];
     const state = fold(ops, BASE);
     expect([...state.values()]).toHaveLength(1);
   });
@@ -83,7 +85,11 @@ describe("conditionRejected", () => {
 describe("writeCost — rejected conditional write", () => {
   it("bills a flat 1 WCU and leaves every index untouched", () => {
     const prev = fold([put("u1", { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" })], BASE);
-    const op = put("u1", { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" }, cond("attribute_not_exists(PK)"));
+    const op = put(
+      "u1",
+      { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" },
+      cond("attribute_not_exists(PK)"),
+    );
     const cost = writeCost(prev, op, BASE, [GSI1]);
     expect(cost.rejected).toBe(true);
     expect(cost.totalWrites).toBe(1);
@@ -100,7 +106,11 @@ describe("writeCost — rejected conditional write", () => {
         { kind: "delete", id: "t1" },
         // guard checks the NEW key's occupant, which is absent → status=pending
         // fails against an empty item → the transaction is rejected.
-        { kind: "put", item: { id: "t1", attrs: { PK: "U#2", SK: "T#open" } }, condition: cond("status=pending") },
+        {
+          kind: "put",
+          item: { id: "t1", attrs: { PK: "U#2", SK: "T#open" } },
+          condition: cond("status=pending"),
+        },
       ],
     };
     const cost = writeCost(prev, op, BASE, [GSI1]);
@@ -109,7 +119,11 @@ describe("writeCost — rejected conditional write", () => {
   });
 
   it("an applied conditional write costs the same as a normal write", () => {
-    const op = put("u1", { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" }, cond("attribute_not_exists(PK)"));
+    const op = put(
+      "u1",
+      { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" },
+      cond("attribute_not_exists(PK)"),
+    );
     const cost = writeCost(empty, op, BASE, [GSI1]);
     expect(cost.rejected).toBeFalsy();
     expect(cost.totalWrites).toBe(2); // base + GSI insert

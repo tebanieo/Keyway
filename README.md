@@ -1,19 +1,19 @@
 # Keyway
 
-An interactive, **100% client-side** tool for designing and *teaching* DynamoDB
+An interactive, **100% client-side** tool for designing and _teaching_ DynamoDB
 single-table data models. Write your model as plain text, watch it project into
 the base table and its indexes, step through writes, see the real cost of each
 one, and query it — all in the browser. Nothing is sent to a server; nothing is
 stored anywhere but your tab.
 
 > Most people learn single-table design from static blog diagrams. Here you load
-> a model and *watch it work* — the GSI reprojects, the sparse index skips a row,
+> a model and _watch it work_ — the GSI reprojects, the sparse index skips a row,
 > a key change costs a delete+put, a scan reads the whole table.
 
 ## Why it's different
 
 - **The text is the model.** A tiny, readable DSL — diffable in a PR, editable in
-  vim, pasteable in Slack. The format *is* the sharing mechanism.
+  vim, pasteable in Slack. The format _is_ the sharing mechanism.
 - **A pure, tested engine.** `fold(ops) → state` and `project(state, index) → view`
   are DOM-free and covered by 117 unit tests. The UI is just a lens on them.
 - **It teaches the mechanics that bite people:** GSI overloading, sparse indexes,

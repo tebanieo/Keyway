@@ -36,13 +36,13 @@ instead. Real browsers allow far more, but chat clients often truncate.
 Keyway ships a set of curated models, each loaded through the **same** path a
 shared link uses. They double as steppable, cost-annotated teaching artifacts:
 
-| Example            | What it shows                                                                 |
-| ------------------ | ----------------------------------------------------------------------------- |
-| **Users & orders** | the guided tour — GSI overloading, a sparse index, a reindex on ship          |
-| **Multi-tenant SaaS** | tenants, users, projects, everything scoped per tenant                     |
-| **Social feed**    | profiles, follows as adjacency edges, a reverse-lookup GSI                     |
-| **Event ticketing**| events and tickets, plus find-by-holder on GSI1                               |
-| **Multi-key GSI**  | native composite keys — partition by (tenant, region), sort by (status, date) |
+| Example               | What it shows                                                                 |
+| --------------------- | ----------------------------------------------------------------------------- |
+| **Users & orders**    | the guided tour — GSI overloading, a sparse index, a reindex on ship          |
+| **Multi-tenant SaaS** | tenants, users, projects, everything scoped per tenant                        |
+| **Social feed**       | profiles, follows as adjacency edges, a reverse-lookup GSI                    |
+| **Event ticketing**   | events and tickets, plus find-by-holder on GSI1                               |
+| **Multi-key GSI**     | native composite keys — partition by (tenant, region), sort by (status, date) |
 
 Each example is plain DSL. A test asserts every example parses cleanly, so a
 broken one fails CI. Contributing an example is a single entry (a name, a

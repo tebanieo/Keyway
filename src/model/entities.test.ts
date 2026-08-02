@@ -19,9 +19,7 @@ describe("deriveEntities", () => {
     // union across the two profiles: name from both, email from the first only
     expect(byType["user-profile"].attrs.sort()).toEqual(["PK", "SK", "email", "name"].sort());
     expect(byType["user-profile"].count).toBe(2);
-    expect(byType["order"].attrs.sort()).toEqual(
-      ["PK", "SK", "status", "total"].sort(),
-    );
+    expect(byType["order"].attrs.sort()).toEqual(["PK", "SK", "status", "total"].sort());
   });
 
   it("does not include _type itself in a template", () => {

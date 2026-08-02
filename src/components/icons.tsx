@@ -2,7 +2,17 @@
 export function Icon({
   name,
 }: {
-  name: "play" | "pause" | "prev" | "next" | "patterns" | "examples" | "theme" | "query" | "learn" | "docs";
+  name:
+    | "play"
+    | "pause"
+    | "prev"
+    | "next"
+    | "patterns"
+    | "examples"
+    | "theme"
+    | "query"
+    | "learn"
+    | "docs";
 }) {
   const s = {
     width: 16,
@@ -121,7 +131,10 @@ export function Logo() {
           d="M22 17.5 L22 11 M22 17.5 L28.5 15.5 M22 17.5 L25.5 23 M22 17.5 L18.5 23 M22 17.5 L15.5 15.5 M22 11 L28.5 15.5 M18.5 23 L15.5 15.5"
         />
         {/* key-teeth / table rows in the slot */}
-        <path strokeWidth="1.7" d="M18.5 34 H25 M18.5 37.5 H22 M18.5 41 H26.5 M18.5 44.5 H23 M18.5 48 H25.5" />
+        <path
+          strokeWidth="1.7"
+          d="M18.5 34 H25 M18.5 37.5 H22 M18.5 41 H26.5 M18.5 44.5 H23 M18.5 48 H25.5"
+        />
       </g>
       <g transform="translate(32 32) scale(1.2) translate(-22 -30.5)" fill="#ffffff">
         <circle cx="22" cy="17.5" r="1.7" />

@@ -114,7 +114,7 @@ export function conditionRejected(
     let existing: Item | null;
     if (action.kind === "put") {
       const key = keyOf(action.item, baseIndex);
-      existing = key !== null ? prevState.get(key) ?? null : null;
+      existing = key !== null ? (prevState.get(key) ?? null) : null;
     } else {
       existing = findById(prevState, action.id) ?? null;
     }

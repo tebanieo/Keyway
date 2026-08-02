@@ -3,9 +3,9 @@
 Keyway has two distinct places where you constrain a read, and it's worth keeping
 them apart:
 
-1. **Key conditions** shape *what a Query reads* — they run on the index's keys
+1. **Key conditions** shape _what a Query reads_ — they run on the index's keys
    and are restricted to what a real DynamoDB Query allows.
-2. **Filter expressions** run *after* the read to trim what's returned.
+2. **Filter expressions** run _after_ the read to trim what's returned.
 
 The filter language lives in [`src/engine/filter.ts`](https://github.com/); the
 query key rules in [`src/engine/query.ts`](https://github.com/).
@@ -14,14 +14,14 @@ query key rules in [`src/engine/query.ts`](https://github.com/).
 
 ::: warning The teaching point
 A filter **does not reduce a query's read cost.** DynamoDB reads the items the
-key condition selects, charges you for all of them, and *then* drops the ones the
+key condition selects, charges you for all of them, and _then_ drops the ones the
 filter rejects. In the query result you'll see `scanned` (what you paid for) stay
 the same while the returned items shrink.
 :::
 
 In the engine this is literal: the query reads the matching items, computes cost
 from their **cumulative** size, and only then applies the filter to decide what
-to *return*:
+to _return_:
 
 ```ts
 const items = spec.filter ? read.filter((it) => evalFilter(spec.filter, it)) : read;
@@ -121,8 +121,8 @@ real rules (enforced in `validate()` and `runQuery()`):
   attribute; conditions apply as a left prefix.
 
 Breaking a rule doesn't silently misbehave — the query returns an error that
-names the rule, e.g. *"only the last sort key (date) can use a range; status must
-be `=`"*. That error is exactly what drives the `invalid` status in
+names the rule, e.g. _"only the last sort key (date) can use a range; status must
+be `=`"_. That error is exactly what drives the `invalid` status in
 [Access-pattern coverage](/access-patterns).
 
 See [The cost model](/cost) for the multi-key query rules in the context of what

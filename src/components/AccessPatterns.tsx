@@ -72,8 +72,8 @@ export function AccessPatterns({
         })}
       </div>
       <div className="ap-foot">
-        Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the
-        query - <b>served</b> means it returns data.
+        Declare with <code>@ap description -&gt; Index key=value</code>. Coverage runs the query -{" "}
+        <b>served</b> means it returns data.
       </div>
     </Drawer>
   );

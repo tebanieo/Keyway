@@ -57,9 +57,12 @@ const AP_OPS = new Set<string>(["=", "begins_with", "<", "<=", ">", ">=", "betwe
  * for equality, or `attr op value` (`SK begins_with ORDER#`, `SK between a and
  * b`) for a sort-key range. Order is preserved so it round-trips.
  */
-function parseApTail(
-  tail: string,
-): { index?: string; readOp: "get" | "query" | "scan"; conds: ApCond[]; error?: string } {
+function parseApTail(tail: string): {
+  index?: string;
+  readOp: "get" | "query" | "scan";
+  conds: ApCond[];
+  error?: string;
+} {
   const toks = tail.trim().split(/\s+/).filter(Boolean);
   const index = toks.shift();
   let readOp: "get" | "query" | "scan" = "query";
@@ -77,7 +80,12 @@ function parseApTail(
     }
     const op = toks[i++];
     if (!op || !AP_OPS.has(op)) {
-      return { index, readOp, conds, error: `expected an operator (=, begins_with, <, between…) after "${attr}"` };
+      return {
+        index,
+        readOp,
+        conds,
+        error: `expected an operator (=, begins_with, <, between…) after "${attr}"`,
+      };
     }
     if (op === "between") {
       const v1 = toks[i++];
@@ -115,7 +123,10 @@ function parseProjection(v: string | undefined): ProjectionSpec | undefined {
   const low = v.toLowerCase();
   if (low === "all") return undefined;
   if (low === "keys" || low === "keys_only") return "KEYS_ONLY";
-  return v.split(",").map((s) => s.trim()).filter(Boolean);
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 const LABEL = /^([A-Za-z0-9_]+)\s*:\s*(.*)$/;
@@ -234,14 +245,21 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       if (dupPk || dupSk) {
         diagnostics.push({
           line,
-          message: "multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=` - only the last was kept",
+          message:
+            "multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=` - only the last was kept",
           severity: "warning",
         });
       }
       // pk / sk may be comma-lists for a multi-key GSI (up to 4 each).
-      const pkList = attrs.pk.split(",").map((s) => s.trim()).filter(Boolean);
+      const pkList = attrs.pk
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const skList = attrs.sk
-        ? attrs.sk.split(",").map((s) => s.trim()).filter(Boolean)
+        ? attrs.sk
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
       if (pkList.length > 4 || skList.length > 4) {
         diagnostics.push({
@@ -271,7 +289,8 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       if (!attrs.pk) {
         diagnostics.push({
           line,
-          message: "@table needs pk= (e.g. `@table AppTable pk=PK sk=SK`, or pk= alone for a PK-only table)",
+          message:
+            "@table needs pk= (e.g. `@table AppTable pk=PK sk=SK`, or pk= alone for a PK-only table)",
           severity: "error",
         });
         return;
@@ -394,7 +413,10 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       // guard rides the put action.
       ops.push({
         kind: "transact",
-        actions: [{ kind: "delete", id: label }, { kind: "put", item, condition }],
+        actions: [
+          { kind: "delete", id: label },
+          { kind: "put", item, condition },
+        ],
       });
     } else {
       ops.push({ kind: "put", item, condition });
@@ -437,5 +459,7 @@ export function serializeModel(
   aps: readonly AccessPattern[],
   ops: readonly Op[],
 ): string {
-  return serializeTable(base) + serializeGsis(gsis) + serializeAps(aps) + "\n" + serializeOps(ops, base);
+  return (
+    serializeTable(base) + serializeGsis(gsis) + serializeAps(aps) + "\n" + serializeOps(ops, base)
+  );
 }

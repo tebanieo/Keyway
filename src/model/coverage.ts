@@ -20,12 +20,7 @@ import type { AccessPattern, ApCond } from "./dsl";
  *  - unassigned ✗ no index named at all
  */
 export type CoverageStatus =
-  | "served"
-  | "empty"
-  | "invalid"
-  | "assigned"
-  | "no-index"
-  | "unassigned";
+  "served" | "empty" | "invalid" | "assigned" | "no-index" | "unassigned";
 
 export interface Coverage {
   status: CoverageStatus;
@@ -82,11 +77,21 @@ export function apCoverage(
   state: Map<string, Item>,
 ): Coverage {
   if (!ap.index) {
-    return { status: "unassigned", message: "no index assigned - add `-> Index`", returned: 0, scanned: 0 };
+    return {
+      status: "unassigned",
+      message: "no index assigned - add `-> Index`",
+      returned: 0,
+      scanned: 0,
+    };
   }
   const index = indexes.find((i) => i.name === ap.index);
   if (!index) {
-    return { status: "no-index", message: `index "${ap.index}" isn't defined`, returned: 0, scanned: 0 };
+    return {
+      status: "no-index",
+      message: `index "${ap.index}" isn't defined`,
+      returned: 0,
+      scanned: 0,
+    };
   }
 
   const readOp = ap.readOp ?? "query";

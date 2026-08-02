@@ -16,7 +16,10 @@ describe("parseDoc", () => {
     expect(ops).toHaveLength(1);
     expect(ops[0]).toMatchObject({
       kind: "put",
-      item: { id: "u1", attrs: { PK: "USER#1", SK: "PROFILE", name: "Ada Lovelace", email: "ada@x.io" } },
+      item: {
+        id: "u1",
+        attrs: { PK: "USER#1", SK: "PROFILE", name: "Ada Lovelace", email: "ada@x.io" },
+      },
     });
   });
 
@@ -34,10 +37,7 @@ describe("parseDoc", () => {
   });
 
   it("a repeated label with a new key becomes an atomic transact", () => {
-    const { ops } = parseDoc(
-      "o1: PK=U#1  SK=O#1\no1: PK=U#2  SK=O#1",
-      BASE,
-    );
+    const { ops } = parseDoc("o1: PK=U#1  SK=O#1\no1: PK=U#2  SK=O#1", BASE);
     expect(ops[0].kind).toBe("put");
     expect(ops[1]).toMatchObject({
       kind: "transact",
@@ -149,10 +149,7 @@ describe("parseDoc", () => {
   });
 
   it("flags a malformed @gsi and ignores @ lines as ops", () => {
-    const { gsis, diagnostics, ops } = parseDoc(
-      "@gsi\n@gsi Good pk=GPK\nu1: PK=A  SK=B",
-      BASE,
-    );
+    const { gsis, diagnostics, ops } = parseDoc("@gsi\n@gsi Good pk=GPK\nu1: PK=A  SK=B", BASE);
     expect(ops).toHaveLength(1); // only the item line
     expect(gsis.map((g) => g.name)).toEqual(["Good"]);
     expect(diagnostics.some((d) => d.severity === "error")).toBe(true);
@@ -165,7 +162,13 @@ describe("parseDoc", () => {
     );
     expect(diagnostics).toEqual([]);
     expect(aps).toEqual([
-      { n: 1, description: "Get a user by id", index: undefined, readOp: "query", conds: undefined },
+      {
+        n: 1,
+        description: "Get a user by id",
+        index: undefined,
+        readOp: "query",
+        conds: undefined,
+      },
       { n: 2, description: "Find user by email", index: "GSI1", readOp: "query", conds: undefined },
     ]);
   });
@@ -221,7 +224,8 @@ describe("parseDoc", () => {
 
 describe("parseDoc — directives & diagnostics", () => {
   const errs = (t: string) => parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "error");
-  const warns = (t: string) => parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "warning");
+  const warns = (t: string) =>
+    parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "warning");
 
   it("@table requires pk=", () => {
     expect(errs("@table AppTable sk=SK").some((d) => /pk=/.test(d.message))).toBe(true);
@@ -264,7 +268,9 @@ describe("parseDoc — conditional writes (@if)", () => {
       condition: { text: "attribute_not_exists(PK)" },
     });
     // the condition text must NOT leak into the item's attrs
-    expect((ops[0] as { item: { attrs: Record<string, string> } }).item.attrs).not.toHaveProperty("attribute_not_exists(PK)");
+    expect((ops[0] as { item: { attrs: Record<string, string> } }).item.attrs).not.toHaveProperty(
+      "attribute_not_exists(PK)",
+    );
   });
 
   it("puts the @if guard on the put action of a key-change transact", () => {
@@ -280,7 +286,11 @@ describe("parseDoc — conditional writes (@if)", () => {
 
   it("parses an @if guard on a delete", () => {
     const { ops } = parseDoc("delete o1  @if status=shipped", BASE);
-    expect(ops[0]).toMatchObject({ kind: "delete", id: "o1", condition: { text: "status=shipped" } });
+    expect(ops[0]).toMatchObject({
+      kind: "delete",
+      id: "o1",
+      condition: { text: "status=shipped" },
+    });
   });
 
   it("flags a malformed condition as an error", () => {

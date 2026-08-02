@@ -8,7 +8,7 @@ and live inline diagnostics. This page describes what
 ## The empty-line completion menu
 
 Land on a blank line — for example by pressing Enter — and the menu pops up on
-its own to answer *"what can I do here?"*. At the **start of a line** it offers
+its own to answer _"what can I do here?"_. At the **start of a line** it offers
 everything you can begin a line with:
 
 - **`item`** — scaffold a whole new row using the base table's keys (the

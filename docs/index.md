@@ -1,6 +1,6 @@
 # Keyway
 
-**Keyway** is a 100% client-side tool for designing and *teaching* DynamoDB
+**Keyway** is a 100% client-side tool for designing and _teaching_ DynamoDB
 single-table data models. You write your model as plain text, and the app
 projects it into the base table and every secondary index, steps through the
 writes, shows the real capacity cost of each one, and lets you query it — all in
@@ -9,7 +9,7 @@ the browser tab.
 ## The text is the single artifact
 
 There is no separate schema file, no export format, no database to connect to.
-The model *is* a short, readable DSL document, and everything else is a lens on
+The model _is_ a short, readable DSL document, and everything else is a lens on
 that one string:
 
 - The base-table and index views are `project(state, index)` over the folded ops.
@@ -18,7 +18,7 @@ that one string:
 - Access-pattern coverage runs your declared queries against that same folded state.
 
 Because the text is the whole artifact, it is diffable in a pull request,
-editable in vim, and pasteable into Slack. The format *is* the sharing
+editable in vim, and pasteable into Slack. The format _is_ the sharing
 mechanism — there is nothing else to move around.
 
 ## 100% client-side — no backend, no telemetry
@@ -55,7 +55,7 @@ You can model a sensitive schema without anything leaving your machine. See
    partitions on the index — and the cost bar bill it as a **reindex** (a
    delete + a put), not one write.
 5. **Declare an access pattern** with `@ap … -> GSI1 …` and see whether the
-   model actually *serves* it.
+   model actually _serves_ it.
 6. **Share it** — the share button copies a link with the whole model inside.
 
 From here, jump to:

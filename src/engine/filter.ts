@@ -13,9 +13,7 @@ import type { Item } from "./types";
 export type CmpOp = "=" | "<>" | "<" | "<=" | ">" | ">=";
 
 export type Operand =
-  | { kind: "attr"; name: string }
-  | { kind: "size"; attr: string }
-  | { kind: "lit"; value: string };
+  { kind: "attr"; name: string } | { kind: "size"; attr: string } | { kind: "lit"; value: string };
 
 export type FilterNode =
   | { kind: "and"; left: FilterNode; right: FilterNode }
@@ -47,9 +45,21 @@ function tokenize(src: string): Tok[] {
       i++;
       continue;
     }
-    if (c === "(") { toks.push({ t: "lparen", v: c }); i++; continue; }
-    if (c === ")") { toks.push({ t: "rparen", v: c }); i++; continue; }
-    if (c === ",") { toks.push({ t: "comma", v: c }); i++; continue; }
+    if (c === "(") {
+      toks.push({ t: "lparen", v: c });
+      i++;
+      continue;
+    }
+    if (c === ")") {
+      toks.push({ t: "rparen", v: c });
+      i++;
+      continue;
+    }
+    if (c === ",") {
+      toks.push({ t: "comma", v: c });
+      i++;
+      continue;
+    }
     if (c === '"' || c === "'") {
       let j = i + 1;
       let s = "";
@@ -60,17 +70,33 @@ function tokenize(src: string): Tok[] {
       continue;
     }
     if (c === "<") {
-      if (src[i + 1] === "=") { toks.push({ t: "op", v: "<=" }); i += 2; }
-      else if (src[i + 1] === ">") { toks.push({ t: "op", v: "<>" }); i += 2; }
-      else { toks.push({ t: "op", v: "<" }); i++; }
+      if (src[i + 1] === "=") {
+        toks.push({ t: "op", v: "<=" });
+        i += 2;
+      } else if (src[i + 1] === ">") {
+        toks.push({ t: "op", v: "<>" });
+        i += 2;
+      } else {
+        toks.push({ t: "op", v: "<" });
+        i++;
+      }
       continue;
     }
     if (c === ">") {
-      if (src[i + 1] === "=") { toks.push({ t: "op", v: ">=" }); i += 2; }
-      else { toks.push({ t: "op", v: ">" }); i++; }
+      if (src[i + 1] === "=") {
+        toks.push({ t: "op", v: ">=" });
+        i += 2;
+      } else {
+        toks.push({ t: "op", v: ">" });
+        i++;
+      }
       continue;
     }
-    if (c === "=") { toks.push({ t: "op", v: "=" }); i++; continue; }
+    if (c === "=") {
+      toks.push({ t: "op", v: "=" });
+      i++;
+      continue;
+    }
     WORD.lastIndex = i;
     const m = WORD.exec(src);
     if (!m || m.index !== i) throw new Error(`unexpected character "${c}"`);
@@ -154,7 +180,11 @@ class Parser {
       return e;
     }
     // a boolean function?
-    if (t.t === "word" && BOOL_FUNCS.has(t.v.toLowerCase()) && this.toks[this.p + 1]?.t === "lparen") {
+    if (
+      t.t === "word" &&
+      BOOL_FUNCS.has(t.v.toLowerCase()) &&
+      this.toks[this.p + 1]?.t === "lparen"
+    ) {
       return this.parseFunction(t.v.toLowerCase());
     }
     return this.parseComparison();
@@ -164,8 +194,14 @@ class Parser {
     this.p++; // name
     this.expect("lparen");
     const attr = this.parseAttr();
-    if (name === "attribute_exists") { this.expect("rparen"); return { kind: "exists", attr, negate: false }; }
-    if (name === "attribute_not_exists") { this.expect("rparen"); return { kind: "exists", attr, negate: true }; }
+    if (name === "attribute_exists") {
+      this.expect("rparen");
+      return { kind: "exists", attr, negate: false };
+    }
+    if (name === "attribute_not_exists") {
+      this.expect("rparen");
+      return { kind: "exists", attr, negate: true };
+    }
     this.expect("comma");
     if (name === "attribute_type") {
       const type = this.expect("word").v.toUpperCase();
@@ -229,7 +265,12 @@ class Parser {
   // right side / function value arg — a literal or size(attr)
   private parseValue(): Operand {
     const t = this.peek();
-    if (t && t.t === "word" && t.v.toLowerCase() === "size" && this.toks[this.p + 1]?.t === "lparen") {
+    if (
+      t &&
+      t.t === "word" &&
+      t.v.toLowerCase() === "size" &&
+      this.toks[this.p + 1]?.t === "lparen"
+    ) {
       this.p++;
       this.expect("lparen");
       const attr = this.expect("word").v;
@@ -284,30 +325,46 @@ function compare(a: string | undefined, b: string | undefined, op: CmpOp): boole
     const x = Number(a);
     const y = Number(b);
     switch (op) {
-      case "=": return x === y;
-      case "<>": return x !== y;
-      case "<": return x < y;
-      case "<=": return x <= y;
-      case ">": return x > y;
-      case ">=": return x >= y;
+      case "=":
+        return x === y;
+      case "<>":
+        return x !== y;
+      case "<":
+        return x < y;
+      case "<=":
+        return x <= y;
+      case ">":
+        return x > y;
+      case ">=":
+        return x >= y;
     }
   }
   switch (op) {
-    case "=": return a === b;
-    case "<>": return a !== b;
-    case "<": return a < b;
-    case "<=": return a <= b;
-    case ">": return a > b;
-    case ">=": return a >= b;
+    case "=":
+      return a === b;
+    case "<>":
+      return a !== b;
+    case "<":
+      return a < b;
+    case "<=":
+      return a <= b;
+    case ">":
+      return a > b;
+    case ">=":
+      return a >= b;
   }
 }
 
 export function evalFilter(node: FilterNode, item: Item): boolean {
   switch (node.kind) {
-    case "and": return evalFilter(node.left, item) && evalFilter(node.right, item);
-    case "or": return evalFilter(node.left, item) || evalFilter(node.right, item);
-    case "not": return !evalFilter(node.expr, item);
-    case "cmp": return compare(resolve(node.left, item), resolve(node.right, item), node.op);
+    case "and":
+      return evalFilter(node.left, item) && evalFilter(node.right, item);
+    case "or":
+      return evalFilter(node.left, item) || evalFilter(node.right, item);
+    case "not":
+      return !evalFilter(node.expr, item);
+    case "cmp":
+      return compare(resolve(node.left, item), resolve(node.right, item), node.op);
     case "between": {
       const v = resolve(node.op, item);
       return (

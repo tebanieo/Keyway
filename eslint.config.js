@@ -3,6 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import prettier from "eslint-config-prettier";
 
 /**
  * Flat ESLint config for the app. Type-aware linting is intentionally OFF for
@@ -28,7 +29,10 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       // Allow intentionally-unused args/vars when prefixed with `_`.
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   // Config + Node-side files run in Node, not the browser.
@@ -36,4 +40,6 @@ export default tseslint.config(
     files: ["*.config.{js,ts}", "docs/.vitepress/**/*.{js,ts}"],
     languageOptions: { globals: globals.node },
   },
+  // Turn off any lint rules that would fight Prettier (must be last).
+  prettier,
 );

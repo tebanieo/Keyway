@@ -175,28 +175,33 @@ export const TOURS: Tour[] = [
   },
   {
     name: "How to Model",
-    blurb: "the workflow: declare access patterns, then add the @table and @gsi keys that serve them",
+    blurb:
+      "the workflow: declare access patterns, then add the @table and @gsi keys that serve them",
     dsl: MODELING,
     focus: "editor",
   },
   {
     name: "GSI Overloading",
-    blurb: "an order ships pending -> shipped; the base row updates in place, the GSI partition moves",
+    blurb:
+      "an order ships pending -> shipped; the base row updates in place, the GSI partition moves",
     dsl: REINDEX,
   },
   {
     name: "Sparse Index",
-    blurb: "items with the GSI key appear; ones without stay off it, so the index holds only what you query",
+    blurb:
+      "items with the GSI key appear; ones without stay off it, so the index holds only what you query",
     dsl: SPARSE,
   },
   {
     name: "Atomic Key Change",
-    blurb: "repeat a label with a changed PK or SK and it becomes a delete + put: a move, not an edit",
+    blurb:
+      "repeat a label with a changed PK or SK and it becomes a delete + put: a move, not an edit",
     dsl: ATOMIC,
   },
   {
     name: "Conditional Writes",
-    blurb: "guard a write with @if: it only applies when the condition holds, and a failed check still costs a WCU",
+    blurb:
+      "guard a write with @if: it only applies when the condition holds, and a failed check still costs a WCU",
     dsl: CONDITIONAL,
   },
 ];

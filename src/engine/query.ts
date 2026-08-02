@@ -99,11 +99,7 @@ function inPartition(item: Item, index: IndexSpec, pk: string[]): boolean {
  * - **scan**: reads EVERY item in the index — the expensive one; a filter still
  *   doesn't reduce the read.
  */
-export function runQuery(
-  state: Map<string, Item>,
-  index: IndexSpec,
-  spec: QuerySpec,
-): QueryResult {
+export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: QuerySpec): QueryResult {
   const error = validate(index, spec);
   if (error) return { scanned: 0, bytes: 0, items: [], rcu: 0, error };
 
