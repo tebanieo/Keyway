@@ -730,7 +730,7 @@ export function App() {
         <div className="backfill">
           <span className="msg">
             <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but
-            not all &mdash; add it to the {backfill.targets.length} without
+            not all. Add it to the {backfill.targets.length} without
             {backfill.targets.length === 1 ? "" : ""} it?
           </span>
           <button className="do" onClick={applyBackfill}>
@@ -863,7 +863,7 @@ export function App() {
       <p className="hint">
         {editing ? (
           <>
-            Type in the script above &mdash; <code>item</code>+Tab scaffolds a row.
+            Type in the script above. <code>item</code>+Tab scaffolds a row.
             Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new
             pane appears. Each <code>@gsi</code> sets its own projection
             (<code>all</code>/<code>keys</code>/comma-list). Panes reparse live.
@@ -972,7 +972,7 @@ function CostBar({ cost, bytes }: { cost: OpCost | null; bytes: number }) {
   if (!cost) {
     return (
       <div className="costbar">
-        <span className="idle">empty table &mdash; step forward or add an item</span>
+        <span className="idle">empty table · step forward or add an item</span>
       </div>
     );
   }
