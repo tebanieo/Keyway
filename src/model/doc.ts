@@ -5,11 +5,10 @@
  * templates (type `order` on a fresh line to scaffold one).
  */
 /** The blank slate the app opens on (and `reset` returns to): structure, no data. */
-export const EMPTY_DOC = `# Empty model — start typing items below, or load an example (examples ▾).
-# Structure: @table names the base table, @gsi adds an index, @ap declares an
-# access pattern. Then add items:  label: PK=…  SK=…
+export const EMPTY_DOC = `# Empty model — start typing items below, or load an example from the rail.
+# @table names the base table; add @gsi to create an index when an access
+# pattern needs one. Then add items:  label: PK=…  SK=…
 @table AppTable pk=PK sk=SK
-@gsi GSI1 pk=GSI1PK sk=GSI1SK
 `;
 
 export const DEFAULT_DOC = `# data-canvas — a single-table model as a script.

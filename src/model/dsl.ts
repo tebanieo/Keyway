@@ -108,9 +108,6 @@ export interface ParseResult {
   notes: (string | undefined)[];
 }
 
-/** Default GSIs when the document declares none. */
-const DEFAULT_GSIS: IndexSpec[] = [{ name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" }];
-
 /** Parse a `projection=` value: `all` | `keys`/`keys_only` | comma list. */
 function parseProjection(v: string | undefined): ProjectionSpec | undefined {
   if (!v) return undefined;
@@ -309,7 +306,8 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
   });
-  if (gsis.length === 0) gsis.push(...DEFAULT_GSIS.map((g) => ({ ...g })));
+  // No GSIs unless declared — a base-table-only model is valid (add @gsi when
+  // an access pattern needs one).
 
   // Pass 2: item / delete lines. A comment directly above a line (no blank
   // line between) becomes that step's narration; a blank line clears it, so

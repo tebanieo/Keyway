@@ -143,9 +143,9 @@ describe("parseDoc", () => {
     expect(diagnostics.some((d) => /comma list/.test(d.message))).toBe(true);
   });
 
-  it("defaults to a single GSI1 when none are declared", () => {
+  it("declares no GSI when none are in the doc (base-table-only model)", () => {
     const { gsis } = parseDoc("u1: PK=A  SK=B", BASE);
-    expect(gsis.map((g) => g.name)).toEqual(["GSI1"]);
+    expect(gsis).toEqual([]);
   });
 
   it("flags a malformed @gsi and ignores @ lines as ops", () => {

@@ -140,9 +140,6 @@
 [data-theme="paper"] .share:hover {
   background: var(--accent-fill-hover);
 }
-[data-theme="paper"] .toolbar h1::before {
-  box-shadow: none;
-}
 /* Diff tints are pale on white — strengthen so added/removed rows read clearly. */
 [data-theme="paper"] .ptable tr.row-added td {
   background: rgba(22, 163, 74, 0.11);
@@ -232,13 +229,9 @@ body {
   color: var(--text);
   margin: 0 var(--s1) 0 var(--s2);
 }
-.toolbar h1::before {
-  content: "";
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+.toolbar h1 svg {
+  display: block;
+  flex: none;
 }
 
 .spacer {
