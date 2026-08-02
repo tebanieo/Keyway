@@ -11,6 +11,8 @@ import type { EditProps, LinkProps } from "./components/Panel";
 import { RightRail } from "./components/Rail";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
 import { AccessPatterns } from "./components/AccessPatterns";
+import { useTheme } from "./hooks/useTheme";
+import { usePlayback } from "./hooks/usePlayback";
 import { BASE_INDEX } from "./model/seed";
 import { parseDoc, serializeModel } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
@@ -36,14 +38,7 @@ export function App() {
   // editor's React key so it remounts with the new text. Typing must not bump it.
   const [docVersion, setDocVersion] = useState(0);
   const [mode, setMode] = useState<Mode>("canvas");
-  // Visual theme: dark "instrument" or light "paper". Persisted locally.
-  const [theme, setTheme] = useState<"dark" | "paper">(
-    () => (localStorage.getItem("dc-theme") === "paper" ? "paper" : "dark"),
-  );
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("dc-theme", theme);
-  }, [theme]);
+  const { theme, toggle: toggleTheme } = useTheme();
   const [step, setStep] = useState(0);
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
@@ -63,8 +58,6 @@ export function App() {
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   // Which right-rail drawer is open (only one at a time — they share the edge).
   const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query">(null);
-  const [costPulse, setCostPulse] = useState(false);
-  const costTimer = useRef<number | undefined>(undefined);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
@@ -72,8 +65,6 @@ export function App() {
   const [aps, setAps] = useState<AccessPattern[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).aps,
   );
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).base,
@@ -85,6 +76,11 @@ export function App() {
 
   const editing = mode === "editor";
   const curStep = Math.min(step, ops.length);
+  const { playing, setPlaying, speed, setSpeed, togglePlay, costPulse, pulseCost } = usePlayback(
+    curStep,
+    ops.length,
+    setStep,
+  );
 
   // ---- op-log producers -----------------------------------------------------
   // canvas: grid actions append ops. editor: typed text parses to ops. Both
@@ -131,15 +127,6 @@ export function App() {
     if (shared) loadModel(shared);
   }, [loadModel]);
 
-  // Auto-play: advance one step on a timer while playing; stop at the end.
-  // Cost is about a transition — surface the HUD when the user steps or plays,
-  // then auto-hide (so it isn't "just sitting there" while editing).
-  const pulseCost = useCallback(() => {
-    setCostPulse(true);
-    window.clearTimeout(costTimer.current);
-    costTimer.current = window.setTimeout(() => setCostPulse(false), 2600);
-  }, []);
-
   // Query highlights (teal rows) only make sense while the Query drawer is open.
   useEffect(() => {
     if (drawer !== "query") setQhl({ matched: new Set(), scanned: new Set() });
@@ -155,19 +142,6 @@ export function App() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [drawer]);
-
-  useEffect(() => {
-    if (!playing) return;
-    if (curStep >= ops.length) {
-      setPlaying(false);
-      return;
-    }
-    const id = window.setTimeout(() => {
-      setStep((s) => s + 1);
-      pulseCost();
-    }, 1300 / speed);
-    return () => window.clearTimeout(id);
-  }, [playing, curStep, ops.length, speed, pulseCost]);
 
   // The whole model (structure + data) as DSL text.
   const modelToText = (someOps: Op[]) => serializeModel(base, gsis, aps, someOps);
@@ -211,11 +185,6 @@ export function App() {
     setPinnedId(null);
     setPlaying(false);
     setDocVersion((v) => v + 1); // remount the editor if it's open
-  };
-
-  const togglePlay = () => {
-    if (curStep >= ops.length) setStep(0); // replay from the top
-    setPlaying((p) => !p);
   };
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
@@ -403,7 +372,7 @@ export function App() {
 
         <button
           className="icon-btn"
-          onClick={() => setTheme((t) => (t === "paper" ? "dark" : "paper"))}
+          onClick={toggleTheme}
           title={theme === "paper" ? "switch to dark" : "switch to paper"}
           aria-label="toggle theme"
         >
