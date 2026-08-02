@@ -1,5 +1,6 @@
 import { Drawer } from "./Rail";
 import { TOURS } from "../model/tours";
+import type { Tour } from "../model/tours";
 
 /** Guided tours as a rail drawer — each loads a curated model and auto-plays. */
 export function LearnDrawer({
@@ -9,7 +10,7 @@ export function LearnDrawer({
 }: {
   open: boolean;
   onClose: () => void;
-  onPlay: (dsl: string) => void;
+  onPlay: (tour: Tour) => void;
 }) {
   return (
     <Drawer open={open} title="Learn" onClose={onClose}>
@@ -19,7 +20,7 @@ export function LearnDrawer({
             key={tour.name}
             className="ex-item"
             onClick={() => {
-              onPlay(tour.dsl);
+              onPlay(tour);
               onClose();
             }}
           >

@@ -13,6 +13,7 @@ import type { EditProps, LinkProps } from "./components/Panel";
 import { RightRail } from "./components/Rail";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
 import { LearnDrawer } from "./components/LearnDrawer";
+import type { Tour } from "./model/tours";
 import { AccessPatterns } from "./components/AccessPatterns";
 import { useTheme } from "./hooks/useTheme";
 import { usePlayback } from "./hooks/usePlayback";
@@ -123,10 +124,12 @@ export function App() {
   // auto-play from step 0 so the tables are the focus and the narration reads
   // like a lesson. These setters batch, so the net effect is one clean start.
   const playTour = useCallback(
-    (dsl: string) => {
-      loadModel(dsl);
+    (tour: Tour) => {
+      loadModel(tour.dsl);
       setStep(0);
-      setEditorCollapsed(true);
+      // "editor" tours are about the tool: keep the script visible. The rest
+      // collapse so the panes lead while the story plays.
+      setEditorCollapsed(tour.focus !== "editor");
       setPlaying(true);
       setDrawer(null);
     },

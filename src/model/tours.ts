@@ -9,7 +9,36 @@ export interface Tour {
   name: string;
   blurb: string;
   dsl: string;
+  /** Where to look while it plays. "editor" keeps the script visible (for the
+   *  tour about the tool itself); "tables" (the default) collapses the editor
+   *  so the panes lead, which is right for the modeling-concept tours. */
+  focus?: "editor" | "tables";
 }
+
+// First contact: learn the ropes of the tool itself, not a modeling concept.
+// Keeps the editor open so you watch the script step as each line runs.
+const GETTING_STARTED = `# Getting Started: a Keyway model is just a script. One line is one operation,
+# and one operation is one step. Press play up top (or step with the arrows) and
+# watch the base table on the right fill in as each line runs.
+@table AppTable pk=PK sk=SK
+
+# This is a "put": it adds an item. The label u1 is its id; PK and SK are the
+# table's keys, and the rest are plain attributes. Step forward and it appears.
+u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  _type=user-profile
+
+# Another put under the same PK. Items that share a partition key sit together,
+# and that grouping is the whole point of single-table design.
+o1: PK=USER#1  SK=ORDER#2024-01  total=42.00  status=pending  _type=order
+
+# Reuse a label to UPDATE the same item. Same u1, one new attribute (plan=pro),
+# so the row changes in place. It never duplicates, because the label is its id.
+u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  plan=pro  _type=user-profile
+
+# "delete label" removes an item. Put, update, delete: that is the whole editor.
+# From here, open Examples for real models, Docs for the reference, or the other
+# tours to learn indexes and key changes.
+delete o1
+`;
 
 // A shipping order moves across the GSI while updating in place on the base.
 const REINDEX = `# Reindex on Ship: shipping an order moves it across the GSI, in place on the base.
@@ -75,6 +104,12 @@ t1: PK=USER#2  SK=TICKET#open  title=Fix the CSV export  status=open  owner=bob 
 `;
 
 export const TOURS: Tour[] = [
+  {
+    name: "Getting Started",
+    blurb: "learn the ropes: how the script, steps, and panes work before the modeling",
+    dsl: GETTING_STARTED,
+    focus: "editor",
+  },
   {
     name: "GSI Overloading",
     blurb: "an order ships pending -> shipped; the base row updates in place, the GSI partition moves",
