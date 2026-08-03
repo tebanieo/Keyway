@@ -32,6 +32,18 @@ server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
   from "how the editor works" to GSI overloading, sparse indexes, atomic key
   changes, and conditional writes.
 
+## Not a replacement for NoSQL Workbench
+
+If you want AWS's official tooling for DynamoDB, use
+[NoSQL Workbench](https://aws.amazon.com/dynamodb/nosql-workbench/): that is what
+AWS recommends, and it's a great tool. Keyway is not trying to compete with it.
+
+I built Keyway because I wanted something those tools generally don't offer: a
+text-first model you can diff and share as a link, stepped playback that shows the
+real cost of each write, access-pattern coverage that actually runs your queries,
+and narrated tours that teach the mechanics, all in the browser with nothing to
+install. Different goals; use whichever fits.
+
 ## Privacy
 
 **Your model never leaves your browser.** There is no backend. The app makes no
@@ -148,3 +160,13 @@ Created by [**Esteban Serna**](https://github.com/tebanieo) with ♥.
 Built with React · Vite · CodeMirror. **MIT-licensed**: use it, fork it, teach
 with it, or better yet, use the version already deployed at
 <https://tebanieo.github.io/Keyway/>.
+
+## Disclaimer
+
+Keyway is a personal project. The opinions and views expressed in this repository
+and in the tool are my own and do not represent those of my employer, Amazon Web
+Services (AWS), or Amazon.com, Inc. Keyway is not an official AWS product and is
+not affiliated with, endorsed by, or supported by AWS or Amazon.
+
+Amazon DynamoDB, AWS, and NoSQL Workbench are trademarks of Amazon.com, Inc. or
+its affiliates.
