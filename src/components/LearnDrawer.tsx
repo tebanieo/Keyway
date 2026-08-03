@@ -1,6 +1,7 @@
 import { Drawer } from "./Rail";
 import { TOURS } from "../model/tours";
 import type { Tour } from "../model/tours";
+import { trackItem } from "../analytics";
 
 /** Guided tours as a rail drawer: each loads a curated model and auto-plays. */
 export function LearnDrawer({
@@ -20,6 +21,7 @@ export function LearnDrawer({
             key={tour.name}
             className="ex-item"
             onClick={() => {
+              trackItem("tour", tour.name);
               onPlay(tour);
               onClose();
             }}

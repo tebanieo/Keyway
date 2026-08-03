@@ -21,3 +21,16 @@ declare global {
 export function track(event: string): void {
   window.goatcounter?.count?.({ path: event, event: true });
 }
+
+/** Record an anonymous event scoped to a named item, e.g.
+ *  `trackItem("example", "Users & orders")` counts `example:users-orders`.
+ *  The item name is slugified so the event is a stable, readable label — it's
+ *  still just a name, never anything the visitor typed. Used to see which
+ *  examples and learn paths are popular, each as its own row in the dashboard. */
+export function trackItem(category: string, name: string): void {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  track(`${category}:${slug}`);
+}

@@ -1,6 +1,6 @@
 import { Drawer } from "./Rail";
 import { EXAMPLES } from "../model/examples";
-import { track } from "../analytics";
+import { trackItem } from "../analytics";
 
 /** Examples gallery as a rail drawer: same load path a shared link uses. */
 export function ExamplesDrawer({
@@ -20,7 +20,7 @@ export function ExamplesDrawer({
             key={ex.name}
             className="ex-item"
             onClick={() => {
-              track("example-opened");
+              trackItem("example", ex.name);
               onLoad(ex.dsl);
               onClose();
             }}
