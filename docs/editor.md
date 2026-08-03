@@ -1,8 +1,8 @@
 # Editor & autocomplete
 
 The editor is a CodeMirror surface wired to the same pure parser the rest of the
-app uses. It gives context-aware completions, row scaffolding, and inline
-diagnostics. This page describes what
+app uses. It offers context-aware completions, scaffolds whole rows, and flags
+problems inline as you type. This page describes what
 [`src/Editor.tsx`](https://github.com/) actually does.
 
 ## The empty-line completion menu

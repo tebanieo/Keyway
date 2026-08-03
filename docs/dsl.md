@@ -1,8 +1,8 @@
 # The DSL
 
-The model is a tiny text format. **One line = one op = one step.** It is
-deliberately writable and diffable by hand: you can read it cold in a PR or edit
-it in vim, no special editor required. This page is the grammar, faithful to
+The model is a tiny text format. **One line = one op = one step.** It's meant to
+be written and read by hand: skim it cold in a PR, or edit it in vim. No special
+editor required. This page is the grammar, faithful to
 [`src/model/dsl.ts`](https://github.com/).
 
 A document has two kinds of lines:
@@ -59,7 +59,7 @@ A plain unnamed `PK`/`SK` table is the implicit default and need not be declared
   @gsi GSI3 pk=GSI3PK projection=status,total
   ```
 
-::: warning The multi-key trap
+::: warning How to write a multi key attribute
 Writing `pk=a pk=b` (repeated `pk=`) instead of `pk=a,b` keeps **only the last**
 key and silently collapses the index to a single key. Keyway flags this with a
 warning: _"multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=`."_

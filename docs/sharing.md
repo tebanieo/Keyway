@@ -51,6 +51,6 @@ description, and the DSL text) in `src/model/examples.ts`.
 ## Plain copy-paste
 
 The model is just text, so the most reliable "share" is to select it and paste it
-anywhere: a PR, a gist, a Slack message, a doc. It always works, it's diffable,
-and it needs nothing but a text field on the other end. This is the fallback the
-app points you to when a share link would be too long.
+anywhere: a PR, a gist, a Slack message, a doc. It always works, and needs
+nothing but a text field on the other end. This is the fallback the app points
+you to when a share link would be too long.
