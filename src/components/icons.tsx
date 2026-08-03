@@ -39,15 +39,19 @@ export function Icon({
         </svg>
       );
     case "prev":
+      // Skip-back: a bar with a left-pointing triangle (media-transport style).
       return (
-        <svg {...s}>
-          <path d="M15 6l-6 6 6 6" />
+        <svg {...s} fill="currentColor" stroke="none">
+          <path d="M7 6h2.2v12H7z" />
+          <path d="M20 6.5v11l-8.5-5.5z" />
         </svg>
       );
     case "next":
+      // Skip-forward: a right-pointing triangle with a bar.
       return (
-        <svg {...s}>
-          <path d="M9 6l6 6-6 6" />
+        <svg {...s} fill="currentColor" stroke="none">
+          <path d="M4 6.5v11l8.5-5.5z" />
+          <path d="M14.8 6H17v12h-2.2z" />
         </svg>
       );
     case "patterns":

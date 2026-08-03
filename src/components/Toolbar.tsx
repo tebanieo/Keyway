@@ -109,16 +109,14 @@ export function Toolbar({
         <button disabled={curStep === opsLength} onClick={onNext} title="step forward">
           <Icon name="next" />
         </button>
-        <select
+        <button
           className="speed"
-          value={speed}
-          onChange={(e) => onSpeed(Number(e.target.value))}
-          title="playback speed"
+          onClick={() => onSpeed(speed === 0.5 ? 1 : speed === 1 ? 2 : 0.5)}
+          title="playback speed (click to cycle)"
+          aria-label="playback speed"
         >
-          <option value={0.5}>0.5&times;</option>
-          <option value={1}>1&times;</option>
-          <option value={2}>2&times;</option>
-        </select>
+          {speed}&times;
+        </button>
       </div>
     </div>
   );

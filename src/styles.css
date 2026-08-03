@@ -372,15 +372,35 @@ body {
 .stepper .play:hover:not(:disabled) {
   background: var(--accent-fill-hover);
 }
+/* Playback speed: a clean pill that cycles 0.5x / 1x / 2x on click (no native
+   select chrome). Mono + tabular so the number doesn't jitter as it changes. */
 .stepper .speed {
   height: 30px;
+  min-width: 44px;
+  padding: 0 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-pill);
   background: var(--fill-1);
-  color: var(--text);
+  color: var(--muted);
+  font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  padding: 0 var(--s2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
   cursor: pointer;
+  transition:
+    background var(--tf),
+    border-color var(--tf),
+    color var(--tf),
+    transform var(--tf);
+}
+.stepper .speed:hover {
+  background: var(--fill-3);
+  border-color: var(--fill-4);
+  color: var(--text);
+}
+.stepper .speed:active {
+  transform: scale(0.94);
 }
 
 /* Focus mode: dim everything except the item the current step touches. */
