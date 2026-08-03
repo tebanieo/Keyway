@@ -7,8 +7,9 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
-First public pre-release (0.1.0-alpha). When it ships, rename this section to
-`[0.1.0-alpha] - <date>` and open a fresh `[Unreleased]` above it.
+## [0.1.0-alpha] - 2026-08-02
+
+First public pre-release.
 
 ### Added
 
