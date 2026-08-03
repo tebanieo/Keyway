@@ -1,11 +1,47 @@
-# <img src="/favicon.svg" alt="" height="34" align="top" /> Keyway
+---
+layout: home
 
-**Keyway** is an interactive, **100% client-side** tool for designing and
-_teaching_ how to model your data into a NoSQL database, initially with DynamoDB
-as the destination. You write the model as plain text. The app projects it into
-the base table and its indexes, steps through the writes, shows the estimated
-cost of each, and lets you query it, all in the browser. The data is yours: your
-model is never sent to a server, and it lives nowhere but your browser tab.
+hero:
+  name: Keyway
+  text: A NoSQL datamodeling tool
+  tagline: Design and learn DynamoDB single-table models as plain text, then watch them work, all in your browser.
+  image:
+    src: /favicon.svg
+    alt: Keyway
+  actions:
+    - theme: brand
+      text: Open the app
+      link: https://tebanieo.github.io/Keyway/
+    - theme: alt
+      text: Quick start
+      link: "#quick-start"
+    - theme: alt
+      text: The DSL
+      link: /dsl
+
+features:
+  - title: The text is the model
+    details: A tiny, readable DSL is the whole artifact. No schema files, no database to connect to.
+  - title: Watch it project
+    details: Every write updates the base table and each secondary index live, with a diff of what moved.
+  - title: See the cost
+    details: Each write shows its estimated capacity, so a reindex visibly costs more than a plain update.
+  - title: Check your access patterns
+    details: Declare what your design must serve, and Keyway runs each query to grade what is covered.
+  - title: Learn by watching
+    details: Guided, narrated tours step through real models, from the editor basics to conditional writes.
+  - title: Private by default
+    details: Everything runs client-side. Your model never leaves the browser tab.
+---
+
+## What Keyway is
+
+Keyway is an interactive, **100% client-side** tool for designing and _teaching_
+how to model your data into a NoSQL database, initially with DynamoDB as the
+destination. You write the model as plain text. The app projects it into the base
+table and its indexes, steps through the writes, shows the estimated cost of each,
+and lets you query it. The data is yours: your model is never sent to a server,
+and it lives nowhere but your browser tab.
 
 ## The text is the single artifact
 
