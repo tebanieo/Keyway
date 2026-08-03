@@ -1,4 +1,4 @@
-# Keyway
+# <img src="/favicon.svg" alt="" height="34" align="top" /> Keyway
 
 **Keyway** is an interactive, **100% client-side** tool for designing and
 _teaching_ how to model your data into a NoSQL database, initially with DynamoDB
