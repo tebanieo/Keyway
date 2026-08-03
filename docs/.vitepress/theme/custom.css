@@ -1,14 +1,35 @@
-/* Frame the hero screenshot as a companion to the text, not the centerpiece.
-   VitePress's default hero image is a small, blurred, square-ish slot meant for
-   a logo; a wide app screenshot needs a frame and no blur circle, but kept
-   modest so it sits cleanly beside the hero copy. */
+/* Make the demo GIF the hero's centerpiece: it explains the tool better than
+   the copy does. Put the GIF on the LEFT and the hero title/text on the RIGHT
+   (VitePress defaults to the opposite), drop the round logo backdrop and blur,
+   and give the animation a framed, generous width.
+
+   We can't just swap `order`: VitePress sizes the columns with a two-thirds
+   width + `flex-shrink: 0` on the copy and `flex-grow: 1` on the image, which
+   overflows once the columns are reversed on wide screens. So we pin the column
+   sizing explicitly here. */
 @media (min-width: 960px) {
+  /* Keep the hero row centered and bounded, even on ultra-wide screens. */
+  .VPHero .container {
+    max-width: 1152px;
+    margin: 0 auto;
+    align-items: center;
+    gap: 64px;
+  }
+
+  /* GIF on the left: a fixed, framed column that shrinks but never grows. */
   .VPHero .image {
-    max-width: none;
+    order: 1;
+    flex: 0 1 620px;
+    max-width: 620px;
+    margin: 0;
+    min-height: 0;
   }
   .VPHero .image-container {
-    width: min(100%, 460px);
+    position: static;
+    display: block;
+    width: 100%;
     height: auto;
+    margin: 0;
     padding: 0;
     transform: none;
   }
@@ -17,10 +38,20 @@
   }
   .VPHero .image-src {
     position: static;
+    width: 100%;
     max-width: 100%;
     max-height: none;
+    transform: none;
     border-radius: 12px;
     border: 1px solid var(--vp-c-divider);
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  }
+
+  /* Title / tagline / actions on the right, filling the remaining space. */
+  .VPHero .main {
+    order: 2;
+    flex: 1 1 auto;
+    width: auto;
+    max-width: none;
   }
 }
