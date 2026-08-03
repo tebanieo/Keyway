@@ -264,11 +264,20 @@ export function App() {
   const namesKey = paneNames.join("|");
   // Reconcile the visible set when the index set changes (model load / @gsi edit):
   // drop panes that vanished; if nothing's left, default to base + the last GSI.
+  // Also default to a SPLIT VIEW: if the model has a GSI but none is currently
+  // shown (e.g. you just declared the first @gsi), reveal the last one so the
+  // base+index panes appear without a manual click. Runs only on structural
+  // change, so toggling panes off between edits still sticks.
   useEffect(() => {
     const names = namesKey.split("|");
     setVisible((prev) => {
       const kept = new Set([...prev].filter((n) => names.includes(n)));
-      return kept.size ? kept : new Set([names[0], names[names.length - 1]].filter(Boolean));
+      if (kept.size === 0) kept.add(names[0]);
+      const gsiNames = names.slice(1);
+      if (gsiNames.length > 0 && !gsiNames.some((n) => kept.has(n))) {
+        kept.add(gsiNames[gsiNames.length - 1]);
+      }
+      return kept;
     });
   }, [namesKey]);
 
