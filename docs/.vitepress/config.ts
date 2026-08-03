@@ -24,6 +24,8 @@ export default defineConfig({
   // It's not part of the published manual, so keep it out of the built site.
   srcExclude: ["CODE_REVIEW.md"],
   themeConfig: {
+    // Small logo next to the "Keyway" title in the navbar (top-left).
+    logo: "/favicon.svg",
     nav: [
       { text: "Manual", link: "/dsl" },
       // Link back to the app. Relative "../" resolves from `<site>/docs/` up to
