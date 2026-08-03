@@ -13,6 +13,9 @@ export interface Example {
 }
 
 const SAAS = `# Multi-tenant SaaS - tenants, users, and projects, all scoped by tenant.
+# Heads-up: scoping every item under one per-tenant PK (TENANT#acme) is simple,
+# but a large or busy tenant makes that partition hot. In production, shard the
+# key (e.g. TENANT#acme#<n>) or give hot entities their own partitions.
 @table SaasTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
@@ -43,20 +46,6 @@ f1: PK=USER#ada  SK=FOLLOWS#alan  since=2024-01-10  GSI1PK=USER#alan  GSI1SK=FOL
 
 p1: PK=USER#ada  SK=POST#2024-03-02  text=Hello world  GSI1PK=FEED#ada  GSI1SK=2024-03-02  _type=post
 p2: PK=USER#ada  SK=POST#2024-03-05  text=Second post  GSI1PK=FEED#ada  GSI1SK=2024-03-05  _type=post
-`;
-
-const EVENTS = `# Event ticketing - events, and tickets scoped to an event.
-@table EventsTable pk=PK sk=SK
-@gsi GSI1 pk=GSI1PK sk=GSI1SK
-
-@ap Get an event -> EventsTable get PK=EVENT#reinvent SK=META
-@ap List an event's tickets -> EventsTable PK=EVENT#reinvent SK begins_with TICKET#
-@ap Find tickets held by a person -> GSI1 GSI1PK=HOLDER#ada@x.io
-
-e1: PK=EVENT#reinvent  SK=META  name=re:Invent  date=2024-12-02  city=Las Vegas  _type=event
-k1: PK=EVENT#reinvent  SK=TICKET#0001  tier=vip  holder=ada@x.io  GSI1PK=HOLDER#ada@x.io  GSI1SK=EVENT#reinvent  _type=ticket
-k2: PK=EVENT#reinvent  SK=TICKET#0002  tier=general  holder=bob@x.io  GSI1PK=HOLDER#bob@x.io  GSI1SK=EVENT#reinvent  _type=ticket
-k3: PK=EVENT#reinvent  SK=TICKET#0003  tier=general  holder=ada@x.io  GSI1PK=HOLDER#ada@x.io  GSI1SK=EVENT#reinvent  _type=ticket
 `;
 
 const MULTIKEY = `# Native multi-key GSI - up to 4 partition + 4 sort attributes as SEPARATE,
@@ -91,11 +80,6 @@ export const EXAMPLES: Example[] = [
     name: "Social feed",
     description: "profiles, follows as adjacency edges, a reverse-lookup GSI",
     dsl: SOCIAL,
-  },
-  {
-    name: "Event ticketing",
-    description: "events and tickets, plus find-by-holder on GSI1",
-    dsl: EVENTS,
   },
   {
     name: "Multi-key GSI",
