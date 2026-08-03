@@ -9,7 +9,7 @@ describe("deriveEntities", () => {
     item({ PK: "USER#1", SK: "PROFILE", name: "Ada", email: "a@x", _type: "user-profile" }),
     item({ PK: "USER#2", SK: "PROFILE", name: "Alan", _type: "user-profile" }),
     item({ PK: "USER#1", SK: "ORDER#1", total: "42", status: "pending", _type: "order" }),
-    item({ PK: "USER#1", SK: "SETTINGS" }), // untyped — ignored
+    item({ PK: "USER#1", SK: "SETTINGS" }), // untyped: ignored
   ];
 
   it("groups by _type and unions attributes", () => {

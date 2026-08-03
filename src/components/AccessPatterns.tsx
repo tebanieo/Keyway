@@ -17,7 +17,7 @@ const COVER_UI: Record<CoverageStatus, { mark: string; kind: "ok" | "warn" | "ba
 /**
  * The access-pattern SPEC + coverage (v2). Each `@ap` carries a declared query
  * (`-> Index` + key conditions); we RUN it against the finished model and grade
- * the result — served / empty / invalid / assigned / gap. This is the original
+ * the result: served / empty / invalid / assigned / gap. This is the original
  * "does my design serve all my access patterns?" validation, and an invalid
  * query shows the exact key rule it broke.
  */

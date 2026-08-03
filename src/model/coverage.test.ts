@@ -21,7 +21,7 @@ const MODEL = [
   "o2: PK=USER#1  SK=ORDER#2  GSI1PK=STATUS#shipped  GSI1SK=2024-02",
 ].join("\n");
 
-describe("apCoverage (v2 — runs the declared query)", () => {
+describe("apCoverage (v2: runs the declared query)", () => {
   it("served: a valid query that returns data", () => {
     const c = grade(MODEL + "\n@ap A user's items -> AppTable PK=USER#1");
     expect(c.status).toBe("served");

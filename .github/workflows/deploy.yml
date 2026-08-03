@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 # Builds the static app and publishes it to GitHub Pages on every push to main.
 # Enable it once: repo Settings → Pages → Build and deployment → Source =
-# "GitHub Actions". No secrets, no server — it just uploads the built `dist/`.
+# "GitHub Actions". No secrets, no server. It just uploads the built `dist/`.
 
 on:
   push:

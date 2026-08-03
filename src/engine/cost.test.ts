@@ -11,7 +11,7 @@ function put(id: string, attrs: Record<string, string>): Op {
 }
 const empty = new Map<string, Item>();
 
-describe("writeCost — put", () => {
+describe("writeCost: put", () => {
   it("a brand-new indexed item costs base + GSI insert (2 WCU)", () => {
     const op = put("u1", { PK: "U#1", SK: "PROFILE", GSI1PK: "EMAIL#a", GSI1SK: "U#1" });
     const cost = writeCost(empty, op, BASE, [GSI1]);
@@ -93,7 +93,7 @@ describe("writeCost — put", () => {
   });
 });
 
-describe("writeCost — transact (atomic key rename)", () => {
+describe("writeCost: transact (atomic key rename)", () => {
   it("delete-old + put-new bills base at 2x and reindexes the GSI", () => {
     const prior = fold(
       [put("o1", { PK: "U#1", SK: "ORDER#1", GSI1PK: "STATUS#pending", GSI1SK: "d" })],
@@ -126,7 +126,7 @@ describe("writeCost — transact (atomic key rename)", () => {
   });
 });
 
-describe("writeCost — INCLUDE projection", () => {
+describe("writeCost: INCLUDE projection", () => {
   const INC = { ...GSI1, projection: ["total"] as string[] };
   const base = { PK: "U#1", SK: "O#1", GSI1PK: "S#p", GSI1SK: "d", total: "1", note: "a" };
   it("rewrites the GSI when an INCLUDED attribute changes", () => {
@@ -142,14 +142,14 @@ describe("writeCost — INCLUDE projection", () => {
   });
 });
 
-describe("writeCost — item size drives WCU", () => {
+describe("writeCost: item size drives WCU", () => {
   it("an item over 1 KB costs 2 base WCU", () => {
     const op = put("big", { PK: "U#1", SK: "O#1", data: "x".repeat(1100) });
     expect(writeCost(empty, op, BASE, [GSI1]).baseWrites).toBe(2);
   });
 });
 
-describe("writeCost — transact merge branches", () => {
+describe("writeCost: transact merge branches", () => {
   it("insert one + delete another on the same GSI merges to a reindex (2 writes)", () => {
     const prior = fold([put("o2", { PK: "U#2", SK: "O#2", GSI1PK: "S#p", GSI1SK: "d" })], BASE);
     const op: Op = {
@@ -181,7 +181,7 @@ describe("writeCost — transact merge branches", () => {
   });
 });
 
-describe("writeCost — delete", () => {
+describe("writeCost: delete", () => {
   it("deleting an indexed item removes it from base and GSI (2 WCU)", () => {
     const prior = fold(
       [put("o1", { PK: "U#1", SK: "ORDER#1", GSI1PK: "STATUS#pending", GSI1SK: "d" })],

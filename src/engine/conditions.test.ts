@@ -20,7 +20,7 @@ function put(id: string, attrs: Record<string, string>, condition?: Condition): 
 
 const empty = new Map<string, Item>();
 
-describe("fold — conditional writes", () => {
+describe("fold: conditional writes", () => {
   it("applies a create-if-not-exists when the row is absent", () => {
     const ops: Op[] = [
       put("u1", { PK: "U#1", SK: "PROFILE", name: "Ada" }, cond("attribute_not_exists(PK)")),
@@ -82,7 +82,7 @@ describe("conditionRejected", () => {
   });
 });
 
-describe("writeCost — rejected conditional write", () => {
+describe("writeCost: rejected conditional write", () => {
   it("bills a flat 1 WCU and leaves every index untouched", () => {
     const prev = fold([put("u1", { PK: "U#1", SK: "P", GSI1PK: "E#a", GSI1SK: "U#1" })], BASE);
     const op = put(

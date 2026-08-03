@@ -51,7 +51,7 @@ export interface RailItem {
 export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boolean }) {
   const total = items.reduce((n, i) => n + (i.badge ?? 0), 0);
   // When the last badge clears (>0 → 0), flash a green "resolved" ✓ and keep the
-  // rail out for a beat before it floats back to its tab — a reward for fixing it.
+  // rail out for a beat before it floats back to its tab: a reward for fixing it.
   const [resolved, setResolved] = useState(false);
   const prev = useRef(total);
   useEffect(() => {

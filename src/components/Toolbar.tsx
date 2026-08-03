@@ -7,7 +7,7 @@ export type Mode = "canvas" | "editor";
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
- * The top command bar — brand, mode toggle, theme/share/reset, the pinned chip,
+ * The top command bar: brand, mode toggle, theme/share/reset, the pinned chip,
  * and the step transport. Purely presentational; all behavior is passed in.
  */
 export function Toolbar({

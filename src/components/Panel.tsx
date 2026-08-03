@@ -17,7 +17,7 @@ export interface LinkProps {
   onCopy: (value: string) => void;
 }
 
-/** Grid-editing wiring — present only on the (canvas-mode) base pane. */
+/** Grid-editing wiring: present only on the (canvas-mode) base pane. */
 export interface EditProps {
   onEdit: (item: Item, key: string, value: string) => void;
   onDelete: (id: string) => void;

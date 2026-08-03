@@ -51,7 +51,7 @@ const spec = (o: Partial<QuerySpec>): QuerySpec => ({
   ...o,
 });
 
-describe("runQuery — get", () => {
+describe("runQuery: get", () => {
   it("returns the exact item and charges one read", () => {
     const r = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"] }));
     expect(r.items.map((i) => i.id)).toEqual(["p"]);
@@ -65,7 +65,7 @@ describe("runQuery — get", () => {
   });
 });
 
-describe("runQuery — query", () => {
+describe("runQuery: query", () => {
   it("reads only the matched partition + sort range", () => {
     const r = runQuery(
       state,
@@ -87,7 +87,7 @@ describe("runQuery — query", () => {
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]); // returned
-    expect(r.scanned).toBe(3); // but 3 were read — filters don't save RCU
+    expect(r.scanned).toBe(3); // but 3 were read: filters don't save RCU
   });
 
   it("queries a GSI partition", () => {
@@ -134,11 +134,11 @@ describe("runQuery — query", () => {
   });
 });
 
-describe("runQuery — scan", () => {
+describe("runQuery: scan", () => {
   it("reads every item in the index", () => {
     const r = runQuery(state, BASE, spec({ op: "scan" }));
-    expect(r.scanned).toBe(5); // ALL items — the expensive read (by count)
-    // but these 5 items are tiny — cumulative < 4KB rounds to one eventual unit
+    expect(r.scanned).toBe(5); // ALL items: the expensive read (by count)
+    // but these 5 items are tiny: cumulative < 4KB rounds to one eventual unit
     expect(r.rcu).toBe(0.5);
   });
   it("scan on a GSI only reads items present in that GSI (sparse)", () => {
@@ -152,7 +152,7 @@ describe("runQuery — scan", () => {
   });
 });
 
-describe("runQuery — sort-key condition matrix", () => {
+describe("runQuery: sort-key condition matrix", () => {
   it("= exact, and each range op on the sort key", () => {
     const eq = runQuery(
       state,
@@ -175,7 +175,7 @@ describe("runQuery — sort-key condition matrix", () => {
     );
     expect(lte.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
 
-    // "PROFILE" sorts lexically AFTER "ORDER#..." so the > ranges include it —
+    // "PROFILE" sorts lexically AFTER "ORDER#..." so the > ranges include it,
     // a real DynamoDB gotcha (mixed SK prefixes in one partition).
     const gt = runQuery(
       state,
@@ -206,7 +206,7 @@ describe("runQuery — sort-key condition matrix", () => {
   });
 });
 
-describe("runQuery — read consistency (RCU)", () => {
+describe("runQuery: read consistency (RCU)", () => {
   it("a strongly-consistent get costs 1 RCU vs 0.5 eventual", () => {
     const strong = runQuery(
       state,
@@ -219,7 +219,7 @@ describe("runQuery — read consistency (RCU)", () => {
   });
 });
 
-describe("runQuery — validation (multi-key rules)", () => {
+describe("runQuery: validation (multi-key rules)", () => {
   const MGSI: IndexSpec = {
     name: "M",
     pk: "tenant",

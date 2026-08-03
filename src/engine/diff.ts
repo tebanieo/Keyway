@@ -5,9 +5,9 @@ import type { IndexSpec, Item, View } from "./types";
  * Classifies how each item changed between two rendered views.
  *
  * This is the whole trick behind scaling: rather than asking every element to
- * measure and animate, we ask "which items actually moved?" — and only those
+ * measure and animate, we ask "which items actually moved?", and only those
  * get `layout`. An insert typically touches the inserted item plus whatever it
- * displaced within one partition, so `moved ∪ entered` stays tiny (2–3 items)
+ * displaced within one partition, so `moved ∪ entered` stays tiny (2-3 items)
  * no matter whether the model holds 12 items or 400.
  */
 export interface ViewDelta {
@@ -69,10 +69,10 @@ export function animatedIds(delta: ViewDelta): Set<string> {
 
 /**
  * Per-row change status, git-diff style.
- *   added    — new to this partition (a fresh item, or one that moved in)
- *   removed  — left this partition (deleted, or moved out — a tombstone)
- *   modified — same partition, but a projected attribute changed
- *   same     — unchanged
+ *   added:    new to this partition (a fresh item, or one that moved in)
+ *   removed:  left this partition (deleted, or moved out, a tombstone)
+ *   modified: same partition, but a projected attribute changed
+ *   same:     unchanged
  */
 export type RowStatus = "added" | "removed" | "modified" | "same";
 
@@ -96,7 +96,7 @@ function attrsDiffer(a: Item, b: Item): boolean {
  * Render-ready diff between the previous and current view of one index.
  *
  * Crucially this is *partition-aware*: an item that changes its index key shows
- * up as `removed` from its old partition AND `added` to its new one — mirroring
+ * up as `removed` from its old partition AND `added` to its new one, mirroring
  * exactly what DynamoDB does physically (delete the old projection, put a new
  * one). So on a GSI a key change reads as a red −/green + pair, while on the
  * base table the same edit is a single amber `modified` row.

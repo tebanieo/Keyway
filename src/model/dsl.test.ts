@@ -222,7 +222,7 @@ describe("parseDoc", () => {
   });
 });
 
-describe("parseDoc — directives & diagnostics", () => {
+describe("parseDoc: directives & diagnostics", () => {
   const errs = (t: string) => parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "error");
   const warns = (t: string) =>
     parseDoc(t, BASE).diagnostics.filter((d) => d.severity === "warning");
@@ -255,7 +255,7 @@ describe("parseDoc — directives & diagnostics", () => {
   });
 });
 
-describe("parseDoc — conditional writes (@if)", () => {
+describe("parseDoc: conditional writes (@if)", () => {
   it("parses a trailing @if guard onto a put", () => {
     const { ops, diagnostics } = parseDoc(
       "u1: PK=U#1  SK=P  name=Ada  @if attribute_not_exists(PK)",

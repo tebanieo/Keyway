@@ -34,7 +34,7 @@ import type { QueryHighlight } from "./components/QueryPanel";
 export function App() {
   const [ops, setOps] = useState<Op[]>([]);
   const [docText, setDocText] = useState(EMPTY_DOC);
-  // Bumped only when the doc is REPLACED externally (load/reset) — used as the
+  // Bumped only when the doc is REPLACED externally (load/reset), used as the
   // editor's React key so it remounts with the new text. Typing must not bump it.
   const [docVersion, setDocVersion] = useState(0);
   const [mode, setMode] = useState<Mode>("canvas");
@@ -56,7 +56,7 @@ export function App() {
   const [copied, setCopied] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  // Which right-rail drawer is open (only one at a time — they share the edge).
+  // Which right-rail drawer is open (only one at a time: they share the edge).
   const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query" | "learn">(null);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const [notes, setNotes] = useState<(string | undefined)[]>(
@@ -100,7 +100,7 @@ export function App() {
   }, []);
 
   // Load a whole model from text (a shared link, or an example). Same path for
-  // both — set the doc + parsed structure and open the editor.
+  // both: set the doc + parsed structure and open the editor.
   const loadModel = useCallback((text: string) => {
     const parsed = parseDoc(text, BASE_INDEX);
     setDocText(text);
@@ -167,7 +167,7 @@ export function App() {
       commit(editToOps(item, key, value, base));
     },
     onDelete: (id) => commit([{ kind: "delete", id }]),
-    // Add the item to the table AND open the editor — the table is for viewing,
+    // Add the item to the table AND open the editor: the table is for viewing,
     // the editor is where you author from here.
     onAddItem: (pkValue) => {
       const id = nextItemLabel(ops);
@@ -219,14 +219,14 @@ export function App() {
 
   // ---- projections ----------------------------------------------------------
   const state = useMemo(() => fold(ops.slice(0, curStep), base), [ops, curStep, base]);
-  // The FINISHED model (all ops), regardless of scrubber position — access-pattern
+  // The FINISHED model (all ops), regardless of scrubber position: access-pattern
   // coverage is about the design as a whole, not the mid-playback moment.
   const fullState = useMemo(() => fold(ops, base), [ops, base]);
   // Close the Query drawer if the model empties out (e.g. reset while it's open).
   useEffect(() => {
     if (fullState.size === 0 && drawer === "query") setDrawer(null);
   }, [fullState.size, drawer]);
-  // How many declared patterns the design does NOT yet serve — drives the rail
+  // How many declared patterns the design does NOT yet serve, drives the rail
   // badge (the "something to react to" signal).
   const apUnserved = useMemo(() => {
     const idx = [base, ...gsis];
@@ -269,7 +269,7 @@ export function App() {
     return writeCost(prevState, ops[curStep - 1], base, gsis);
   }, [prevState, ops, curStep, base, gsis]);
 
-  // Backfill suggestion — schema drift within an entity, at the head of the log.
+  // Backfill suggestion: schema drift within an entity, at the head of the log.
   const backfill = useMemo(
     () => (curStep === ops.length ? computeBackfill(state, base) : null),
     [state, curStep, ops.length, base],
@@ -280,7 +280,7 @@ export function App() {
   const applyBackfill = () => {
     if (!backfill) return;
     if (editing) {
-      // edit each target's line in place — no duplicate rows appended
+      // edit each target's line in place: no duplicate rows appended
       editorRef.current?.patchItems(
         backfill.targets.map((t) => ({
           label: t.id,
@@ -302,7 +302,7 @@ export function App() {
   const opItem = putItemOf(curOp);
   const opBytes = opItem ? itemSize(opItem) : 0;
   const narration = curStep >= 1 ? notes[curStep - 1] : undefined;
-  // The item this step touches — spotlighted in focus mode.
+  // The item this step touches: spotlighted in focus mode.
   const affectedId = curOp
     ? curOp.kind === "delete"
       ? curOp.id
@@ -468,7 +468,7 @@ export function App() {
             active: drawer === "learn",
             onClick: () => setDrawer((d) => (d === "learn" ? null : "learn")),
           },
-          // Query only appears once there's data — you can't query an empty table.
+          // Query only appears once there's data: you can't query an empty table.
           ...(fullState.size > 0
             ? [
                 {

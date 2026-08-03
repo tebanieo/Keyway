@@ -2,7 +2,7 @@ import { Drawer } from "./Rail";
 import { EXAMPLES } from "../model/examples";
 import { track } from "../analytics";
 
-/** Examples gallery as a rail drawer — same load path a shared link uses. */
+/** Examples gallery as a rail drawer: same load path a shared link uses. */
 export function ExamplesDrawer({
   open,
   onClose,

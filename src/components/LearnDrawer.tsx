@@ -2,7 +2,7 @@ import { Drawer } from "./Rail";
 import { TOURS } from "../model/tours";
 import type { Tour } from "../model/tours";
 
-/** Guided tours as a rail drawer — each loads a curated model and auto-plays. */
+/** Guided tours as a rail drawer: each loads a curated model and auto-plays. */
 export function LearnDrawer({
   open,
   onClose,

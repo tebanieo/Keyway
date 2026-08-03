@@ -21,9 +21,9 @@ export interface QuerySpec {
   /** get: exact value per sort-key attribute. */
   sk: string[];
   /** query: a condition per sort-key attribute, left-to-right (a prefix). All
-   *  but the last must be "=" — that's the multi-key sort rule. */
+   *  but the last must be "=", that's the multi-key sort rule. */
   skParts: Cond[];
-  /** A parsed filter expression — applied AFTER the read, so it trims results
+  /** A parsed filter expression, applied AFTER the read, so it trims results
    *  but not cost. null = no filter. */
   filter: FilterNode | null;
   /** Strong (1 RCU / 4KB) vs eventually consistent (0.5 RCU / 4KB). */
@@ -31,14 +31,14 @@ export interface QuerySpec {
 }
 
 export interface QueryResult {
-  /** Items DynamoDB actually reads — this is what you're charged for. */
+  /** Items DynamoDB actually reads: this is what you're charged for. */
   scanned: number;
   /** Cumulative bytes read (drives the RCU). */
   bytes: number;
   /** Items returned to you (scanned minus filtered-out). */
   items: Item[];
   rcu: number;
-  /** Which query rule (if any) the spec violates — the teaching guardrail. */
+  /** Which query rule (if any) the spec violates, the teaching guardrail. */
   error: string | null;
 }
 
@@ -64,7 +64,7 @@ function cmp(v: string, c: Cond): boolean {
 /**
  * The multi-key query rule, validated so the tool teaches it: all partition
  * attributes need equality (implicit), and among the sort attributes only the
- * LAST supplied one may use a range — the earlier ones must be "=". You also
+ * LAST supplied one may use a range. The earlier ones must be "=". You also
  * can't skip a sort attribute (the UI only offers a left prefix).
  */
 export function validate(index: IndexSpec, spec: QuerySpec): string | null {
@@ -96,7 +96,7 @@ function inPartition(item: Item, index: IndexSpec, pk: string[]): boolean {
  *   exists.
  * - **query**: reads the items matching the key condition (partition equality +
  *   the sort-key prefix). A filter trims what's *returned* but not what's read.
- * - **scan**: reads EVERY item in the index — the expensive one; a filter still
+ * - **scan**: reads EVERY item in the index, the expensive one; a filter still
  *   doesn't reduce the read.
  */
 export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: QuerySpec): QueryResult {

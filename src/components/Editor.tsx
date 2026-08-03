@@ -36,7 +36,7 @@ function itemSnippet(base: IndexSpec) {
     .map((k) => `${k}=${ph(k)}`)
     .join(SP2);
   // Scaffold just the keys. Tab past the last one opens a menu to add GSI keys /
-  // _type / attributes — so adding a whole key=value never collides with a slot.
+  // _type / attributes: so adding a whole key=value never collides with a slot.
   return snippetCompletion(`${ph("label")}: ${keys}`, {
     label: "item",
     detail: "new base item, Tab at the end to add keys/attrs",
@@ -59,7 +59,7 @@ const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   type: "keyword",
 });
 
-// `@` directive completions — makes declaring indexes discoverable, including
+// `@` directive completions: makes declaring indexes discoverable, including
 // the multi-key comma-list form (the thing that isn't obvious).
 const DIRECTIVES = [
   snippetCompletion(`@gsi ${ph("Name")} pk=${ph("pk")} sk=${ph("sk")}`, {
@@ -125,7 +125,7 @@ function selectValue(view: EditorView, eq: number): void {
 
 // Tab: move to the next `attr=` value on this line; at the end of an item line,
 // add a separator and OPEN the completion menu (GSI keys / _type / attributes)
-// so you pick what to add next — no conflicting slot. Returns false on a
+// so you pick what to add next: no conflicting slot. Returns false on a
 // non-item line, letting Tab exit normally.
 const tabForward: Command = (view) => {
   const { state } = view;
@@ -166,7 +166,7 @@ const authoringKeys = Prec.highest(
   keymap.of([
     {
       key: "Tab",
-      // Inside a snippet with another field, advance the field first — so the
+      // Inside a snippet with another field, advance the field first: so the
       // open autocomplete popup can't hijack Tab. Otherwise accept a completion
       // if the popup is open, else jump to the next attribute on the line.
       run: (v) =>
@@ -217,7 +217,7 @@ function completeDsl(ctx: CompletionContext) {
   if (word.from === word.to && !ctx.explicit && !atLineStart) return null;
 
   // If the cursor sits inside a value (current segment already has an `=`), the
-  // user is typing a VALUE, not an attribute name — offering attribute/GSI
+  // user is typing a VALUE, not an attribute name: offering attribute/GSI
   // completions here would garble it (e.g. SK=GSI1PK=GSI1PK). Stay quiet.
   const segment = /(\S*)$/.exec(before)?.[1] ?? "";
   if (segment.includes("=")) return null;
@@ -261,7 +261,7 @@ function completeDsl(ctx: CompletionContext) {
       ),
     ];
   } else {
-    // line start: everything you can begin a line with — scaffold an item
+    // line start: everything you can begin a line with, scaffold an item
     // (blank or from an entity template), delete, or an @ directive.
     options = [itemSnippet(base), DELETE_SNIPPET, ...DIRECTIVES, ...entities.map(entityScaffold)];
   }
@@ -269,7 +269,7 @@ function completeDsl(ctx: CompletionContext) {
   return { from: word.from, options };
 }
 
-// Run the same pure parser the app uses, surface its diagnostics inline — but
+// Run the same pure parser the app uses, surface its diagnostics inline, but
 // never nag the line the cursor is on, so a half-typed `o5: PK=` stays quiet
 // until you move off it.
 const dslLinter = linter((view): CmDiagnostic[] => {
@@ -360,7 +360,7 @@ export const Editor = forwardRef<
       state: EditorState.create({
         doc: initialDoc,
         extensions: [
-          authoringKeys, // Tab/Shift-Tab/Escape — must win over defaults
+          authoringKeys, // Tab/Shift-Tab/Escape: must win over defaults
           basicSetup,
           keymap.of(completionKeymap),
           autocompletion({ override: [completeDsl] }),
@@ -373,7 +373,7 @@ export const Editor = forwardRef<
             if (u.docChanged) {
               cb.current(u.state.doc.toString());
               // Landed on a fresh empty line (e.g. after Enter)? Pop the menu of
-              // what you can do here. Deferred — can't dispatch inside an update.
+              // what you can do here. Deferred: can't dispatch inside an update.
               const cur = u.state.doc.lineAt(u.state.selection.main.head);
               if (cur.text.trim() === "") {
                 const v = u.view;

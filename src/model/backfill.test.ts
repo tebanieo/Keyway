@@ -39,7 +39,7 @@ describe("computeBackfill", () => {
   });
 
   it("never flags key attributes or _type", () => {
-    // o2 has no GSI1PK, but that's a key — not a backfill candidate here since
+    // o2 has no GSI1PK, but that's a key: not a backfill candidate here since
     // the only differing attribute would be a key. status differs in presence.
     const b = computeBackfill(
       state([

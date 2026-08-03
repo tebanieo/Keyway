@@ -17,7 +17,7 @@ export interface QueryHighlight {
  * index's key shape and enforces the query rules (equality on partition keys,
  * range only on the last sort key). Reports read cost and highlights results.
  *
- * NOTE: first-cut UX — functional, not yet styled to the "professional" bar.
+ * NOTE: first-cut UX, functional, not yet styled to the "professional" bar.
  */
 export function QueryPanel({
   open,
@@ -137,7 +137,7 @@ export function QueryPanel({
             onChange={(e) => {
               const name = e.target.value;
               setIndexName(name);
-              // GetItem can't run on a GSI — fall back to query.
+              // GetItem can't run on a GSI: fall back to query.
               if (name !== base.name && op === "get") setOp("query");
             }}
           >

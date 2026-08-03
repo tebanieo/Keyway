@@ -81,7 +81,7 @@ export function Icon({
         </svg>
       );
     case "learn":
-      // An open book — a guided lesson.
+      // An open book: a guided lesson.
       return (
         <svg {...s}>
           <path d="M12 6v14" />
@@ -90,7 +90,7 @@ export function Icon({
         </svg>
       );
     case "docs":
-      // A box with an arrow leaving it — opens in a new tab.
+      // A box with an arrow leaving it: opens in a new tab.
       return (
         <svg {...s}>
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -101,7 +101,7 @@ export function Icon({
   }
 }
 
-/** The Keyway mark — a gradient tile with a white keyhole (graph in the head,
+/** The Keyway mark: a gradient tile with a white keyhole (graph in the head,
  *  key-teeth/table rows in the slot). Matches the favicon. */
 export function Logo() {
   return (

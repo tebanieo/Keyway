@@ -243,7 +243,7 @@ class Parser {
     throw new Error(`expected a comparator after "${operandText(left)}"`);
   }
 
-  // left side / function first arg — an attribute path or size(attr)
+  // left side / function first arg: an attribute path or size(attr)
   private parsePath(): Operand {
     const t = this.next();
     if (t.t === "word" && t.v.toLowerCase() === "size" && this.peek()?.t === "lparen") {
@@ -262,7 +262,7 @@ class Parser {
     return t.v;
   }
 
-  // right side / function value arg — a literal or size(attr)
+  // right side / function value arg: a literal or size(attr)
   private parseValue(): Operand {
     const t = this.peek();
     if (
@@ -306,7 +306,7 @@ export function parseFilter(text: string): ParsedFilter {
 
 const NUM = /^-?\d+(\.\d+)?$/;
 
-/** Own-property read only — so inherited keys like `constructor`/`toString`
+/** Own-property read only, so inherited keys like `constructor`/`toString`
  *  never masquerade as attributes (attribute_exists(constructor) must be false). */
 const own = (attrs: Record<string, string>, k: string): string | undefined =>
   Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : undefined;
@@ -380,8 +380,8 @@ export function evalFilter(node: FilterNode, item: Item): boolean {
       return node.negate ? !present : present;
     }
     case "type": {
-      // No explicit types yet, so infer: numeric-looking values report N, else S
-      // — kept consistent with how `compare` orders them (real N/S/B typing is
+      // No explicit types yet, so infer: numeric-looking values report N, else S,
+      // kept consistent with how `compare` orders them (real N/S/B typing is
       // backlogged). Fixes the "says S but sorts as a Number" contradiction.
       const v = own(item.attrs, node.attr);
       if (v === undefined) return false;

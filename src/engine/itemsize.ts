@@ -1,7 +1,7 @@
 import type { Item } from "./types";
 
 /**
- * Real DynamoDB item size and the capacity units it drives — so cost stops
+ * Real DynamoDB item size and the capacity units it drives, so cost stops
  * being a ≤4KB estimate and becomes exact. Pure.
  *
  * Item size = Σ over attributes of (UTF-8 bytes of the NAME + bytes of the

@@ -15,7 +15,7 @@ import type { CondOp } from "../engine/query";
  *   o1: PK=USER#2  SK=ORDER#1  status=shipped     # new key  -> atomic transact
  *   delete o1
  *
- * The label before the colon is the item's stable id — so a repeated label is
+ * The label before the colon is the item's stable id. So a repeated label is
  * the *same* item (a pin follows it), and a repeated label with a different
  * PK/SK is a key change, which we emit as an atomic delete+put transaction.
  */
@@ -157,7 +157,7 @@ function itemLine(item: Item, baseIndex: IndexSpec): string {
 }
 
 /**
- * Serialize ops back to DSL text — the inverse of parseDoc (modulo comments and
+ * Serialize ops back to DSL text: the inverse of parseDoc (modulo comments and
  * spacing). Used when opening the editor on a model that was built by direct
  * manipulation, so text and grid stay one source of truth. A transact renders
  * as its put line: re-parsing that line against the prior key re-derives the
@@ -191,7 +191,7 @@ export function serializeGsis(gsis: readonly IndexSpec[]): string {
   return lines.join("\n") + "\n";
 }
 
-/** Serialize the base table as an `@table` line — emitted when it's named or has
+/** Serialize the base table as an `@table` line, emitted when it's named or has
  *  non-default keys (a plain PK/SK unnamed table stays implicit). */
 export function serializeTable(base: IndexSpec): string {
   const named = base.name !== "base";
@@ -238,7 +238,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         return;
       }
       // A multi-key GSI uses a comma list (`pk=a,b`). Repeated `pk=`/`sk=` is a
-      // common mistake — parseAttrs silently keeps only the last, collapsing the
+      // common mistake: parseAttrs silently keeps only the last, collapsing the
       // index to a single key (the "only the first key shows" trap). Flag it.
       const dupPk = (nm[2].match(/(?:^|\s)pk=/g) ?? []).length > 1;
       const dupSk = (nm[2].match(/(?:^|\s)sk=/g) ?? []).length > 1;
@@ -277,7 +277,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         projection: parseProjection(attrs.projection),
       });
     } else if (kind === "table") {
-      // @table [Name] pk=.. sk=..  — a leading bareword (no "=") names the table
+      // @table [Name] pk=.. sk=..: a leading bareword (no "=") names the table
       const first = /^(\S+)(?:\s+([\s\S]*))?$/.exec(rest);
       let name = "base";
       let attrText = rest;
@@ -327,7 +327,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
   });
-  // No GSIs unless declared — a base-table-only model is valid (add @gsi when
+  // No GSIs unless declared: a base-table-only model is valid (add @gsi when
   // an access pattern needs one).
 
   // Pass 2: item / delete lines. A comment directly above a line (no blank

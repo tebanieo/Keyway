@@ -55,7 +55,7 @@ describe("diffPartitions", () => {
   });
 
   // Regression (S2): on a multi-key GSI the diff must order rows by the FULL
-  // sort tuple, identically to `project` — not by the first sort attr alone.
+  // sort tuple, identically to `project`, not by the first sort attr alone.
   it("orders multi-key GSI rows by the whole sort tuple, like project", () => {
     const MK: IndexSpec = {
       name: "MK",

@@ -2,7 +2,7 @@ import type { Item } from "../engine/types";
 
 /**
  * The reserved attribute that tags an item's entity type (facet). It's an
- * ordinary attribute — the engine treats it like any other — but the authoring
+ * ordinary attribute (the engine treats it like any other) but the authoring
  * layer reads it to derive per-type templates. Convention borrowed from
  * real single-table designs, which stash an "entity type" attribute on rows.
  */
@@ -18,7 +18,7 @@ export interface EntityTemplate {
 
 /**
  * Derive entity templates from a set of items: group by `_type`, union their
- * attributes. Pure — the schema is inferred from the data, never declared
+ * attributes. Pure: the schema is inferred from the data, never declared
  * separately, so it can't drift from what's actually in the model.
  */
 export function deriveEntities(items: Iterable<Item>, lead: string[] = []): EntityTemplate[] {
@@ -48,7 +48,7 @@ export function deriveEntities(items: Iterable<Item>, lead: string[] = []): Enti
   });
 }
 
-/** Every attribute name in the model (excluding _type) — for name completion. */
+/** Every attribute name in the model (excluding _type): for name completion. */
 export function allAttrNames(items: Iterable<Item>): string[] {
   const seen = new Set<string>();
   const order: string[] = [];

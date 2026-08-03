@@ -16,7 +16,7 @@ export function usePlayback(
   const [costPulse, setCostPulse] = useState(false);
   const costTimer = useRef<number | undefined>(undefined);
 
-  // Cost is about a transition — surface the HUD when the user steps or plays,
+  // Cost is about a transition: surface the HUD when the user steps or plays,
   // then auto-hide (so it isn't "just sitting there" while editing).
   const pulseCost = useCallback(() => {
     setCostPulse(true);

@@ -22,10 +22,10 @@ export interface Backfill {
 
 /**
  * Detect entity-schema drift: a type where some items carry an attribute and
- * others don't. That's the "you gave one order a `discount` — add it to the
+ * others don't. That's the "you gave one order a `discount`, add it to the
  * other two?" prompt.
  *
- * Deliberately stateless — it inspects the current model rather than trying to
+ * Deliberately stateless: it inspects the current model rather than trying to
  * guess which op changed, so it fires correctly whether the edit landed via the
  * grid (appends to the log) or the text editor (edits a line anywhere). Returns
  * the first drifting (type, attribute), or null. Key attributes and `_type`

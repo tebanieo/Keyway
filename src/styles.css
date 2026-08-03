@@ -1,5 +1,5 @@
 :root {
-  /* palette — lifted off pure-black, faint cool tint (data-instrument) */
+  /* palette: lifted off pure-black, faint cool tint (data-instrument) */
   --bg: #0f1217;
   --panel: #161a21;
   --panel-2: #1d222b;
@@ -14,7 +14,7 @@
   --danger: #ff7a7a;
   --warn: #ffb020;
 
-  /* surface fills (overlay tints) + on-colors — flipped per theme */
+  /* surface fills (overlay tints) + on-colors: flipped per theme */
   --fill-1: rgba(255, 255, 255, 0.03);
   --fill-2: rgba(255, 255, 255, 0.06);
   --fill-3: rgba(255, 255, 255, 0.08);
@@ -29,7 +29,7 @@
   /* form inputs (inset field) */
   --input-bg: rgba(0, 0, 0, 0.25);
 
-  /* editor (CodeMirror) surface — themable via custom props */
+  /* editor (CodeMirror) surface: themable via custom props */
   --editor-bg: #12151c;
   --editor-fg: #e6e9ef;
   --editor-gutter: #5b6172;
@@ -61,7 +61,7 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-2: 0 10px 34px rgba(0, 0, 0, 0.5);
 
-  /* Floating surfaces (rail, drawers, toasts) — flat + opaque like paper, no
+  /* Floating surfaces (rail, drawers, toasts): flat + opaque like paper, no
      gloss; the clean shadow does the "elevated" work in both themes. */
   --glass-bg: #191e27;
   --glass-bg-2: #232935;
@@ -69,7 +69,7 @@
   --glass-hi: var(--fill-4);
   --glass-blur: none;
 
-  /* scrollbars — themed, a notch above the table surface for contrast */
+  /* scrollbars: themed, a notch above the table surface for contrast */
   --scroll: #363d4b;
   --scroll-hover: #4a5264;
 
@@ -82,7 +82,7 @@
   font-family: var(--font-ui);
 }
 
-/* Paper theme — flat, printed-page minimal. No gloss: glass goes opaque and
+/* Paper theme: flat, printed-page minimal. No gloss: glass goes opaque and
    blur turns off; overlays flip dark; semantic colors darken for white. */
 [data-theme="paper"] {
   --bg: #fcfdfe;
@@ -140,7 +140,7 @@
 [data-theme="paper"] .share:hover {
   background: var(--accent-fill-hover);
 }
-/* Diff tints are pale on white — strengthen so added/removed rows read clearly. */
+/* Diff tints are pale on white: strengthen so added/removed rows read clearly. */
 [data-theme="paper"] .ptable tr.row-added td {
   background: rgba(22, 163, 74, 0.11);
 }
@@ -156,7 +156,7 @@
 body {
   margin: 0;
   color: var(--text);
-  /* Faint graph-paper grid in the negative space — reads "engineered". Solid
+  /* Faint graph-paper grid in the negative space, reads "engineered". Solid
      panels sit on top, so the grid only shows around/behind them. */
   background-color: var(--bg);
   background-image:
@@ -166,7 +166,7 @@ body {
   background-position: -1px -1px;
 }
 
-/* Thin, themed scrollbars everywhere — the native "fat white" bars clashed
+/* Thin, themed scrollbars everywhere: the native "fat white" bars clashed
    with the glass system. Firefox uses scrollbar-* ; WebKit uses ::-webkit-*. */
 * {
   scrollbar-width: thin;
@@ -199,7 +199,7 @@ body {
   padding: var(--s4) var(--s5) var(--s6);
 }
 
-/* Command bar — a solid control surface with a hairline (chrome is flat now;
+/* Command bar: a solid control surface with a hairline (chrome is flat now;
    glass is reserved for things that actually float: rail, drawers, toasts). */
 .toolbar {
   position: sticky;
@@ -217,7 +217,7 @@ body {
   margin-bottom: var(--s5);
 }
 
-/* Solid mono wordmark with a small accent tick — reads "instrument", not logo. */
+/* Solid mono wordmark with a small accent tick, reads "instrument", not logo. */
 .toolbar h1 {
   display: inline-flex;
   align-items: center;
@@ -387,7 +387,7 @@ body {
   transition: opacity 0.2s ease;
 }
 
-/* Narration callout — a floating caption for the current step. Fixed (not in
+/* Narration callout: a floating caption for the current step. Fixed (not in
    the flow) so appearing/disappearing never shifts the page; pointer-events off
    so it doesn't block the content it hovers over. */
 .narration {
@@ -444,8 +444,8 @@ body {
   line-height: 1.4;
 }
 
-/* Access-patterns panel — the spec + coverage. */
-/* Right slide-over drawer — a reusable shell opened from the activity rail. It
+/* Access-patterns panel: the spec + coverage. */
+/* Right slide-over drawer: a reusable shell opened from the activity rail. It
    never steals focus from the editor hero or the tables. */
 .drawer {
   position: fixed;
@@ -623,7 +623,7 @@ body {
   color: var(--key);
 }
 
-/* Right activity rail — launcher for the side drawers. Tucks to a slim pull-tab
+/* Right activity rail: launcher for the side drawers. Tucks to a slim pull-tab
    at rest (hover to reveal); auto-reveals + pulses when an item has a badge. */
 .rail {
   position: fixed;
@@ -705,7 +705,7 @@ body {
   color: var(--warn);
   border-color: rgba(255, 176, 32, 0.4);
 }
-/* Resolved: everything served — flash green before the rail floats away. */
+/* Resolved: everything served, flash green before the rail floats away. */
 .rail-btn.ok {
   color: var(--enter);
   border-color: rgba(55, 214, 122, 0.5);
@@ -786,7 +786,7 @@ body {
   }
 }
 
-/* Query panel — a read console that lives in a right rail drawer. */
+/* Query panel: a read console that lives in a right rail drawer. */
 .query-panel {
   margin-bottom: var(--s5);
   border: 1px solid var(--glass-line);
@@ -908,7 +908,7 @@ body {
   color: var(--text);
   background: var(--fill-3);
 }
-/* Shared close (×) button — query panel + AP drawer. */
+/* Shared close (×) button: query panel + AP drawer. */
 .q-close {
   display: grid;
   place-items: center;
@@ -970,7 +970,7 @@ body {
   color: #ff7a7a;
 }
 
-/* Query result highlights — teal for "returned by a read" (distinct from the
+/* Query result highlights: teal for "returned by a read" (distinct from the
    green "added" of a write), amber for "read but filtered out". */
 .ptable tr.q-matched td {
   box-shadow: inset 0 0 0 9999px rgba(45, 212, 191, 0.18);
@@ -1037,7 +1037,7 @@ body {
   font-family: var(--font-mono);
   font-weight: 600;
 }
-/* Live model summary — makes the collapsed bar an informative status strip. */
+/* Live model summary: makes the collapsed bar an informative status strip. */
 .editor-head .eh-stats {
   display: inline-flex;
   align-items: center;
@@ -1064,7 +1064,7 @@ body {
 }
 
 /* Collapse by clipping the grid row (0fr). CodeMirror sizes to its CONTENT
-   (capped at 52vh, then it scrolls) — a short script → a short editor — and its
+   (capped at 52vh, then it scrolls) (a short script → a short editor) and its
    box stays stable during the animation, so no compress-then-extend flicker. */
 .editor-body {
   min-height: 0;
@@ -1142,7 +1142,7 @@ body {
   background: var(--fill-3);
 }
 
-/* Cost is a transient HUD now — floats up on a step/playback, auto-hides. */
+/* Cost is a transient HUD now: floats up on a step/playback, auto-hides. */
 .cost-hud {
   position: fixed;
   bottom: 26px;
@@ -1308,7 +1308,7 @@ body {
   letter-spacing: 0.4px;
 }
 
-/* Table-controls header — pane selector + Diff, next to what they act on. */
+/* Table-controls header: pane selector + Diff, next to what they act on. */
 .panes-bar {
   display: flex;
   align-items: center;
@@ -1562,7 +1562,7 @@ body {
 }
 
 /* Pinned: a persistent accent frame that survives stepping. Deliberately
-   stronger and framed (not just filled) so it reads differently from hover —
+   stronger and framed (not just filled) so it reads differently from hover:
    this is the item you're following, lit in every pane at once. Border lines
    are listed before the fill so the fill paints underneath them. */
 .ptable tr.pinned td {
@@ -1767,7 +1767,7 @@ body {
   color: var(--accent);
 }
 
-/* Pin toggle — a hollow dot on row hover, filled accent when pinned. */
+/* Pin toggle: a hollow dot on row hover, filled accent when pinned. */
 .pin-btn {
   width: 11px;
   height: 11px;

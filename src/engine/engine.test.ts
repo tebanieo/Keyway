@@ -105,7 +105,7 @@ describe("project", () => {
     const projected: IndexSpec = { ...GSI1, projection: ["GSI1SK"] };
     const view = project(fold(ops, BASE), projected, BASE);
     const anyItem = view.partitions[0].items[0];
-    // GSI keys + base keys (PK, SK) + the include — but not name/total/etc.
+    // GSI keys + base keys (PK, SK) + the include, but not name/total/etc.
     expect(Object.keys(anyItem.attrs).sort()).toEqual(["GSI1PK", "GSI1SK", "PK", "SK"].sort());
   });
 
@@ -117,7 +117,7 @@ describe("project", () => {
   });
 });
 
-describe("project — multi-key GSI", () => {
+describe("project: multi-key GSI", () => {
   // up to 4 pk / 4 sk attributes, native (no concatenation)
   const MGSI: IndexSpec = {
     name: "MGSI",
@@ -162,7 +162,7 @@ describe("project — multi-key GSI", () => {
 
   it("groups by the full partition tuple (tenant + region)", () => {
     const view = project(fold(ops, BASE), MGSI, BASE);
-    // acme/us has a and b; acme/eu has c — two partitions
+    // acme/us has a and b; acme/eu has c: two partitions
     expect(view.partitions).toHaveLength(2);
     const us = view.partitions.find((p) => p.items.some((i) => i.id === "a"))!;
     expect(us.items.map((i) => i.id)).not.toContain("c");

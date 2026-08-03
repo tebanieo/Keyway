@@ -2,7 +2,7 @@ import type { IndexSpec, Item, Op } from "../engine/types";
 import { putItemOf } from "./backfill";
 
 /**
- * Pure op-log / labelling helpers shared by the UI. None of these touch React —
+ * Pure op-log / labelling helpers shared by the UI. None of these touch React:
  * they turn model data into ops or human-readable labels, so they live in the
  * model layer and stay unit-testable.
  */
@@ -10,7 +10,7 @@ import { putItemOf } from "./backfill";
 /**
  * Next free `i1`, `i2`, … label for a new canvas-created item. It doubles as the
  * item's stable id AND its DSL label when serialized to the editor, so it must
- * be grammar-valid — a UUID has hyphens and breaks the label rule.
+ * be grammar-valid: a UUID has hyphens and breaks the label rule.
  */
 export function nextItemLabel(ops: readonly Op[]): string {
   const used = new Set<string>();
@@ -27,7 +27,7 @@ export function nextItemLabel(ops: readonly Op[]): string {
 /**
  * Turn a single cell edit into ops. A non-key change is one clean `put`. A base
  * key change is identity-changing, which DynamoDB models as an atomic
- * TransactWriteItems (delete old + put new) — billed at 2× base.
+ * TransactWriteItems (delete old + put new), billed at 2× base.
  */
 export function editToOps(item: Item, key: string, value: string, base: IndexSpec): Op[] {
   const attrs = { ...item.attrs, [key]: value };
@@ -46,7 +46,7 @@ export function editToOps(item: Item, key: string, value: string, base: IndexSpe
   return [{ kind: "put", item: next }];
 }
 
-/** `PK / SK` (or just PK for a PK-only table) — the human key of an item. */
+/** `PK / SK` (or just PK for a PK-only table): the human key of an item. */
 export function keyLabel(attrs: Record<string, string>, base: IndexSpec): string {
   const pk = attrs[base.pk] ?? "?";
   return base.sk ? `${pk} / ${attrs[base.sk] ?? "?"}` : pk;

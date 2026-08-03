@@ -4,7 +4,7 @@ import { evalFilter } from "./filter";
 /**
  * Separator joining pk and sk into a composite key string. A NUL control
  * character (never a space or "#") so it can never collide with real key
- * material — DynamoDB keys routinely contain both spaces and "#".
+ * material: DynamoDB keys routinely contain both spaces and "#".
  */
 const KEY_SEP = String.fromCharCode(0);
 /** Visible separator for a multi-attribute partition/sort value ( · ). */
@@ -74,7 +74,7 @@ export function partitionLabel(item: Item, index: IndexSpec): string {
  *
  * Identity on the base table is the base primary key, exactly as in DynamoDB:
  * a `put` onto an occupied key overwrites (last write wins), a `delete` removes.
- * Items whose attributes don't form a complete base key are dropped — a base
+ * Items whose attributes don't form a complete base key are dropped: a base
  * table has no place for a keyless item.
  *
  * State preserves first-seen insertion order so downstream rendering is stable
@@ -102,7 +102,7 @@ export function conditionHolds(condition: Condition | undefined, existing: Item 
 /**
  * Would this op be rejected by its `@if` guard, given the state just before it?
  * A rejected op is a DynamoDB ConditionalCheckFailed: no change, but still
- * billed. Pure — used by both the cost model and the rejected-step UI.
+ * billed. Pure. Used by both the cost model and the rejected-step UI.
  */
 export function conditionRejected(
   prevState: Map<string, Item>,
@@ -126,7 +126,7 @@ export function conditionRejected(
 /**
  * Apply one write action to a state map in place. Returns whether it applied:
  * `false` when its `@if` guard fails (a rejected write) or its base key is
- * incomplete, so a rejected write leaves state untouched — exactly as DynamoDB
+ * incomplete, so a rejected write leaves state untouched, exactly as DynamoDB
  * does on a ConditionalCheckFailed.
  */
 export function applyAction(
@@ -136,7 +136,7 @@ export function applyAction(
 ): boolean {
   if (action.kind === "put") {
     const key = keyOf(action.item, baseIndex);
-    if (key === null) return false; // incomplete base key — not a valid row
+    if (key === null) return false; // incomplete base key: not a valid row
     if (!conditionHolds(action.condition, state.get(key) ?? null)) return false;
     state.set(key, action.item);
     return true;
@@ -156,7 +156,7 @@ export function fold(ops: readonly Op[], baseIndex: IndexSpec): Map<string, Item
   const state = new Map<string, Item>();
   for (const op of ops) {
     if (op.kind === "transact") {
-      // atomic bundle — apply every action, then it's one logical step
+      // atomic bundle: apply every action, then it's one logical step
       for (const action of op.actions) applyAction(state, action, baseIndex);
     } else {
       applyAction(state, op, baseIndex);

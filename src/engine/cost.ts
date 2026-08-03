@@ -13,11 +13,11 @@ import { itemSize, wcu } from "./itemsize";
 
 /**
  * What a single write does to one index.
- *   none    — the write doesn't touch this index (no key before or after)
- *   insert  — item enters the index for the first time
- *   delete  — item leaves the index (a key attribute was removed / row deleted)
- *   update  — item stays in the same index location; a projected attr changed
- *   reindex — the index KEY changed, so DynamoDB deletes the old projection and
+ *   none:    the write doesn't touch this index (no key before or after)
+ *   insert:  item enters the index for the first time
+ *   delete:  item leaves the index (a key attribute was removed / row deleted)
+ *   update:  item stays in the same index location; a projected attr changed
+ *   reindex: the index KEY changed, so DynamoDB deletes the old projection and
  *             puts a new one. This is the costly case: two writes, not one.
  */
 export type IndexEffect = "none" | "insert" | "delete" | "update" | "reindex";
@@ -140,7 +140,7 @@ function mergeIndex(name: string, parts: IndexCost[]): IndexCost {
  * Index maintenance cost lives in the *transition*, not the snapshot: a put that
  * flips a GSI key is a 1-write base change but a 2-write reindex on the GSI. A
  * `transact` (TransactWriteItems) applies several actions atomically and bills
- * its BASE writes at 2× — so an atomic key rename (delete + put) is 4 base WCU,
+ * its BASE writes at 2×, so an atomic key rename (delete + put) is 4 base WCU,
  * the price of doing it safely instead of as two racy writes.
  *
  * GSI maintenance is billed at the standard rate even inside a transaction:
@@ -156,7 +156,7 @@ export function writeCost(
 ): OpCost {
   // A failed `@if` guard: the write never lands, so no index maintenance runs.
   // The check itself still costs a flat 1 WCU (2 inside a transaction), NOT the
-  // item's size-based cost — you're billed for the attempt, not the write.
+  // item's size-based cost: you're billed for the attempt, not the write.
   if (conditionRejected(prevState, op, baseIndex)) {
     const transactional = op.kind === "transact";
     const baseWrites = transactional ? 2 : 1;

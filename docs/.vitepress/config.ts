@@ -1,6 +1,6 @@
 import { defineConfig } from "vitepress";
 
-// Keyway reference manual — the "what/how" lookup that ships alongside the app.
+// Keyway reference manual: the "what/how" lookup that ships alongside the app.
 //
 // Base path for GitHub Pages:
 //   The app is served at the Pages root and this manual is copied into
@@ -14,11 +14,11 @@ export default defineConfig({
   title: "Keyway",
   description: "Reference for the single-table data modeler",
   // Leave outDir at the VitePress default (docs/.vitepress/dist). The deploy
-  // workflow copies that into the app's dist/docs — we never write into dist/ here.
+  // workflow copies that into the app's dist/docs; we never write into dist/ here.
   lastUpdated: true,
   cleanUrls: true,
-  // CODE_REVIEW.md is an internal review note that happens to live in docs/ —
-  // it's not part of the published manual, so keep it out of the built site.
+  // CODE_REVIEW.md is an internal review note that happens to live in docs/.
+  // It's not part of the published manual, so keep it out of the built site.
   srcExclude: ["CODE_REVIEW.md"],
   themeConfig: {
     nav: [

@@ -11,7 +11,7 @@ function match(expr: string, attrs: Record<string, string>): boolean {
   return evalFilter(ast, item(attrs));
 }
 
-describe("parseFilter — errors", () => {
+describe("parseFilter: errors", () => {
   it("empty expression yields no ast, no error", () => {
     expect(parseFilter("   ")).toEqual({});
   });
@@ -94,7 +94,7 @@ describe("logic + precedence", () => {
   });
 });
 
-describe("comparators — full op matrix (string semantics)", () => {
+describe("comparators: full op matrix (string semantics)", () => {
   it("<, <=, >, >= and <> on strings", () => {
     expect(match("s < b", { s: "a" })).toBe(true);
     expect(match("s <= a", { s: "a" })).toBe(true);
