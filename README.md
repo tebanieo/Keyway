@@ -11,7 +11,7 @@ table and its indexes, step through writes, see the estimated cost of each one, 
 query it all in the browser. The data is yours! Your model is never sent to a
 server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
 
-> Most people learn data modelling techniques such as single-table design from
+> Most people learn DynamoDB data modeling from
 > static blog diagrams. Here you load a model and _watch it work_: the GSI
 > reprojects, the sparse index skips a row, a key change costs a `DELETE` +
 > `PUT`, a `SCAN` reads the whole table.

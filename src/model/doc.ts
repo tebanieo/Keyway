@@ -11,7 +11,7 @@ export const EMPTY_DOC = `# Empty model - start typing items below, or load an e
 @table AppTable pk=PK sk=SK
 `;
 
-export const DEFAULT_DOC = `# Keyway - a single-table model as a script.
+export const DEFAULT_DOC = `# Keyway - a DynamoDB data model as a script.
 # One line = one operation = one step. "label:" puts an item; the label is its
 # stable id, so repeating it edits the same item. Change a PK/SK on a repeated
 # label and it becomes an atomic key change (delete + put). "delete label" removes.

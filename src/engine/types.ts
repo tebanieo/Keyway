@@ -1,4 +1,4 @@
-// Core domain types for the single-table model.
+// Core domain types for the DynamoDB data model.
 // Everything here is plain data: no DOM, no React, no async.
 
 import type { FilterNode } from "./filter";

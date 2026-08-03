@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Keyway
   text: A NoSQL datamodeling tool
-  tagline: Design and learn DynamoDB single-table models as plain text, then watch them work, all in your browser.
+  tagline: Design and learn DynamoDB data modeling as plain text, then watch it work, all in your browser.
   image:
     src: /favicon.svg
     alt: Keyway

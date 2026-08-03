@@ -12,7 +12,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   base: "/Keyway/docs/",
   title: "Keyway",
-  description: "Reference for the single-table data modeler",
+  description: "Reference for Keyway, a DynamoDB data modeling tool",
   // Favicon (served from docs/public/). head links aren't base-rewritten, so the
   // href carries the full base path; update it if the repo/base ever changes.
   head: [["link", { rel: "icon", type: "image/svg+xml", href: "/Keyway/docs/favicon.svg" }]],

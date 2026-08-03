@@ -4,7 +4,7 @@ import type { Item } from "../engine/types";
  * The reserved attribute that tags an item's entity type (facet). It's an
  * ordinary attribute (the engine treats it like any other) but the authoring
  * layer reads it to derive per-type templates. Convention borrowed from
- * real single-table designs, which stash an "entity type" attribute on rows.
+ * real DynamoDB data models, which stash an "entity type" attribute on rows.
  */
 export const TYPE_ATTR = "_type";
 

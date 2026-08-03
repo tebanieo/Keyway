@@ -4,7 +4,7 @@ import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/t
 import type { CondOp } from "../engine/query";
 
 /**
- * A tiny, readable text format for a single-table model. One line = one op =
+ * A tiny, readable text format for a DynamoDB data model. One line = one op =
  * one step. It's deliberately writable and diffable by hand (the repo-artifact
  * property): you can read it cold in a PR or edit it in vim, no editor required.
  *

@@ -1,7 +1,7 @@
 import { DEFAULT_DOC } from "./doc";
 
 /**
- * Curated single-table models. Each is plain DSL text loaded through the same
+ * Curated DynamoDB data models. Each is plain DSL text loaded through the same
  * loadModel() path a shared link uses. Open-source contributors add an example
  * by appending one entry here (or a file they import). Every example doubles as
  * a steppable, cost-annotated teaching artifact for a classic pattern.

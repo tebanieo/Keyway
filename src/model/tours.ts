@@ -27,7 +27,7 @@ const GETTING_STARTED = `# Getting Started: a Keyway model is just a script. One
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  _type=user-profile
 
 # Another put under the same PK. Items that share a partition key sit together,
-# and that grouping is the whole point of single-table design.
+# and grouping related items together is the whole point.
 o1: PK=USER#1  SK=ORDER#2024-01  total=42.00  status=pending  _type=order
 
 # Reuse a label to UPDATE the same item. Same u1, one new attribute (plan=pro),

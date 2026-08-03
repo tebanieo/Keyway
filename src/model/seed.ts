@@ -3,7 +3,7 @@ import type { IndexSpec, Op } from "../engine/types";
 /**
  * The base table and one overloaded GSI. GSI1 is reused across entity types:
  * PROFILE rows index by email, ORDER rows index by status. That overloading is
- * the whole point of single-table design, and the thing a viewer has to make
+ * the whole point of the design, and the thing a viewer has to make
  * legible.
  */
 export const BASE_INDEX: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
