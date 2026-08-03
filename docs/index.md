@@ -70,3 +70,15 @@ From here, jump to:
 - [Filters & query conditions](/filters): how reads are shaped and trimmed.
 - [The cost model](/cost): exactly how WCU/RCU are computed.
 - [Access-pattern coverage](/access-patterns): grading a design against its queries.
+
+## Disclaimer
+
+::: info Personal project, not affiliated with AWS
+Keyway is a personal project. The opinions and views expressed here and in the
+tool are my own and do not represent those of my employer, Amazon Web Services
+(AWS), or Amazon.com, Inc. Keyway is not an official AWS product and is not
+affiliated with, endorsed by, or supported by AWS or Amazon.
+
+Amazon DynamoDB, AWS, and NoSQL Workbench are trademarks of Amazon.com, Inc. or
+its affiliates.
+:::

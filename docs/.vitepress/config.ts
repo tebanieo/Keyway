@@ -13,6 +13,9 @@ export default defineConfig({
   base: "/Keyway/docs/",
   title: "Keyway",
   description: "Reference for the single-table data modeler",
+  // Favicon (served from docs/public/). head links aren't base-rewritten, so the
+  // href carries the full base path; update it if the repo/base ever changes.
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/Keyway/docs/favicon.svg" }]],
   // Leave outDir at the VitePress default (docs/.vitepress/dist). The deploy
   // workflow copies that into the app's dist/docs; we never write into dist/ here.
   lastUpdated: true,
