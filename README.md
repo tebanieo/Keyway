@@ -1,14 +1,16 @@
-# Keyway
+# Keyway - A NoSQL datamodeling tool
 
-An interactive, **100% client-side** tool for designing and _teaching_ DynamoDB
-single-table data models. Write your model as plain text, watch it project into
+An interactive, **100% client-side** tool for designing and _teaching_ how to
+model your data into NoSQL database, initially with DynamoDB as destination.
+Write your model as plain text, watch it project into
 the base table and its indexes, step through writes, see the real cost of each
-one, and query it — all in the browser. Nothing is sent to a server; nothing is
-stored anywhere but your tab.
+one, and query it all in the browser. The data is yours! Your model is never sent
+to a server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
 
-> Most people learn single-table design from static blog diagrams. Here you load
-> a model and _watch it work_ — the GSI reprojects, the sparse index skips a row,
-> a key change costs a delete+put, a scan reads the whole table.
+> Most people learn data modelling techniques such as single-table design from
+> static blog diagrams. Here you load a model and _watch it work_ the GSI
+> reprojects, the sparse index skips a row, a key change costs a `DELETE` + `PUT`,
+> a `SCAN` reads the whole table.
 
 ## Why it's different
 
@@ -30,11 +32,34 @@ stored anywhere but your tab.
 
 ## Privacy
 
-There is **no backend and no telemetry**. The app makes no network calls beyond
-loading its own static assets. Your model lives in the browser tab (it isn't even
-saved to `localStorage`), and **shared links carry the model in the URL fragment**
-(`#m=…`), which browsers never send to a server. You can model sensitive schemas
-without anything leaving your machine.
+**Your model never leaves your browser.** There is no backend. The app makes no
+network calls with your data: your model lives in the tab (it isn't even saved to
+`localStorage`), and **shared links carry the model in the URL fragment** (`#m=…`),
+which browsers never send to a server. You can model sensitive schemas without
+anything leaving your machine.
+
+The one thing I count is **anonymous page-views** (via
+[GoatCounter](https://www.goatcounter.com)), so I can tell roughly how many people
+find Keyway useful. No cookies, no personal data, and **no IP addresses or
+identifiers are stored** — you can't be tracked or profiled. Only the fact that a
+page loaded (plus the referring site, and a couple of anonymous events like "an
+example was opened") is counted, never anything you type.
+
+### Don't trust me? Read the code.
+
+You don't have to take my word for any of this. It's a static site — open your
+DevTools Network tab and watch. Or read the exact lines:
+
+- **Your model is never transmitted.** It's held in the URL fragment (`#m=…`),
+  which the browser strips before it makes any request. See
+  [`src/model/share.ts`](src/model/share.ts).
+- **Only the pathname is ever sent to the counter** — never the query string and
+  never the `#m=…` model. See the `path` callback in [`index.html`](index.html).
+- **The entire analytics surface is one tiny, guarded call** with an event name
+  and nothing else, skipped on localhost. See [`src/analytics.ts`](src/analytics.ts)
+  and the counter snippet in [`index.html`](index.html).
+- **No IPs or cookies are stored** — that's GoatCounter's design, and it's
+  open-source too, so you can audit it: <https://github.com/arp242/goatcounter>.
 
 ## Run locally
 

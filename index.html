@@ -4,10 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Keyway — single-table data modeling</title>
+    <title>Keyway - NoSQL data modeling</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!--
+      Anonymous, privacy-respecting page-view counting (GoatCounter).
+      What it does and, more importantly, does NOT do:
+        - `path` returns location.pathname ONLY, so the query string and the
+          `#m=...` model fragment are NEVER sent. Your model cannot leave here.
+        - it sets no cookies and stores no IP addresses (GoatCounter salts+hashes
+          only to de-dupe within a day, then discards it). Nobody is profiled.
+        - it is SKIPPED entirely on localhost, so development sends nothing.
+      Don't trust this comment? Read count.js (it's open source) and watch your
+      DevTools Network tab.
+    -->
+    <script>
+      window.goatcounter = {
+        path: function () {
+          return location.pathname;
+        },
+      };
+      if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        var gc = document.createElement("script");
+        gc.async = true;
+        gc.src = "//gc.zgo.at/count.js";
+        gc.setAttribute("data-goatcounter", "https://keyway.goatcounter.com/count");
+        document.head.appendChild(gc);
+      }
+    </script>
   </body>
 </html>

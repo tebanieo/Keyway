@@ -21,18 +21,22 @@ Because the text is the whole artifact, it is diffable in a pull request,
 editable in vim, and pasteable into Slack. The format _is_ the sharing
 mechanism: there is nothing else to move around.
 
-## 100% client-side: no backend, no telemetry
+## 100% client-side: your data stays in the browser
 
-The app makes no network calls beyond loading its own static assets:
+The app makes no network calls with your data:
 
 - Your model lives only in the browser tab. It is not written to a server, and
   it is not even saved to `localStorage`.
 - Shared links carry the model in the URL **fragment** (`#m=…`). Browsers never
-  send the fragment to a server (see [`src/model/share.ts`](https://github.com/)),
-  so a link's contents stay on the two machines that hold it.
-- There is no analytics, no tracking, no phone-home.
+  send the fragment to a server, so a link's contents stay on the two machines
+  that hold it.
+- The only thing counted is anonymous page-views (via
+  [GoatCounter](https://www.goatcounter.com)): no cookies, no personal data, no
+  IP addresses stored, no profiling. The counter records `location.pathname`
+  only, so the `#m=…` model is never sent, and it is skipped on localhost. You
+  can audit the whole surface in `index.html` and `src/analytics.ts`.
 
-You can model a sensitive schema without anything leaving your machine. See
+You can model a sensitive schema without your data leaving your machine. See
 [Share links & examples](/sharing) for the details.
 
 ## Quick start

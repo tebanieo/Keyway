@@ -21,6 +21,7 @@ import { BASE_INDEX } from "./model/seed";
 import { parseDoc, serializeModel } from "./model/dsl";
 import type { AccessPattern } from "./model/dsl";
 import { describe, editToOps, nextItemLabel } from "./model/actions";
+import { track } from "./analytics";
 import { apCoverage } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
@@ -207,6 +208,7 @@ export function App() {
       try {
         await navigator.clipboard.writeText(url);
         setShareMsg("link copied to clipboard");
+        track("link-shared");
       } catch {
         setShareMsg("couldn't copy - link logged to console");
         console.log(url);
