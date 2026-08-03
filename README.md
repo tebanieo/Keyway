@@ -64,13 +64,16 @@ The one thing I count is **anonymous page-views** (via
 [GoatCounter](https://www.goatcounter.com)), so I can tell roughly how many people
 find Keyway useful. No cookies, no personal data, and **no IP addresses or
 identifiers are stored**. You can't be tracked or profiled. Only the fact that a
-page loaded (plus the referring site, and a couple of anonymous events like "an
-example was opened") is counted, never anything you type.
+page loaded (plus the referring site, and a few anonymous events — like _which_
+example or learn path was opened, so I can tell which ones people find useful) is
+counted, never anything you type.
 
 ### Don't trust me? Read the code.
 
 You don't have to take my word for any of this. It's a static site: open your
-DevTools Network tab and watch. Or read the exact lines:
+DevTools Network tab and watch. You can even see the numbers I see — the
+[GoatCounter dashboard is public](https://keyway.goatcounter.com/). Or read the
+exact lines:
 
 - **Your model is never transmitted.** It's held in the URL fragment (`#m=…`),
   which the browser strips before it makes any request. See
@@ -81,10 +84,12 @@ DevTools Network tab and watch. Or read the exact lines:
   goes to `keyway.goatcounter.com/count`; on the live site you can watch it in the
   Network tab (on localhost nothing loads and nothing is sent).
 - **The in-app events are one tiny, guarded call** with an event name and nothing
-  else. See [`src/analytics.ts`](src/analytics.ts).
+  else — e.g. `example:users-orders` or `tour:getting-started`, a slugified label
+  built from the item's title, never your model. See
+  [`src/analytics.ts`](src/analytics.ts).
 - **No IPs or cookies are stored**: that's GoatCounter's design, and both its
-  server and the `count.js` client are open source, so you can read exactly what
-  runs: <https://github.com/arp242/goatcounter> (the client is `public/count.js`).
+  server and the [count.js](https://github.com/arp242/goatcounter/blob/main/public/count.js)
+  client are open source, so you can read exactly what runs.
 
 ## Run locally
 

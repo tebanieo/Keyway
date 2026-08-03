@@ -67,11 +67,15 @@ The app makes no network calls with your data:
 - Shared links carry the model in the URL **fragment** (`#m=…`). Browsers never
   send the fragment to a server, so a link's contents stay on the two machines
   that hold it.
-- The only thing counted is anonymous page-views (via
-  [GoatCounter](https://www.goatcounter.com)): no cookies, no personal data, no
-  IP addresses stored, no profiling. The counter records `location.pathname`
-  only, so the `#m=…` model is never sent, and it is skipped on localhost. You
-  can audit the whole surface in `index.html` and `src/analytics.ts`.
+- The only things counted are anonymous page-views and a few named UI events
+  (via [GoatCounter](https://www.goatcounter.com)): no cookies, no personal data,
+  no IP addresses stored, no profiling. A page-view records `location.pathname`
+  only, so the `#m=…` model is never sent. The events are just labels — e.g.
+  which example or learn path was opened (`example:…`, `tour:…`), so I can tell
+  which ones people find useful — never anything you type. Everything is skipped
+  on localhost. You can audit the whole surface in `index.html` and
+  `src/analytics.ts`, and see the numbers yourself: the
+  [GoatCounter dashboard is public](https://keyway.goatcounter.com/).
 
 You can create your data model without anything leaving your machine. See
 [Share links & examples](/sharing) for the details.
