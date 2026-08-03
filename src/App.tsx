@@ -138,6 +138,19 @@ export function App() {
     [loadModel, setPlaying],
   );
 
+  // Load an example and play it like a tour: rewind to step 0, hand the screen
+  // to the tables, and auto-play from the start (loadModel jumps to the end of
+  // the script, so the batched setStep(0) rewinds it before playback begins).
+  const playExample = useCallback(
+    (dsl: string) => {
+      loadModel(dsl);
+      setStep(0);
+      setEditorCollapsed(true);
+      setPlaying(true);
+    },
+    [loadModel, setPlaying],
+  );
+
   // On open: if the URL carries a model (`#m=…`), load it.
   useEffect(() => {
     const shared = modelFromLocation(location.hash);
@@ -524,7 +537,7 @@ export function App() {
       <ExamplesDrawer
         open={drawer === "examples"}
         onClose={() => setDrawer(null)}
-        onLoad={loadModel}
+        onLoad={playExample}
       />
 
       <LearnDrawer open={drawer === "learn"} onClose={() => setDrawer(null)} onPlay={playTour} />
