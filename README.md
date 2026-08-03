@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="public/favicon.svg" alt="" height="34" align="middle" /> Keyway
+<h1><img src="public/favicon.svg" alt="" height="40" align="middle" />&nbsp;Keyway</h1>
 
 **A NoSQL data modeling tool** ·
 [Try it live](https://tebanieo.github.io/Keyway/) ·
