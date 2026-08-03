@@ -2,17 +2,15 @@ import { defineConfig } from "vitepress";
 
 // Keyway reference manual — the "what/how" lookup that ships alongside the app.
 //
-// IMPORTANT — base path for GitHub Pages:
+// Base path for GitHub Pages:
 //   The app is served at the Pages root and this manual is copied into
 //   `dist/docs` by the deploy workflow, so the docs live at `<site>/docs/`.
-//   • On a USER/ORG Pages site (https://<user>.github.io) the site root IS the
-//     origin, so `base: "/docs/"` (below) is already correct.
-//   • On a PROJECT Pages site (https://<user>.github.io/<repo>/) the whole site
-//     is served under `/<repo>/`, so the manual lives at `/<repo>/docs/`. In
-//     that case change the line below to:  base: "/<repo-name>/docs/"
-//   Set this ONCE, when the repository name is known. Everything else works as-is.
+//   This is a PROJECT Pages site (repo "Keyway"), served under `/Keyway/`, so
+//   the manual lives at `/Keyway/docs/`. If the repo is ever renamed, or moved
+//   to a user/org Pages site (https://<user>.github.io, root = origin), update
+//   this to `/<repo>/docs/` or `/docs/` respectively.
 export default defineConfig({
-  base: "/docs/",
+  base: "/Keyway/docs/",
   title: "Keyway",
   description: "Reference for the single-table data modeler",
   // Leave outDir at the VitePress default (docs/.vitepress/dist). The deploy
