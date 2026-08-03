@@ -12,7 +12,7 @@ export function usePlayback(
   setStep: Dispatch<SetStateAction<number>>,
 ) {
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(0.5);
   const [costPulse, setCostPulse] = useState(false);
   const costTimer = useRef<number | undefined>(undefined);
 

@@ -376,8 +376,8 @@ body {
    select chrome). Mono + tabular so the number doesn't jitter as it changes. */
 .stepper .speed {
   height: 30px;
-  min-width: 44px;
-  padding: 0 12px;
+  min-width: 56px;
+  padding: 0 16px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-pill);
   background: var(--fill-1);
