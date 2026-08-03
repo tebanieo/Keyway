@@ -1,0 +1,32 @@
+name: CI
+
+# The same gate the Lefthook pre-commit hook runs (format, lint, typecheck,
+# tests), but in CI so it can't be skipped with --no-verify or a missing hook
+# install, and so pull requests (including from forks) are checked before merge.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Format (Prettier)
+        run: npm run format:check
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Typecheck (tsc)
+        run: npx tsc -b
+      - name: Tests (Vitest)
+        run: npm test
