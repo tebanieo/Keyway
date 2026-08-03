@@ -1,8 +1,8 @@
-<p align="center">
-  <img src="public/favicon.svg" alt="Keyway" width="96" height="96" />
-</p>
+# <img src="public/favicon.svg" alt="" height="34" align="top" /> Keyway
 
-# Keyway - A NoSQL datamodeling tool
+**A NoSQL datamodeling tool** ·
+[Try it live](https://tebanieo.github.io/Keyway/) ·
+[Reference docs](https://tebanieo.github.io/Keyway/docs/)
 
 An interactive, **100% client-side** tool for designing and _teaching_ how to
 model your data into a NoSQL database, initially with DynamoDB as the
@@ -10,9 +10,6 @@ destination. Write your model as plain text, watch it project into the base
 table and its indexes, step through writes, see the estimated cost of each one, and
 query it all in the browser. The data is yours! Your model is never sent to a
 server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
-
-**Try it live: <https://tebanieo.github.io/Keyway/>** ·
-[Reference docs](https://tebanieo.github.io/Keyway/docs/)
 
 > Most people learn data modelling techniques such as single-table design from
 > static blog diagrams. Here you load a model and _watch it work_: the GSI
