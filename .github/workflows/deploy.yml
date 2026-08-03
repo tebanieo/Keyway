@@ -25,7 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 ships npm 11, matching the npm that generated package-lock.json.
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm test
