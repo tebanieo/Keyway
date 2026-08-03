@@ -160,7 +160,8 @@ delete o1                                          # remove an item
 ---
 
 Created by [**Esteban Serna**](https://github.com/tebanieo) with ♥.
-Built with React · Vite · CodeMirror. **MIT-licensed**: use it, fork it, teach
+Built with React · Vite · CodeMirror, and developed with the help of
+[Claude Code](https://claude.com/claude-code). **MIT-licensed**: use it, fork it, teach
 with it, or better yet, use the version already deployed at
 <https://tebanieo.github.io/Keyway/>.
 
