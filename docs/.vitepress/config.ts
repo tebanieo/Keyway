@@ -55,5 +55,10 @@ export default defineConfig({
     outline: { level: [2, 3] },
     search: { provider: "local" },
     socialLinks: [],
+    footer: {
+      message:
+        "A personal project. Opinions are my own, not those of AWS or Amazon. Amazon DynamoDB, AWS, and NoSQL Workbench are trademarks of Amazon.com, Inc. or its affiliates.",
+      copyright: "MIT-licensed. Copyright © 2026 Esteban Serna.",
+    },
   },
 });

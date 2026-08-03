@@ -1462,6 +1462,18 @@ body {
   line-height: 1.5;
 }
 
+/* Quiet personal-project / non-affiliation note at the foot of the app. */
+.app-footer {
+  margin: 20px 0 8px;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 /* Grid layout: aligned columns per partition (union of item attributes). */
 .ptable {
   width: 100%;
