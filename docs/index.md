@@ -1,14 +1,14 @@
 # Keyway
 
 **Keyway** is a 100% client-side tool for designing and _teaching_ DynamoDB
-single-table data models. You write your model as plain text, and the app
-projects it into the base table and every secondary index, steps through the
-writes, shows the estimated capacity cost of each one, and lets you query it, all in
+single-table data models. You write the model as plain text. The app projects it
+into the base table and every secondary index, steps through the writes, shows
+the estimated capacity cost of each, and lets you query it, without ever leaving
 the browser tab.
 
 ## The text is the single artifact
 
-There is no separate schema file, no export format, no database to connect to.
+There's no separate schema file to keep in sync, and no database to connect to.
 The model _is_ a short, readable DSL document, and everything else is a lens on
 that one string:
 
@@ -17,9 +17,9 @@ that one string:
 - A shared link is just the same text, compressed into a URL fragment.
 - Access-pattern coverage runs your declared queries against that same folded state.
 
-Because the text is the whole artifact, it is diffable in a pull request,
-editable in vim, and pasteable into Slack. The format _is_ the sharing
-mechanism: there is nothing else to move around.
+Because the text is the whole artifact, you can diff it in a pull request, edit
+it in vim, or paste it into Slack. That is the sharing mechanism. There is
+nothing else to move around.
 
 ## 100% client-side: your data stays in the browser
 

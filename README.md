@@ -74,8 +74,9 @@ DevTools Network tab and watch. Or read the exact lines:
   Network tab (on localhost nothing loads and nothing is sent).
 - **The in-app events are one tiny, guarded call** with an event name and nothing
   else. See [`src/analytics.ts`](src/analytics.ts).
-- **No IPs or cookies are stored**: that's GoatCounter's design, and it's
-  open-source too, so you can audit it: <https://github.com/arp242/goatcounter>.
+- **No IPs or cookies are stored**: that's GoatCounter's design, and both its
+  server and the `count.js` client are open source, so you can read exactly what
+  runs: <https://github.com/arp242/goatcounter> (the client is `public/count.js`).
 
 ## Run locally
 
