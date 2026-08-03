@@ -39,7 +39,7 @@ function itemSnippet(base: IndexSpec) {
   // _type / attributes — so adding a whole key=value never collides with a slot.
   return snippetCompletion(`${ph("label")}: ${keys}`, {
     label: "item",
-    detail: "new base item — Tab at the end to add keys/attrs",
+    detail: "new base item, Tab at the end to add keys/attrs",
     type: "keyword",
   });
 }
@@ -48,7 +48,7 @@ function gsiKeysSnippet(g: IndexSpec) {
   const keys = [...pkAttrs(g), ...skAttrs(g)];
   return snippetCompletion(keys.map((a) => `${a}=${ph(a)}`).join(SP2), {
     label: g.name,
-    detail: `${g.name} keys — ${keys.join(", ")}`,
+    detail: `${g.name} keys: ${keys.join(", ")}`,
     type: "property",
   });
 }
