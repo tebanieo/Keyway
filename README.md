@@ -1,8 +1,12 @@
-# <img src="public/favicon.svg" alt="" height="34" align="top" /> Keyway
+<div align="center">
 
-**A NoSQL datamodeling tool** ·
+# <img src="public/favicon.svg" alt="" height="34" align="middle" /> Keyway
+
+**A NoSQL data modeling tool** ·
 [Try it live](https://tebanieo.github.io/Keyway/) ·
 [Reference docs](https://tebanieo.github.io/Keyway/docs/)
+
+</div>
 
 An interactive, **100% client-side** tool for designing and _teaching_ how to
 model your data into a NoSQL database, initially with DynamoDB as the

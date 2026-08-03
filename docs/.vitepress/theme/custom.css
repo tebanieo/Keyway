@@ -1,12 +1,13 @@
-/* Enlarge and frame the hero screenshot. VitePress's default hero image is a
-   small, blurred, square-ish slot meant for a logo; a wide app screenshot needs
-   room, a frame, and no blur circle. */
+/* Frame the hero screenshot as a companion to the text, not the centerpiece.
+   VitePress's default hero image is a small, blurred, square-ish slot meant for
+   a logo; a wide app screenshot needs a frame and no blur circle, but kept
+   modest so it sits cleanly beside the hero copy. */
 @media (min-width: 960px) {
   .VPHero .image {
     max-width: none;
   }
   .VPHero .image-container {
-    width: min(100%, 640px);
+    width: min(100%, 460px);
     height: auto;
     padding: 0;
     transform: none;

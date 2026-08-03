@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Keyway
-  text: A NoSQL datamodeling tool
+  text: A NoSQL data modeling tool
   tagline: Design and learn DynamoDB data modeling as plain text, then watch it work, all in your browser.
   image:
     src: /screenshot.png
