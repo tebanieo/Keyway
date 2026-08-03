@@ -1,10 +1,11 @@
 # Keyway
 
-**Keyway** is a 100% client-side tool for designing and _teaching_ DynamoDB
-single-table data models. You write the model as plain text. The app projects it
-into the base table and every secondary index, steps through the writes, shows
-the estimated capacity cost of each, and lets you query it, without ever leaving
-the browser tab.
+**Keyway** is an interactive, **100% client-side** tool for designing and
+_teaching_ how to model your data into a NoSQL database, initially with DynamoDB
+as the destination. You write the model as plain text. The app projects it into
+the base table and its indexes, steps through the writes, shows the estimated
+cost of each, and lets you query it, all in the browser. The data is yours: your
+model is never sent to a server, and it lives nowhere but your browser tab.
 
 ## The text is the single artifact
 
