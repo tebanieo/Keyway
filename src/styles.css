@@ -1485,11 +1485,24 @@ body {
 }
 
 /* Quiet personal-project / non-affiliation note at the foot of the app. */
+/* Three-column grid so the disclaimer stays truly centered regardless of the
+   copyright's width; the copyright pins to the bottom-right. */
 .app-footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   margin: 20px 0 8px;
   font-size: 11px;
   color: var(--muted);
   opacity: 0.8;
+}
+.app-footer .disclaimer {
+  grid-column: 2;
+  text-align: center;
+}
+.app-footer .copyright {
+  grid-column: 3;
+  justify-self: end;
 }
 .app-footer a {
   color: inherit;

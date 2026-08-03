@@ -620,11 +620,14 @@ export function App() {
       </p>
 
       <footer className="app-footer">
-        A personal project. Opinions are my own, not those of AWS or Amazon.{" "}
-        <a href="https://github.com/tebanieo/Keyway" target="_blank" rel="noopener noreferrer">
-          Source
-        </a>
-        .
+        <span className="disclaimer">
+          A personal project. Opinions are my own, not those of AWS or Amazon.{" "}
+          <a href="https://github.com/tebanieo/Keyway" target="_blank" rel="noopener noreferrer">
+            Source
+          </a>
+          .
+        </span>
+        <span className="copyright">© 2026 tebanieo</span>
       </footer>
 
       {copied !== null && (
