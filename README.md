@@ -67,11 +67,13 @@ DevTools Network tab and watch. Or read the exact lines:
 - **Your model is never transmitted.** It's held in the URL fragment (`#m=…`),
   which the browser strips before it makes any request. See
   [`src/model/share.ts`](src/model/share.ts).
-- **Only the pathname is ever sent to the counter**, never the query string and
-  never the `#m=…` model. See the `path` callback in [`index.html`](index.html).
-- **The entire analytics surface is one tiny, guarded call** with an event name
-  and nothing else, skipped on localhost. See [`src/analytics.ts`](src/analytics.ts)
-  and the counter snippet in [`index.html`](index.html).
+- **We send only the page path, to one place.** In [`index.html`](index.html) the
+  page-view is sent by our own line, `goatcounter.count({ path: location.pathname })`,
+  so the query string and the `#m=…` model are never included. The single request
+  goes to `keyway.goatcounter.com/count`; on the live site you can watch it in the
+  Network tab (on localhost nothing loads and nothing is sent).
+- **The in-app events are one tiny, guarded call** with an event name and nothing
+  else. See [`src/analytics.ts`](src/analytics.ts).
 - **No IPs or cookies are stored**: that's GoatCounter's design, and it's
   open-source too, so you can audit it: <https://github.com/arp242/goatcounter>.
 

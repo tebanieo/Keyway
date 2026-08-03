@@ -11,27 +11,39 @@
     <script type="module" src="/src/main.tsx"></script>
 
     <!--
-      Anonymous, privacy-respecting page-view counting (GoatCounter).
-      What it does and, more importantly, does NOT do:
-        - `path` returns location.pathname ONLY, so the query string and the
-          `#m=...` model fragment are NEVER sent. Your model cannot leave here.
-        - it sets no cookies and stores no IP addresses (GoatCounter salts+hashes
-          only to de-dupe within a day, then discards it). Nobody is profiled.
-        - it is SKIPPED entirely on localhost, so development sends nothing.
-      Don't trust this comment? Read count.js (it's open source) and watch your
-      DevTools Network tab.
+      Anonymous page-view counting (GoatCounter). This is the ENTIRE tracking
+      surface of Keyway, and it is deliberately auditable:
+
+        - `count.js` is GoatCounter's open-source client, loaded from their CDN
+          (gc.zgo.at). We use it only to send ONE "breadcrumb" per page load.
+        - That breadcrumb is POSTed to https://keyway.goatcounter.com/count, the
+          only place any usage data goes. It never reaches me directly; I only see
+          aggregate counts in the GoatCounter dashboard.
+        - We disable GoatCounter's automatic counting (`no_onload`) and send the
+          breadcrumb OURSELVES, below, passing ONLY `location.pathname`. So the
+          query string and the "#m=..." model fragment are excluded by
+          construction. (Browsers never transmit the fragment in a request anyway.)
+        - No cookies; no IP stored (GoatCounter salts+hashes to de-dupe, then
+          discards). Nobody is profiled.
+        - On localhost NOTHING loads and NOTHING is sent, so development is silent.
+
+      See for yourself: on the live site, open the Network tab and you'll see a
+      single request to keyway.goatcounter.com/count with `?p=/<path>` and nothing
+      about your model. On localhost there is no request at all.
     -->
     <script>
-      window.goatcounter = {
-        path: function () {
-          return location.pathname;
-        },
-      };
+      // Count manually so the payload is explicit (not GoatCounter's defaults).
+      window.goatcounter = { no_onload: true };
       if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
         var gc = document.createElement("script");
         gc.async = true;
         gc.src = "//gc.zgo.at/count.js";
         gc.setAttribute("data-goatcounter", "https://keyway.goatcounter.com/count");
+        gc.onload = function () {
+          // The one and only breadcrumb we send. path = location.pathname, so the
+          // query string and the #m=... model are never included.
+          window.goatcounter.count({ path: location.pathname });
+        };
         document.head.appendChild(gc);
       }
     </script>
