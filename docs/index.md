@@ -6,8 +6,8 @@ hero:
   text: A NoSQL data modeling tool
   tagline: Design and learn DynamoDB data modeling as plain text, then watch it work, all in your browser.
   image:
-    src: /screenshot.png
-    alt: The Keyway app, with the editor on the left and the table and index panes on the right
+    src: /demo.gif
+    alt: Keyway in action - typing a DynamoDB model as text and watching it project into the base table and indexes, with per-write cost
   actions:
     - theme: brand
       text: Open the app

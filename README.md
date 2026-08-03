@@ -7,6 +7,8 @@
 [Try it live](https://tebanieo.github.io/Keyway/) ·
 [Reference docs](https://tebanieo.github.io/Keyway/docs/)
 
+<img src="demo.gif" alt="Keyway in action: typing a DynamoDB model as text and watching it project into the base table and indexes, with per-write cost" width="900" />
+
 </div>
 
 An interactive, **100% client-side** tool for designing and _teaching_ how to

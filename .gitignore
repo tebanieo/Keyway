@@ -25,3 +25,7 @@ coverage
 
 # internal-only notes (kept locally, never published)
 docs/CODE_REVIEW.md
+
+# Large screen recordings
+frames/
+*.mov
