@@ -29,3 +29,10 @@ docs/CODE_REVIEW.md
 # Large screen recordings
 frames/
 *.mov
+
+# local demo tooling (private, not shipped)
+scripts/demo_typer.py
+
+# python caches (from the local demo script)
+__pycache__/
+*.pyc
