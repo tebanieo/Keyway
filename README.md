@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/favicon.svg" alt="Keyway" width="96" height="96" />
+</p>
+
 # Keyway - A NoSQL datamodeling tool
 
 An interactive, **100% client-side** tool for designing and _teaching_ how to
