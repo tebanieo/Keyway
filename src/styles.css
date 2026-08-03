@@ -1496,6 +1496,35 @@ body {
   text-decoration: underline;
 }
 
+/* Compact density: tighten every vertical rhythm so larger models fit on one
+   screen. Scoped to .panes.compact so it only reshapes the tables, not the rest
+   of the UI. Padding/font shrink; nothing structural changes. */
+.panes.compact {
+  gap: 8px;
+}
+.panes.compact .partitions {
+  gap: 9px;
+}
+.panes.compact .panel-title {
+  margin-bottom: 6px;
+}
+.panes.compact .partition-head {
+  padding: 5px 10px;
+}
+.panes.compact .ptable {
+  font-size: 12px;
+}
+.panes.compact .ptable th {
+  padding: 3px 10px;
+}
+.panes.compact .ptable td {
+  padding: 3px 10px;
+}
+.panes.compact .ptable th.gutter,
+.panes.compact .ptable td.gutter {
+  padding-left: 7px;
+}
+
 /* Grid layout: aligned columns per partition (union of item attributes). */
 .ptable {
   width: 100%;

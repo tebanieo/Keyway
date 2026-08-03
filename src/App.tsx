@@ -51,6 +51,8 @@ export function App() {
     return new Set([names[0], names[names.length - 1]].filter(Boolean));
   });
   const [diffOn, setDiffOn] = useState(true);
+  // Density toggle: tightens rows/padding so big models fit more on screen.
+  const [compact, setCompact] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -575,10 +577,17 @@ export function App() {
           <button className={diffOn ? "active" : ""} onClick={() => setDiffOn((v) => !v)}>
             Diff
           </button>
+          <button
+            className={compact ? "active" : ""}
+            onClick={() => setCompact((v) => !v)}
+            title="tighten rows so larger models fit on screen"
+          >
+            Compact
+          </button>
         </div>
       </div>
 
-      <div className="panes">
+      <div className={compact ? "panes compact" : "panes"}>
         {shownPanes.map((p) => (
           <Panel
             key={p.name}
