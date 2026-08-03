@@ -113,10 +113,24 @@ publishes to <https://tebanieo.github.io/Keyway/>.
   editor, filters, the cost model, access patterns, sharing) that publishes at
   <https://tebanieo.github.io/Keyway/docs/>. Run it locally with `npm run docs:dev`.
 
-## Contributing an example
+## Contributing
 
-Add an entry to `src/model/examples.ts` (a name, a description, and the DSL text).
-A test asserts every example parses cleanly, so a broken one fails CI.
+The single most useful thing you can do is **tell me how it felt to use**. Was
+something confusing? Did a cost number surprise you? Did a tour land, or fall
+flat? [Open a feedback note](https://github.com/tebanieo/Keyway/issues/new?template=feedback.md),
+or just say what's on your mind. That shapes Keyway more than anything else.
+
+Beyond that, both of these are welcome:
+
+- **Feature requests.** A sentence on what you'd want, and why, is plenty.
+  [Start one here](https://github.com/tebanieo/Keyway/issues/new?template=feature_request.md).
+- **Pull requests**, for a bug fix, a docs tweak, or a new example. See
+  [Development](#development) for the setup. Keep them small where you can; for
+  anything bigger, open an issue first so we can talk it through.
+
+The easiest PR is a new **example**: append a `{ name, description, dsl }` entry
+to `src/model/examples.ts`. A test checks that every example parses, so a broken
+one fails CI.
 
 ## Development
 
