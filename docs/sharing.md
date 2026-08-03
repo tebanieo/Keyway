@@ -19,10 +19,10 @@ https://your-host/keyway/#m=N4Ig…            (compressed DSL)
 - Opening a link reads the model back out of the fragment
   (`modelFromLocation`) and loads it through the same path an example uses.
 
-::: tip Sensitive schemas stay local
+::: tip Your model stays local
 A URL **fragment is never sent to a server**: browsers strip everything after
 `#` from the request. So a shared link's contents travel only between the two
-machines that hold the link. You can model a sensitive schema and share it with a
+machines that hold the link. You can create your data model and share it with a
 teammate without it touching any backend. There is no server to send it to
 anyway.
 :::

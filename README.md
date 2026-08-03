@@ -3,7 +3,7 @@
 An interactive, **100% client-side** tool for designing and _teaching_ how to
 model your data into a NoSQL database, initially with DynamoDB as the
 destination. Write your model as plain text, watch it project into the base
-table and its indexes, step through writes, see the real cost of each one, and
+table and its indexes, step through writes, see the estimated cost of each one, and
 query it all in the browser. The data is yours! Your model is never sent to a
 server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
 
@@ -40,7 +40,7 @@ AWS recommends, and it's a great tool. Keyway is not trying to compete with it.
 
 I built Keyway because I wanted something those tools generally don't offer: a
 text-first model you can diff and share as a link, stepped playback that shows the
-real cost of each write, access-pattern coverage that actually runs your queries,
+estimated cost of each write, access-pattern coverage that actually runs your queries,
 and narrated tours that teach the mechanics, all in the browser with nothing to
 install. Different goals; use whichever fits.
 
@@ -49,7 +49,7 @@ install. Different goals; use whichever fits.
 **Your model never leaves your browser.** There is no backend. The app makes no
 network calls with your data: your model lives in the tab (it isn't even saved to
 `localStorage`), and **shared links carry the model in the URL fragment** (`#m=…`),
-which browsers never send to a server. You can model sensitive schemas without
+which browsers never send to a server. You can create your data model without
 anything leaving your machine.
 
 The one thing I count is **anonymous page-views** (via

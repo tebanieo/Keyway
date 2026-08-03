@@ -3,7 +3,7 @@
 **Keyway** is a 100% client-side tool for designing and _teaching_ DynamoDB
 single-table data models. You write your model as plain text, and the app
 projects it into the base table and every secondary index, steps through the
-writes, shows the real capacity cost of each one, and lets you query it, all in
+writes, shows the estimated capacity cost of each one, and lets you query it, all in
 the browser tab.
 
 ## The text is the single artifact
@@ -36,7 +36,7 @@ The app makes no network calls with your data:
   only, so the `#m=…` model is never sent, and it is skipped on localhost. You
   can audit the whole surface in `index.html` and `src/analytics.ts`.
 
-You can model a sensitive schema without your data leaving your machine. See
+You can create your data model without anything leaving your machine. See
 [Share links & examples](/sharing) for the details.
 
 ## Quick start

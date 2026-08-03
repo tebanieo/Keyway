@@ -1,7 +1,9 @@
 # The cost model
 
-Keyway computes **exact** capacity units, not a rough estimate, so you can see
-why a write costs what it does. The math lives in
+Keyway **estimates** the capacity units each write consumes, computed from the
+item's size and the indexes it touches, so you can see why a write costs what it
+does. It follows DynamoDB's documented formulas, but it is a model-based estimate,
+not your actual bill. The math lives in
 [`src/engine/itemsize.ts`](https://github.com/) (sizes and units) and
 [`src/engine/cost.ts`](https://github.com/) (per-op, per-index effects).
 
