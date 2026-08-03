@@ -62,6 +62,9 @@ export function App() {
   const [notes, setNotes] = useState<(string | undefined)[]>(
     () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
   );
+  // 0-based source line for each op, aligned with `ops`; drives the editor's
+  // step highlight (which line the current step is running).
+  const [opLines, setOpLines] = useState<number[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).opLines);
   const [aps, setAps] = useState<AccessPattern[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).aps);
   // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
   const [base, setBase] = useState<IndexSpec>(() => parseDoc(EMPTY_DOC, BASE_INDEX).base);
@@ -96,6 +99,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setOpLines(parsed.opLines);
     setAps(parsed.aps);
   }, []);
 
@@ -108,6 +112,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setOpLines(parsed.opLines);
     setAps(parsed.aps);
     setStep(parsed.ops.length);
     setPinnedId(null);
@@ -191,6 +196,7 @@ export function App() {
     setBase(parsed.base);
     setGsis(parsed.gsis);
     setNotes(parsed.notes);
+    setOpLines(parsed.opLines);
     setAps(parsed.aps);
     setPinnedId(null);
     setPlaying(false);
@@ -302,6 +308,10 @@ export function App() {
   const opItem = putItemOf(curOp);
   const opBytes = opItem ? itemSize(opItem) : 0;
   const narration = curStep >= 1 ? notes[curStep - 1] : undefined;
+  // The editor line (1-based) the current step is running, so playback lights up
+  // the source line instead of leaving the step number to be read against the
+  // gutter (comments and directives take lines but aren't steps).
+  const activeLine = curStep >= 1 && opLines[curStep - 1] != null ? opLines[curStep - 1] + 1 : null;
   // The item this step touches: spotlighted in focus mode.
   const affectedId = curOp
     ? curOp.kind === "delete"
@@ -421,7 +431,13 @@ export function App() {
             </span>
           </button>
           <div className="editor-body">
-            <Editor key={docVersion} ref={editorRef} initialDoc={docText} onChange={onDoc} />
+            <Editor
+              key={docVersion}
+              ref={editorRef}
+              initialDoc={docText}
+              onChange={onDoc}
+              activeLine={activeLine}
+            />
           </div>
         </div>
       )}

@@ -115,6 +115,9 @@ export interface ParseResult {
   gsis: IndexSpec[];
   /** Per-op narration (a comment directly above the line), aligned with `ops`. */
   notes: (string | undefined)[];
+  /** 0-based source line each op came from, aligned with `ops`. Drives the
+   *  editor's step highlight (which line the current step is running). */
+  opLines: number[];
 }
 
 /** Parse a `projection=` value: `all` | `keys`/`keys_only` | comma list. */
@@ -209,6 +212,7 @@ const GSI_NAME = /^(\S+)\s*(.*)$/;
 export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const ops: Op[] = [];
   const notes: (string | undefined)[] = []; // narration, aligned with ops
+  const opLines: number[] = []; // 0-based source line per op, aligned with ops
   const diagnostics: Diagnostic[] = [];
   const lastKey = new Map<string, string>(); // label -> base key when last put
   const lines = text.split("\n");
@@ -379,6 +383,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     if (del) {
       ops.push({ kind: "delete", id: del[1], condition });
       notes.push(takeNote());
+      opLines.push(line);
       lastKey.delete(del[1]);
       return;
     }
@@ -422,10 +427,11 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       ops.push({ kind: "put", item, condition });
     }
     notes.push(takeNote());
+    opLines.push(line);
     if (newKey) lastKey.set(label, newKey);
   });
 
-  return { ops, diagnostics, base, gsis, aps, notes };
+  return { ops, diagnostics, base, gsis, aps, notes, opLines };
 }
 
 function serializeCond(c: ApCond): string {

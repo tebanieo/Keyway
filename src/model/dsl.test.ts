@@ -308,3 +308,19 @@ describe("parseDoc: conditional writes (@if)", () => {
     expect(again.ops[0]).toMatchObject({ condition: { text: "attribute_not_exists(PK)" } });
   });
 });
+
+describe("parseDoc: opLines (source line per op)", () => {
+  it("maps each op to its 0-based source line, skipping comments/directives/blanks", () => {
+    const { ops, opLines } = parseDoc(
+      "# header\n@table AppTable pk=PK sk=SK\n\nu1: PK=USER#1  SK=P\ndelete u1",
+      BASE,
+    );
+    expect(ops.map((o) => o.kind)).toEqual(["put", "delete"]);
+    expect(opLines).toEqual([3, 4]);
+  });
+
+  it("stays aligned 1:1 with ops on the default doc", () => {
+    const { ops, opLines } = parseDoc(DEFAULT_DOC, BASE);
+    expect(opLines).toHaveLength(ops.length);
+  });
+});

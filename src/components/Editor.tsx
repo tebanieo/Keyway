@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { EditorView, keymap, placeholder } from "@codemirror/view";
-import type { Command } from "@codemirror/view";
-import { EditorSelection, EditorState, Prec } from "@codemirror/state";
+import { Decoration, EditorView, keymap, placeholder } from "@codemirror/view";
+import type { Command, DecorationSet } from "@codemirror/view";
+import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import {
   acceptCompletion,
@@ -297,11 +297,35 @@ const theme = EditorView.theme(
     },
     ".cm-activeLine": { backgroundColor: "var(--fill-1)" },
     ".cm-activeLineGutter": { backgroundColor: "var(--fill-1)" },
+    ".cm-step-line": { backgroundColor: "var(--editor-step)" },
     "&.cm-focused": { outline: "none" },
     ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
   },
   { dark: true },
 );
+
+// A single "current step" line highlight, driven imperatively from the app so
+// playback lights up the source line of the op that's running.
+const setStepLine = StateEffect.define<number | null>();
+const stepLineField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const e of tr.effects) {
+      if (e.is(setStepLine)) {
+        const n = e.value;
+        deco =
+          n != null && n >= 1 && n <= tr.state.doc.lines
+            ? Decoration.set([
+                Decoration.line({ class: "cm-step-line" }).range(tr.state.doc.line(n).from),
+              ])
+            : Decoration.none;
+      }
+    }
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
 
 /** Imperative handle so the app can push text in (e.g. a backfill). */
 export interface EditorHandle {
@@ -312,8 +336,8 @@ export interface EditorHandle {
 
 export const Editor = forwardRef<
   EditorHandle,
-  { initialDoc: string; onChange: (text: string) => void }
->(function Editor({ initialDoc, onChange }, ref) {
+  { initialDoc: string; onChange: (text: string) => void; activeLine?: number | null }
+>(function Editor({ initialDoc, onChange, activeLine }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Keep the latest onChange without re-creating the editor.
@@ -368,6 +392,7 @@ export const Editor = forwardRef<
           lintGutter(),
           placeholder("item<Tab> to scaffold a row…"),
           theme,
+          stepLineField,
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => {
             if (u.docChanged) {
@@ -397,6 +422,21 @@ export const Editor = forwardRef<
     // Mount once; the doc is uncontrolled from here (editor owns its text).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Highlight the source line of the current step. Scroll to follow it only when
+  // the user is driving via the transport (editor unfocused), so typing never
+  // jumps the view.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const n = activeLine ?? null;
+    view.dispatch({ effects: setStepLine.of(n) });
+    if (n != null && n >= 1 && n <= view.state.doc.lines && !view.hasFocus) {
+      view.dispatch({
+        effects: EditorView.scrollIntoView(view.state.doc.line(n).from, { y: "center" }),
+      });
+    }
+  }, [activeLine]);
 
   return <div className="editor" ref={host} />;
 });

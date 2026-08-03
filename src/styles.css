@@ -34,6 +34,7 @@
   --editor-fg: #e6e9ef;
   --editor-gutter: #5b6172;
   --editor-sel: rgba(91, 157, 255, 0.25);
+  --editor-step: rgba(91, 157, 255, 0.16);
 
   /* type */
   --font-ui: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -129,6 +130,7 @@
   --editor-fg: #1a1d24;
   --editor-gutter: #9aa2af;
   --editor-sel: rgba(37, 99, 235, 0.16);
+  --editor-step: rgba(37, 99, 235, 0.12);
 }
 
 /* A couple of bespoke rules that need per-theme values (not pure token swaps). */
