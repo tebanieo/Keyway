@@ -35,7 +35,7 @@ export default defineConfig({
     sidebar: [
       {
         text: "Introduction",
-        items: [{ text: "What Keyway is", link: "/" }],
+        items: [{ text: "What Keyway is", link: "/introduction" }],
       },
       {
         text: "Authoring",
