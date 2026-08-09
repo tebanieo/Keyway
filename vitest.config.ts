@@ -8,16 +8,26 @@ import { defineConfig } from "vitest/config";
 // `npm run coverage` writes coverage/lcov.info, which CI uploads to Codecov.
 export default defineConfig({
   test: {
+    // Registers jest-dom matchers + after-each cleanup. Individual UI test
+    // files opt into jsdom with a `// @vitest-environment jsdom` docblock; the
+    // engine/model tests stay in the faster default node environment.
+    setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",
       // `text` for the CI log, `lcov` for the report Codecov ingests.
       reporter: ["text", "lcov"],
-      // Coverage is scoped to the pure logic we actually unit-test: the engine
-      // and the model. The React UI (components, hooks, App, main) has no
-      // component tests yet, so including it would report a misleading number
-      // over code these tests were never meant to cover. Revisit when UI tests
-      // land (App.tsx and the useModel hook especially).
-      include: ["src/engine/**/*.ts", "src/model/**/*.ts"],
+      // Coverage measures the code we actually unit-test: the engine and model
+      // logic, plus the UI hooks/components as their tests land (see the
+      // per-file list below). App.tsx and the CodeMirror-heavy Editor are not
+      // tested yet, so they stay out to keep the number honest.
+      include: [
+        "src/engine/**/*.ts",
+        "src/model/**/*.ts",
+        "src/hooks/useSelection.ts",
+        "src/hooks/useShare.ts",
+        "src/hooks/useDrawers.ts",
+        "src/hooks/usePaneVisibility.ts",
+      ],
       // Within model, these are curated content/data, not logic — there's
       // nothing meaningful to unit-test in a literal.
       exclude: ["src/**/*.test.{ts,tsx}", "src/model/seed.ts", "src/model/tours.ts"],
