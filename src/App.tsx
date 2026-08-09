@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { itemSize } from "./engine/itemsize";
-import { Icon } from "./components/icons";
 import { Toolbar } from "./components/Toolbar";
 import type { Mode } from "./components/Toolbar";
-import { CostBar } from "./components/CostBar";
-import { Panel, projLabel } from "./components/Panel";
+import { projLabel } from "./components/Panel";
 import type { EditProps } from "./components/Panel";
-import { RightRail } from "./components/Rail";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
 import { LearnDrawer } from "./components/LearnDrawer";
 import type { Tour } from "./model/tours";
@@ -22,9 +19,16 @@ import { describe, editToOps } from "./model/actions";
 import { modelFromLocation } from "./model/share";
 import { ShareDialog } from "./components/ShareDialog";
 import { putItemOf } from "./model/backfill";
-import { Editor } from "./components/Editor";
 import type { EditorHandle } from "./components/Editor";
 import { QueryPanel } from "./components/QueryPanel";
+import { EditorPane } from "./components/EditorPane";
+import { BackfillBanner } from "./components/BackfillBanner";
+import { AppRail } from "./components/AppRail";
+import { PlaybackHud } from "./components/PlaybackHud";
+import { PanesBar } from "./components/PanesBar";
+import { PanesGrid } from "./components/PanesGrid";
+import type { ShownPane } from "./components/PanesGrid";
+import { AppHint, AppFooter, CopiedToast } from "./components/AppChrome";
 
 export function App() {
   // The data model (op log + DSL structure + projections) lives in one hook;
@@ -224,7 +228,7 @@ export function App() {
   const baseEdit = editing ? undefined : edit;
 
   // The panes to render, in index order, filtered to the visible set.
-  const shownPanes = [
+  const shownPanes: ShownPane[] = [
     {
       name: base.name,
       view: baseView,
@@ -236,7 +240,7 @@ export function App() {
       name: gv.index.name,
       view: gv.view,
       prev: gv.prev,
-      edit: undefined as EditProps | undefined,
+      edit: undefined,
       subtitle: `read-only · ${projLabel(gv.index)}`,
     })),
   ].filter((p) => visible.has(p.name));
@@ -271,60 +275,26 @@ export function App() {
       />
 
       {editing && (
-        <div className={editorCollapsed ? "editor-wrap collapsed" : "editor-wrap"}>
-          <button
-            className="editor-head"
-            onClick={() => setEditorCollapsed((v) => !v)}
-            title={editorCollapsed ? "expand the editor" : "collapse the editor - focus the tables"}
-          >
-            <span className="chev" aria-hidden>
-              ▸
-            </span>
-            <span className="eh-title">Editor</span>
-            <span className="eh-stats">
-              {fullState.size === 0 ? (
-                "empty - load an example or start typing"
-              ) : (
-                <>
-                  <b>{fullState.size}</b> {fullState.size === 1 ? "item" : "items"}
-                  <i className="sep">·</i>
-                  <b>{gsis.length}</b> {gsis.length === 1 ? "index" : "indexes"}
-                  {aps.length > 0 && (
-                    <>
-                      <i className="sep">·</i>
-                      <b>{aps.length}</b> {aps.length === 1 ? "pattern" : "patterns"}
-                    </>
-                  )}
-                </>
-              )}
-            </span>
-          </button>
-          <div className="editor-body">
-            <Editor
-              key={docVersion}
-              ref={editorRef}
-              initialDoc={docText}
-              onChange={onDoc}
-              activeLine={activeLine}
-            />
-          </div>
-        </div>
+        <EditorPane
+          ref={editorRef}
+          collapsed={editorCollapsed}
+          onToggleCollapse={() => setEditorCollapsed((v) => !v)}
+          itemCount={fullState.size}
+          gsiCount={gsis.length}
+          apCount={aps.length}
+          editorKey={docVersion}
+          initialDoc={docText}
+          onChange={onDoc}
+          activeLine={activeLine}
+        />
       )}
 
       {showBackfill && backfill && (
-        <div className="backfill">
-          <span className="msg">
-            <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but not all. Add it
-            to the {backfill.targets.length} without
-            {backfill.targets.length === 1 ? "" : ""} it?
-          </span>
-          <button className="do" onClick={applyBackfill}>
-            backfill {backfill.targets.length}
-          </button>
-          <button className="ghost" onClick={() => setDismissedBackfill(backfillSig)}>
-            dismiss
-          </button>
-        </div>
+        <BackfillBanner
+          backfill={backfill}
+          onApply={applyBackfill}
+          onDismiss={() => setDismissedBackfill(backfillSig)}
+        />
       )}
 
       <QueryPanel
@@ -336,56 +306,13 @@ export function App() {
         onClose={closeDrawer}
       />
 
-      <RightRail
+      <AppRail
         reveal={ops.length === 0}
-        items={[
-          {
-            id: "examples",
-            label: "Examples",
-            icon: <Icon name="examples" />,
-            active: drawer === "examples",
-            onClick: () => toggleDrawer("examples"),
-          },
-          {
-            id: "learn",
-            label: "Learn",
-            icon: <Icon name="learn" />,
-            active: drawer === "learn",
-            onClick: () => toggleDrawer("learn"),
-          },
-          // Query only appears once there's data: you can't query an empty table.
-          ...(fullState.size > 0
-            ? [
-                {
-                  id: "query",
-                  label: "Read / Query",
-                  icon: <Icon name="query" />,
-                  active: drawer === "query",
-                  onClick: () => toggleDrawer("query"),
-                },
-              ]
-            : []),
-          ...(aps.length > 0
-            ? [
-                {
-                  id: "patterns",
-                  label: "Access Patterns",
-                  icon: <Icon name="patterns" />,
-                  badge: apUnserved,
-                  active: drawer === "patterns",
-                  onClick: () => toggleDrawer("patterns"),
-                },
-              ]
-            : []),
-          // Docs opens the VitePress site in a new tab, so it never owns a drawer.
-          {
-            id: "docs",
-            label: "Docs",
-            icon: <Icon name="docs" />,
-            active: false,
-            onClick: () => window.open(`${import.meta.env.BASE_URL}docs/`, "_blank", "noopener"),
-          },
-        ]}
+        drawer={drawer}
+        onToggle={toggleDrawer}
+        hasData={fullState.size > 0}
+        apCount={aps.length}
+        apUnserved={apUnserved}
       />
 
       <ExamplesDrawer open={drawer === "examples"} onClose={closeDrawer} onLoad={playExample} />
@@ -403,95 +330,39 @@ export function App() {
         />
       )}
 
-      {narration && (playing || costPulse) && (
-        <div
-          className={cost?.rejected ? "narration rejected" : "narration"}
-          key={`narr-${curStep}`}
-        >
-          <span className="narr-step">{curStep}</span>
-          <span className="narr-text">{narration}</span>
-        </div>
-      )}
+      <PlaybackHud
+        visible={playing || costPulse}
+        narration={narration}
+        curStep={curStep}
+        cost={cost}
+        opBytes={opBytes}
+      />
 
-      {cost && (playing || costPulse) && (
-        <div className="cost-hud" key={`cost-${curStep}`}>
-          <CostBar cost={cost} bytes={opBytes} />
-        </div>
-      )}
+      <PanesBar
+        paneNames={paneNames}
+        visible={visible}
+        onTogglePane={togglePane}
+        showAll={gsis.length > 0}
+        allVisible={allVisible}
+        onToggleAll={toggleAll}
+        diffOn={diffOn}
+        onToggleDiff={() => setDiffOn((v) => !v)}
+        compact={compact}
+        onToggleCompact={() => setCompact((v) => !v)}
+      />
 
-      <div className="panes-bar">
-        <div className="seg" title="toggle which panes are shown">
-          {paneNames.map((name) => (
-            <button
-              key={name}
-              className={visible.has(name) ? "active" : ""}
-              onClick={() => togglePane(name)}
-            >
-              {name}
-            </button>
-          ))}
-          {gsis.length > 0 && (
-            <button className={allVisible ? "active" : ""} onClick={toggleAll}>
-              All
-            </button>
-          )}
-        </div>
-        <div className="seg">
-          <button className={diffOn ? "active" : ""} onClick={() => setDiffOn((v) => !v)}>
-            Diff
-          </button>
-          <button
-            className={compact ? "active" : ""}
-            onClick={() => setCompact((v) => !v)}
-            title="tighten rows so larger models fit on screen"
-          >
-            Compact
-          </button>
-        </div>
-      </div>
+      <PanesGrid
+        panes={shownPanes}
+        compact={compact}
+        diffOn={diffOn}
+        link={link}
+        query={qhl}
+        focusId={focusId}
+      />
 
-      <div className={compact ? "panes compact" : "panes"}>
-        {shownPanes.map((p) => (
-          <Panel
-            key={p.name}
-            view={p.view}
-            prev={p.prev}
-            diffOn={diffOn}
-            link={link}
-            edit={p.edit}
-            query={qhl}
-            focusId={focusId}
-            subtitle={p.subtitle}
-          />
-        ))}
-      </div>
+      <AppHint editing={editing} />
 
-      <p className="hint">
-        {editing ? (
-          <>
-            Type in the script above. <code>item</code>+Tab scaffolds a row. Add{" "}
-            <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane appears. Each{" "}
-            <code>@gsi</code> sets its own projection (<code>all</code>/<code>keys</code>
-            /comma-list). Panes reparse live.
-          </>
-        ) : (
-          <>
-            Double-click a base cell to edit; click a row to pin and follow it. Switch to{" "}
-            <b>editor</b> to author the same model as text.
-          </>
-        )}
-      </p>
-
-      <footer className="app-footer">
-        <span className="disclaimer">
-          A personal project. Opinions are my own, not those of AWS or Amazon.{" "}
-          <a href="https://github.com/tebanieo/Keyway" target="_blank" rel="noopener noreferrer">
-            Source
-          </a>
-          .
-        </span>
-        <span className="copyright">© 2026 tebanieo</span>
-      </footer>
+      <AppFooter />
 
       <ShareDialog
         open={shareUrlValue !== null}
@@ -501,11 +372,7 @@ export function App() {
         onClose={closeShare}
       />
 
-      {copied !== null && (
-        <div className="copied-toast">
-          copied <code>{copied}</code>
-        </div>
-      )}
+      <CopiedToast value={copied} />
     </div>
   );
 }
