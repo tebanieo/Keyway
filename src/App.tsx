@@ -24,7 +24,8 @@ import { describe, editToOps, nextItemLabel } from "./model/actions";
 import { track } from "./analytics";
 import { apCoverage } from "./model/coverage";
 import { EMPTY_DOC } from "./model/doc";
-import { modelFromLocation, SAFE_URL_LEN, shareUrl } from "./model/share";
+import { modelFromLocation, shareUrl } from "./model/share";
+import { ShareDialog } from "./components/ShareDialog";
 import { computeBackfill, putItemOf } from "./model/backfill";
 import { Editor } from "./components/Editor";
 import type { EditorHandle } from "./components/Editor";
@@ -57,7 +58,9 @@ export function App() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
-  const [shareMsg, setShareMsg] = useState<string | null>(null);
+  // Share modal: its URL is snapshotted on open so a QR/copy reflects one moment.
+  const [shareUrlValue, setShareUrlValue] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   // Which right-rail drawer is open (only one at a time: they share the edge).
   const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query" | "learn">(null);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
@@ -221,21 +224,22 @@ export function App() {
   // The model as text, whichever mode we're in (canvas serializes ops back).
   const currentDoc = () => (editing ? docText : modelToText(ops));
 
-  const onShare = async () => {
-    const url = shareUrl(currentDoc());
-    if (url.length > SAFE_URL_LEN) {
-      setShareMsg("model too large to link - copy the text instead");
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        setShareMsg("link copied to clipboard");
-        track("link-shared");
-      } catch {
-        setShareMsg("couldn't copy - link logged to console");
-        console.log(url);
-      }
+  // Open the share modal on a fresh snapshot of the current model as a link.
+  const openShare = () => {
+    setShareUrlValue(shareUrl(currentDoc()));
+    setShareCopied(false);
+  };
+
+  const copyShareLink = async () => {
+    if (shareUrlValue === null) return;
+    try {
+      await navigator.clipboard.writeText(shareUrlValue);
+      setShareCopied(true);
+      track("link-shared");
+      window.setTimeout(() => setShareCopied(false), 1600);
+    } catch {
+      console.log(shareUrlValue);
     }
-    window.setTimeout(() => setShareMsg(null), 2600);
   };
 
   // ---- projections ----------------------------------------------------------
@@ -408,8 +412,7 @@ export function App() {
         onMode={(m) => (m === "editor" ? enterEditor() : setMode("canvas"))}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onShare={onShare}
-        shareMsg={shareMsg}
+        onShare={openShare}
         dirty={dirty}
         onReset={reset}
         pinnedId={pinnedId}
@@ -651,6 +654,14 @@ export function App() {
         </span>
         <span className="copyright">© 2026 tebanieo</span>
       </footer>
+
+      <ShareDialog
+        open={shareUrlValue !== null}
+        url={shareUrlValue ?? ""}
+        copied={shareCopied}
+        onCopy={copyShareLink}
+        onClose={() => setShareUrlValue(null)}
+      />
 
       {copied !== null && (
         <div className="copied-toast">

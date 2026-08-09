@@ -1717,9 +1717,123 @@ body {
   transform: scale(0.97);
 }
 
-.share-msg {
+/* Share modal: a centered, opaque card (a surface you read from) over a dimmed
+   backdrop, carrying a scannable QR of the model link plus a copy fallback. */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s4);
+  background: rgba(6, 9, 14, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: share-fade 0.15s var(--ease);
+}
+.share-modal {
+  width: min(92vw, 340px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  animation: share-rise 0.18s var(--ease);
+}
+.share-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.share-modal-title {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+.share-close {
+  padding: 0 var(--s1);
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--tf);
+}
+.share-close:hover {
+  color: var(--text);
+}
+/* The QR always sits on a white card with dark modules, so it scans in either
+   theme (inverted QRs trip up many readers). */
+.qr-frame {
+  align-self: center;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: var(--r-md);
+}
+.qr {
+  display: block;
+  width: min(66vw, 232px);
+  height: auto;
+  color: #0b0e13;
+}
+.share-hint,
+.share-note {
+  margin: 0;
+  text-align: center;
   font-size: var(--fs-sm);
-  color: var(--enter);
+  color: var(--muted);
+}
+.share-link-row {
+  display: flex;
+  gap: var(--s2);
+}
+.share-url {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.share-copy {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--tf),
+    transform var(--tf);
+}
+.share-copy:hover {
+  background: var(--accent-fill-hover);
+}
+.share-copy:active {
+  transform: scale(0.97);
+}
+@keyframes share-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes share-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
 }
 
 /* Small square icon button (theme toggle, and future utility icons). */

@@ -16,7 +16,6 @@ export function Toolbar({
   theme,
   onToggleTheme,
   onShare,
-  shareMsg,
   dirty,
   onReset,
   pinnedId,
@@ -36,7 +35,6 @@ export function Toolbar({
   theme: Theme;
   onToggleTheme: () => void;
   onShare: () => void;
-  shareMsg: string | null;
   dirty: boolean;
   onReset: () => void;
   pinnedId: string | null;
@@ -75,10 +73,9 @@ export function Toolbar({
         <Icon name="theme" />
       </button>
 
-      <button className="share" onClick={onShare} title="copy a shareable link to this model">
+      <button className="share" onClick={onShare} title="share this model as a link or QR code">
         Share
       </button>
-      {shareMsg && <span className="share-msg">{shareMsg}</span>}
 
       {dirty && (
         <button className="reset" onClick={onReset}>
