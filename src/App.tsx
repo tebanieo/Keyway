@@ -5,7 +5,7 @@ import { Toolbar } from "./components/Toolbar";
 import type { Mode } from "./components/Toolbar";
 import { CostBar } from "./components/CostBar";
 import { Panel, projLabel } from "./components/Panel";
-import type { EditProps, LinkProps } from "./components/Panel";
+import type { EditProps } from "./components/Panel";
 import { RightRail } from "./components/Rail";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
 import { LearnDrawer } from "./components/LearnDrawer";
@@ -14,19 +14,22 @@ import { AccessPatterns } from "./components/AccessPatterns";
 import { useTheme } from "./hooks/useTheme";
 import { usePlayback } from "./hooks/usePlayback";
 import { useModel } from "./hooks/useModel";
+import { useSelection } from "./hooks/useSelection";
+import { useShare } from "./hooks/useShare";
+import { useDrawers } from "./hooks/useDrawers";
+import { usePaneVisibility } from "./hooks/usePaneVisibility";
 import { describe, editToOps } from "./model/actions";
-import { track } from "./analytics";
-import { modelFromLocation, shareUrl } from "./model/share";
+import { modelFromLocation } from "./model/share";
 import { ShareDialog } from "./components/ShareDialog";
 import { putItemOf } from "./model/backfill";
 import { Editor } from "./components/Editor";
 import type { EditorHandle } from "./components/Editor";
 import { QueryPanel } from "./components/QueryPanel";
-import type { QueryHighlight } from "./components/QueryPanel";
 
 export function App() {
   // The data model (op log + DSL structure + projections) lives in one hook;
-  // App keeps the UI around it — modes, drawers, playback, pins, sharing.
+  // App keeps the UI around it — modes, drawers, playback, pins, sharing —
+  // each carved into its own focused hook below.
   const {
     ops,
     docText,
@@ -62,25 +65,37 @@ export function App() {
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
   const [editorCollapsed, setEditorCollapsed] = useState(false);
-  // Which panes are shown (multi-select). Default = base + the last GSI; the
-  // reconcile effect keeps it valid as the model's indexes change.
-  const [visible, setVisible] = useState<Set<string>>(
-    () => new Set([paneNames[0], paneNames[paneNames.length - 1]].filter(Boolean)),
-  );
-  const [diffOn, setDiffOn] = useState(true);
-  // Density toggle: tightens rows/padding so big models fit more on screen.
-  const [compact, setCompact] = useState(false);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
-  // Share modal: its URL is snapshotted on open so a QR/copy reflects one moment.
-  const [shareUrlValue, setShareUrlValue] = useState<string | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
-  // Which right-rail drawer is open (only one at a time: they share the edge).
-  const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query" | "learn">(null);
-  const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
   const editorRef = useRef<EditorHandle>(null);
+
+  // UI-state hooks. Destructure the stable useState setters (link/toggle/close
+  // are fresh each render, so keep those out of callback/effect deps below).
+  const { link, pinnedId, setPinnedId, copied } = useSelection();
+  const {
+    url: shareUrlValue,
+    copied: shareCopied,
+    open: openShare,
+    close: closeShare,
+    copy: copyShareLink,
+  } = useShare();
+  const {
+    drawer,
+    setDrawer,
+    toggle: toggleDrawer,
+    close: closeDrawer,
+    highlight: qhl,
+    setHighlight: setQhl,
+  } = useDrawers(fullState.size === 0);
+  const {
+    visible,
+    diffOn,
+    setDiffOn,
+    compact,
+    setCompact,
+    toggle: togglePane,
+    toggleAll,
+    allVisible,
+  } = usePaneVisibility(paneNames);
 
   const editing = mode === "editor";
   const { playing, setPlaying, speed, setSpeed, togglePlay, costPulse, pulseCost } = usePlayback(
@@ -97,7 +112,7 @@ export function App() {
       setPinnedId(null);
       setMode("editor");
     },
-    [load],
+    [load, setPinnedId],
   );
 
   // Play a guided tour: load its curated model, then collapse the editor and
@@ -113,7 +128,7 @@ export function App() {
       setPlaying(true);
       setDrawer(null);
     },
-    [loadModel, setStep, setPlaying],
+    [loadModel, setStep, setPlaying, setDrawer],
   );
 
   // Load an example and play it like a tour: rewind to step 0, hand the screen
@@ -134,27 +149,6 @@ export function App() {
     const shared = modelFromLocation(location.hash);
     if (shared) loadModel(shared);
   }, [loadModel]);
-
-  // Query highlights (teal rows) only make sense while the Query drawer is open.
-  useEffect(() => {
-    if (drawer !== "query") setQhl({ matched: new Set(), scanned: new Set() });
-  }, [drawer]);
-
-  // Dismiss the open rail drawer when clicking anywhere outside the rail/drawer.
-  useEffect(() => {
-    if (!drawer) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Element | null;
-      if (t && !t.closest(".rail") && !t.closest(".drawer")) setDrawer(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [drawer]);
-
-  // Close the Query drawer if the model empties out (e.g. reset while it's open).
-  useEffect(() => {
-    if (fullState.size === 0 && drawer === "query") setDrawer(null);
-  }, [fullState.size, drawer]);
 
   const enterEditor = () => {
     syncDoc(); // one source: reflect current state as text
@@ -184,44 +178,6 @@ export function App() {
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
   const currentDoc = () => (editing ? docText : serialize(ops));
-
-  // Open the share modal on a fresh snapshot of the current model as a link.
-  const openShare = () => {
-    setShareUrlValue(shareUrl(currentDoc()));
-    setShareCopied(false);
-  };
-
-  const copyShareLink = async () => {
-    if (shareUrlValue === null) return;
-    try {
-      await navigator.clipboard.writeText(shareUrlValue);
-      setShareCopied(true);
-      track("link-shared");
-      window.setTimeout(() => setShareCopied(false), 1600);
-    } catch {
-      console.log(shareUrlValue);
-    }
-  };
-
-  // Reconcile the visible set when the index set changes (model load / @gsi edit):
-  // drop panes that vanished; if nothing's left, default to base + the last GSI.
-  // Also default to a SPLIT VIEW: if the model has a GSI but none is currently
-  // shown (e.g. you just declared the first @gsi), reveal the last one so the
-  // base+index panes appear without a manual click. Runs only on structural
-  // change, so toggling panes off between edits still sticks.
-  const namesKey = paneNames.join("|");
-  useEffect(() => {
-    const names = namesKey.split("|");
-    setVisible((prev) => {
-      const kept = new Set([...prev].filter((n) => names.includes(n)));
-      if (kept.size === 0) kept.add(names[0]);
-      const gsiNames = names.slice(1);
-      if (gsiNames.length > 0 && !gsiNames.some((n) => kept.has(n))) {
-        kept.add(gsiNames[gsiNames.length - 1]);
-      }
-      return kept;
-    });
-  }, [namesKey]);
 
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
@@ -264,36 +220,8 @@ export function App() {
   // Spotlight the touched item only while auto-playing (no standalone toggle).
   const focusId = playing ? affectedId : null;
 
-  const link: LinkProps = {
-    hoveredId,
-    pinnedId,
-    onHover: setHoveredId,
-    onPin: (id) => setPinnedId((cur) => (cur === id ? null : id)),
-    onCopy: (value) => {
-      if (value === "") return;
-      void navigator.clipboard?.writeText(value);
-      setCopied(value);
-      window.setTimeout(() => setCopied((c) => (c === value ? null : c)), 1400);
-    },
-  };
   // Editing lives on the base pane, and only in canvas mode.
   const baseEdit = editing ? undefined : edit;
-
-  const togglePane = (name: string) =>
-    setVisible((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) {
-        if (next.size > 1) next.delete(name); // always keep at least one pane
-      } else next.add(name);
-      return next;
-    });
-  const allVisible = visible.size === paneNames.length;
-  const toggleAll = () =>
-    setVisible(
-      allVisible
-        ? new Set([paneNames[0], paneNames[paneNames.length - 1]].filter(Boolean))
-        : new Set(paneNames),
-    );
 
   // The panes to render, in index order, filtered to the visible set.
   const shownPanes = [
@@ -326,7 +254,7 @@ export function App() {
         onMode={(m) => (m === "editor" ? enterEditor() : setMode("canvas"))}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onShare={openShare}
+        onShare={() => openShare(currentDoc())}
         dirty={dirty}
         onReset={reset}
         pinnedId={pinnedId}
@@ -405,7 +333,7 @@ export function App() {
         gsis={gsis}
         state={state}
         onHighlight={setQhl}
-        onClose={() => setDrawer(null)}
+        onClose={closeDrawer}
       />
 
       <RightRail
@@ -416,14 +344,14 @@ export function App() {
             label: "Examples",
             icon: <Icon name="examples" />,
             active: drawer === "examples",
-            onClick: () => setDrawer((d) => (d === "examples" ? null : "examples")),
+            onClick: () => toggleDrawer("examples"),
           },
           {
             id: "learn",
             label: "Learn",
             icon: <Icon name="learn" />,
             active: drawer === "learn",
-            onClick: () => setDrawer((d) => (d === "learn" ? null : "learn")),
+            onClick: () => toggleDrawer("learn"),
           },
           // Query only appears once there's data: you can't query an empty table.
           ...(fullState.size > 0
@@ -433,7 +361,7 @@ export function App() {
                   label: "Read / Query",
                   icon: <Icon name="query" />,
                   active: drawer === "query",
-                  onClick: () => setDrawer((d) => (d === "query" ? null : "query")),
+                  onClick: () => toggleDrawer("query"),
                 },
               ]
             : []),
@@ -445,7 +373,7 @@ export function App() {
                   icon: <Icon name="patterns" />,
                   badge: apUnserved,
                   active: drawer === "patterns",
-                  onClick: () => setDrawer((d) => (d === "patterns" ? null : "patterns")),
+                  onClick: () => toggleDrawer("patterns"),
                 },
               ]
             : []),
@@ -460,13 +388,9 @@ export function App() {
         ]}
       />
 
-      <ExamplesDrawer
-        open={drawer === "examples"}
-        onClose={() => setDrawer(null)}
-        onLoad={playExample}
-      />
+      <ExamplesDrawer open={drawer === "examples"} onClose={closeDrawer} onLoad={playExample} />
 
-      <LearnDrawer open={drawer === "learn"} onClose={() => setDrawer(null)} onPlay={playTour} />
+      <LearnDrawer open={drawer === "learn"} onClose={closeDrawer} onPlay={playTour} />
 
       {aps.length > 0 && (
         <AccessPatterns
@@ -475,7 +399,7 @@ export function App() {
           base={base}
           gsis={gsis}
           state={fullState}
-          onClose={() => setDrawer(null)}
+          onClose={closeDrawer}
         />
       )}
 
@@ -574,7 +498,7 @@ export function App() {
         url={shareUrlValue ?? ""}
         copied={shareCopied}
         onCopy={copyShareLink}
-        onClose={() => setShareUrlValue(null)}
+        onClose={closeShare}
       />
 
       {copied !== null && (
