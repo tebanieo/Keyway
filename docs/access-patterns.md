@@ -1,7 +1,7 @@
 # Access-pattern coverage
 
-Declaring access patterns with `@ap` isn't just documentation. Keyway answers the
-real question (_"can my design serve all of its access patterns?"_) by
+Declaring access patterns with `@ap` gives Keyway something to check. It answers
+the real question (_"can my design serve all of its access patterns?"_) by
 **building each pattern's declared query and running it against the finished
 model**, then grading the result. The logic is in
 [`src/model/coverage.ts`](https://github.com/).
