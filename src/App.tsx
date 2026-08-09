@@ -1,9 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fold, project } from "./engine/engine";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { itemSize } from "./engine/itemsize";
-import { writeCost } from "./engine/cost";
-import type { OpCost } from "./engine/cost";
-import type { IndexSpec, Op } from "./engine/types";
 import { Icon } from "./components/icons";
 import { Toolbar } from "./components/Toolbar";
 import type { Mode } from "./components/Toolbar";
@@ -17,40 +13,60 @@ import type { Tour } from "./model/tours";
 import { AccessPatterns } from "./components/AccessPatterns";
 import { useTheme } from "./hooks/useTheme";
 import { usePlayback } from "./hooks/usePlayback";
-import { BASE_INDEX } from "./model/seed";
-import { parseDoc, serializeModel } from "./model/dsl";
-import type { AccessPattern } from "./model/dsl";
-import { describe, editToOps, nextItemLabel } from "./model/actions";
+import { useModel } from "./hooks/useModel";
+import { describe, editToOps } from "./model/actions";
 import { track } from "./analytics";
-import { apCoverage } from "./model/coverage";
-import { EMPTY_DOC } from "./model/doc";
 import { modelFromLocation, shareUrl } from "./model/share";
 import { ShareDialog } from "./components/ShareDialog";
-import { computeBackfill, putItemOf } from "./model/backfill";
+import { putItemOf } from "./model/backfill";
 import { Editor } from "./components/Editor";
 import type { EditorHandle } from "./components/Editor";
 import { QueryPanel } from "./components/QueryPanel";
 import type { QueryHighlight } from "./components/QueryPanel";
 
 export function App() {
-  const [ops, setOps] = useState<Op[]>([]);
-  const [docText, setDocText] = useState(EMPTY_DOC);
-  // Bumped only when the doc is REPLACED externally (load/reset), used as the
-  // editor's React key so it remounts with the new text. Typing must not bump it.
-  const [docVersion, setDocVersion] = useState(0);
+  // The data model (op log + DSL structure + projections) lives in one hook;
+  // App keeps the UI around it — modes, drawers, playback, pins, sharing.
+  const {
+    ops,
+    docText,
+    docVersion,
+    base,
+    gsis,
+    aps,
+    notes,
+    opLines,
+    curStep,
+    setStep,
+    dirty,
+    commit,
+    onDoc,
+    load,
+    reset: resetModel,
+    serialize,
+    syncDoc,
+    addItem,
+    state,
+    fullState,
+    baseView,
+    prevBaseView,
+    gsiViews,
+    cost,
+    backfill,
+    paneNames,
+    apUnserved,
+  } = useModel();
+
   const [mode, setMode] = useState<Mode>("canvas");
   const { theme, toggle: toggleTheme } = useTheme();
-  const [step, setStep] = useState(0);
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
   const [editorCollapsed, setEditorCollapsed] = useState(false);
   // Which panes are shown (multi-select). Default = base + the last GSI; the
   // reconcile effect keeps it valid as the model's indexes change.
-  const [visible, setVisible] = useState<Set<string>>(() => {
-    const p = parseDoc(EMPTY_DOC, BASE_INDEX);
-    const names = [p.base.name, ...p.gsis.map((g) => g.name)];
-    return new Set([names[0], names[names.length - 1]].filter(Boolean));
-  });
+  const [visible, setVisible] = useState<Set<string>>(
+    () => new Set([paneNames[0], paneNames[paneNames.length - 1]].filter(Boolean)),
+  );
   const [diffOn, setDiffOn] = useState(true);
   // Density toggle: tightens rows/padding so big models fit more on screen.
   const [compact, setCompact] = useState(false);
@@ -64,66 +80,25 @@ export function App() {
   // Which right-rail drawer is open (only one at a time: they share the edge).
   const [drawer, setDrawer] = useState<null | "patterns" | "examples" | "query" | "learn">(null);
   const [qhl, setQhl] = useState<QueryHighlight>({ matched: new Set(), scanned: new Set() });
-  const [notes, setNotes] = useState<(string | undefined)[]>(
-    () => parseDoc(EMPTY_DOC, BASE_INDEX).notes,
-  );
-  // 0-based source line for each op, aligned with `ops`; drives the editor's
-  // step highlight (which line the current step is running).
-  const [opLines, setOpLines] = useState<number[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).opLines);
-  const [aps, setAps] = useState<AccessPattern[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).aps);
-  // Base table + secondary indexes, declared in the DSL (`@table` / `@gsi`).
-  const [base, setBase] = useState<IndexSpec>(() => parseDoc(EMPTY_DOC, BASE_INDEX).base);
-  const [gsis, setGsis] = useState<IndexSpec[]>(() => parseDoc(EMPTY_DOC, BASE_INDEX).gsis);
   const editorRef = useRef<EditorHandle>(null);
 
   const editing = mode === "editor";
-  const curStep = Math.min(step, ops.length);
   const { playing, setPlaying, speed, setSpeed, togglePlay, costPulse, pulseCost } = usePlayback(
     curStep,
     ops.length,
     setStep,
   );
 
-  // ---- op-log producers -----------------------------------------------------
-  // canvas: grid actions append ops. editor: typed text parses to ops. Both
-  // funnel into the same `ops`, so the panes never know which produced them.
-  const commit = useCallback(
-    (added: Op[]) => {
-      if (added.length === 0) return;
-      setOps((prev) => [...prev.slice(0, curStep), ...added]);
-      setStep(curStep + added.length);
+  // Load a whole model (a shared link, or an example): the hook resets the model
+  // to it; App opens the editor and clears the pin around that.
+  const loadModel = useCallback(
+    (text: string) => {
+      load(text);
+      setPinnedId(null);
+      setMode("editor");
     },
-    [curStep],
+    [load],
   );
-
-  const onDoc = useCallback((text: string) => {
-    setDocText(text);
-    const parsed = parseDoc(text, BASE_INDEX);
-    setOps(parsed.ops);
-    setStep(parsed.ops.length); // typing shows the whole script
-    setBase(parsed.base);
-    setGsis(parsed.gsis);
-    setNotes(parsed.notes);
-    setOpLines(parsed.opLines);
-    setAps(parsed.aps);
-  }, []);
-
-  // Load a whole model from text (a shared link, or an example). Same path for
-  // both: set the doc + parsed structure and open the editor.
-  const loadModel = useCallback((text: string) => {
-    const parsed = parseDoc(text, BASE_INDEX);
-    setDocText(text);
-    setOps(parsed.ops);
-    setBase(parsed.base);
-    setGsis(parsed.gsis);
-    setNotes(parsed.notes);
-    setOpLines(parsed.opLines);
-    setAps(parsed.aps);
-    setStep(parsed.ops.length);
-    setPinnedId(null);
-    setMode("editor");
-    setDocVersion((v) => v + 1); // remount the editor with the loaded text
-  }, []);
 
   // Play a guided tour: load its curated model, then collapse the editor and
   // auto-play from step 0 so the tables are the focus and the narration reads
@@ -138,7 +113,7 @@ export function App() {
       setPlaying(true);
       setDrawer(null);
     },
-    [loadModel, setPlaying],
+    [loadModel, setStep, setPlaying],
   );
 
   // Load an example and play it like a tour: rewind to step 0, hand the screen
@@ -151,7 +126,7 @@ export function App() {
       setEditorCollapsed(true);
       setPlaying(true);
     },
-    [loadModel, setPlaying],
+    [loadModel, setStep, setPlaying],
   );
 
   // On open: if the URL carries a model (`#m=…`), load it.
@@ -176,11 +151,13 @@ export function App() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [drawer]);
 
-  // The whole model (structure + data) as DSL text.
-  const modelToText = (someOps: Op[]) => serializeModel(base, gsis, aps, someOps);
+  // Close the Query drawer if the model empties out (e.g. reset while it's open).
+  useEffect(() => {
+    if (fullState.size === 0 && drawer === "query") setDrawer(null);
+  }, [fullState.size, drawer]);
 
   const enterEditor = () => {
-    setDocText(modelToText(ops)); // one source: reflect current state as text
+    syncDoc(); // one source: reflect current state as text
     setMode("editor");
   };
 
@@ -193,36 +170,20 @@ export function App() {
     // Add the item to the table AND open the editor: the table is for viewing,
     // the editor is where you author from here.
     onAddItem: (pkValue) => {
-      const id = nextItemLabel(ops);
-      const attrs: Record<string, string> = { [base.pk]: pkValue };
-      if (base.sk) attrs[base.sk] = `ITEM#${id}`;
-      const put: Op = { kind: "put", item: { id, attrs } };
-      const newOps = [...ops.slice(0, curStep), put];
-      setOps(newOps);
-      setStep(newOps.length);
-      setDocText(modelToText(newOps));
+      const id = addItem(pkValue);
       setMode("editor");
       setPinnedId(id);
     },
   };
 
   const reset = () => {
-    setOps([]);
-    setDocText(EMPTY_DOC);
-    setStep(0);
-    const parsed = parseDoc(EMPTY_DOC, BASE_INDEX);
-    setBase(parsed.base);
-    setGsis(parsed.gsis);
-    setNotes(parsed.notes);
-    setOpLines(parsed.opLines);
-    setAps(parsed.aps);
+    resetModel();
     setPinnedId(null);
     setPlaying(false);
-    setDocVersion((v) => v + 1); // remount the editor if it's open
   };
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
-  const currentDoc = () => (editing ? docText : modelToText(ops));
+  const currentDoc = () => (editing ? docText : serialize(ops));
 
   // Open the share modal on a fresh snapshot of the current model as a link.
   const openShare = () => {
@@ -242,36 +203,13 @@ export function App() {
     }
   };
 
-  // ---- projections ----------------------------------------------------------
-  const state = useMemo(() => fold(ops.slice(0, curStep), base), [ops, curStep, base]);
-  // The FINISHED model (all ops), regardless of scrubber position: access-pattern
-  // coverage is about the design as a whole, not the mid-playback moment.
-  const fullState = useMemo(() => fold(ops, base), [ops, base]);
-  // Close the Query drawer if the model empties out (e.g. reset while it's open).
-  useEffect(() => {
-    if (fullState.size === 0 && drawer === "query") setDrawer(null);
-  }, [fullState.size, drawer]);
-  // How many declared patterns the design does NOT yet serve, drives the rail
-  // badge (the "something to react to" signal).
-  const apUnserved = useMemo(() => {
-    const idx = [base, ...gsis];
-    return aps.reduce(
-      (n, ap) => n + (apCoverage(ap, idx, fullState).status === "served" ? 0 : 1),
-      0,
-    );
-  }, [aps, base, gsis, fullState]);
-  const prevState = useMemo(
-    () => fold(ops.slice(0, Math.max(0, curStep - 1)), base),
-    [ops, curStep, base],
-  );
-  const paneNames = useMemo(() => [base.name, ...gsis.map((g) => g.name)], [base, gsis]);
-  const namesKey = paneNames.join("|");
   // Reconcile the visible set when the index set changes (model load / @gsi edit):
   // drop panes that vanished; if nothing's left, default to base + the last GSI.
   // Also default to a SPLIT VIEW: if the model has a GSI but none is currently
   // shown (e.g. you just declared the first @gsi), reveal the last one so the
   // base+index panes appear without a manual click. Runs only on structural
   // change, so toggling panes off between edits still sticks.
+  const namesKey = paneNames.join("|");
   useEffect(() => {
     const names = namesKey.split("|");
     setVisible((prev) => {
@@ -285,29 +223,6 @@ export function App() {
     });
   }, [namesKey]);
 
-  const baseView = useMemo(() => project(state, base), [state, base]);
-  const prevBaseView = useMemo(() => project(prevState, base), [prevState, base]);
-  // One view per declared GSI.
-  const gsiViews = useMemo(
-    () =>
-      gsis.map((g) => ({
-        index: g,
-        view: project(state, g, base),
-        prev: project(prevState, g, base),
-      })),
-    [gsis, state, prevState, base],
-  );
-
-  const cost = useMemo<OpCost | null>(() => {
-    if (curStep < 1) return null;
-    return writeCost(prevState, ops[curStep - 1], base, gsis);
-  }, [prevState, ops, curStep, base, gsis]);
-
-  // Backfill suggestion: schema drift within an entity, at the head of the log.
-  const backfill = useMemo(
-    () => (curStep === ops.length ? computeBackfill(state, base) : null),
-    [state, curStep, ops.length, base],
-  );
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
 
@@ -361,7 +276,6 @@ export function App() {
       window.setTimeout(() => setCopied((c) => (c === value ? null : c)), 1400);
     },
   };
-  const dirty = docText !== EMPTY_DOC || ops.length > 0;
   // Editing lives on the base pane, and only in canvas mode.
   const baseEdit = editing ? undefined : edit;
 
