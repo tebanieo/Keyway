@@ -29,6 +29,10 @@ export default defineConfig({
         "src/components/PanesBar.tsx",
         "src/components/PlaybackHud.tsx",
         "src/components/PanesGrid.tsx",
+        // The editor's pure completion engine, extracted from the CodeMirror
+        // wiring in Editor.tsx (which stays out — its handle is exercised by
+        // Editor.test.tsx, but the view plumbing isn't unit-coverable).
+        "src/components/editorCompletions.ts",
       ],
       // Within model, these are curated content/data, not logic — there's
       // nothing meaningful to unit-test in a literal.
