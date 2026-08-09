@@ -17,16 +17,13 @@ export default defineConfig({
       // `text` for the CI log, `lcov` for the report Codecov ingests.
       reporter: ["text", "lcov"],
       // Coverage measures the code we actually unit-test: the engine and model
-      // logic, plus the UI hooks/components as their tests land (see the
-      // per-file list below). App.tsx and the CodeMirror-heavy Editor are not
-      // tested yet, so they stay out to keep the number honest.
+      // logic, every hook, and the presentational components listed here.
+      // App.tsx (the composition shell) and the CodeMirror-heavy Editor are not
+      // unit-tested, so they stay out to keep the number honest.
       include: [
         "src/engine/**/*.ts",
         "src/model/**/*.ts",
-        "src/hooks/useSelection.ts",
-        "src/hooks/useShare.ts",
-        "src/hooks/useDrawers.ts",
-        "src/hooks/usePaneVisibility.ts",
+        "src/hooks/**/*.ts",
         "src/components/AppChrome.tsx",
         "src/components/BackfillBanner.tsx",
         "src/components/PanesBar.tsx",
