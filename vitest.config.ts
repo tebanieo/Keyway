@@ -17,26 +17,25 @@ export default defineConfig({
       // `text` for the CI log, `lcov` for the report Codecov ingests.
       reporter: ["text", "lcov"],
       // Coverage measures the code we actually unit-test: the engine and model
-      // logic, every hook, and the presentational components listed here.
-      // App.tsx (the composition shell) and the CodeMirror-heavy Editor are not
-      // unit-tested, so they stay out to keep the number honest.
+      // logic, every hook, and every component EXCEPT the two that aren't
+      // unit-coverable — App.tsx (the composition shell, guarded by a smoke
+      // test) and Editor.tsx (CodeMirror wiring; its handle is covered by
+      // Editor.test.tsx and its completion logic lives in editorCompletions).
       include: [
         "src/engine/**/*.ts",
         "src/model/**/*.ts",
         "src/hooks/**/*.ts",
-        "src/components/AppChrome.tsx",
-        "src/components/BackfillBanner.tsx",
-        "src/components/PanesBar.tsx",
-        "src/components/PlaybackHud.tsx",
-        "src/components/PanesGrid.tsx",
-        // The editor's pure completion engine, extracted from the CodeMirror
-        // wiring in Editor.tsx (which stays out — its handle is exercised by
-        // Editor.test.tsx, but the view plumbing isn't unit-coverable).
-        "src/components/editorCompletions.ts",
+        "src/components/**",
       ],
-      // Within model, these are curated content/data, not logic — there's
-      // nothing meaningful to unit-test in a literal.
-      exclude: ["src/**/*.test.{ts,tsx}", "src/model/seed.ts", "src/model/tours.ts"],
+      // Test files aren't measured; seed/tours are curated data literals; App
+      // and Editor are excluded per the note above (not unit-coverable).
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/model/seed.ts",
+        "src/model/tours.ts",
+        "src/App.tsx",
+        "src/components/Editor.tsx",
+      ],
     },
   },
 });
