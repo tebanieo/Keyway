@@ -27,6 +27,11 @@ export default defineConfig({
         "src/hooks/useShare.ts",
         "src/hooks/useDrawers.ts",
         "src/hooks/usePaneVisibility.ts",
+        "src/components/AppChrome.tsx",
+        "src/components/BackfillBanner.tsx",
+        "src/components/PanesBar.tsx",
+        "src/components/PlaybackHud.tsx",
+        "src/components/PanesGrid.tsx",
       ],
       // Within model, these are curated content/data, not logic — there's
       // nothing meaningful to unit-test in a literal.

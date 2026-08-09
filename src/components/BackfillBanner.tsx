@@ -15,8 +15,7 @@ export function BackfillBanner({
     <div className="backfill">
       <span className="msg">
         <code>{backfill.attr}</code> is on some <b>{backfill.type}</b> items but not all. Add it to
-        the {backfill.targets.length} without
-        {backfill.targets.length === 1 ? "" : ""} it?
+        the {backfill.targets.length} without it?
       </span>
       <button className="do" onClick={onApply}>
         backfill {backfill.targets.length}
