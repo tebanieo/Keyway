@@ -30,5 +30,14 @@ jobs:
         run: npm run lint
       - name: Typecheck (tsc)
         run: npx tsc -b
-      - name: Tests (Vitest)
-        run: npm test
+      - name: Tests (Vitest) with coverage
+        run: npm run coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: tebanieo/Keyway
+          files: ./coverage/lcov.info
+          # Coverage reporting is informational; a Codecov hiccup (e.g. rate
+          # limit) shouldn't fail the gate that guards merges.
+          fail_ci_if_error: false

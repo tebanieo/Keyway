@@ -7,6 +7,10 @@
 [Try it live](https://tebanieo.github.io/Keyway/) ·
 [Reference docs](https://tebanieo.github.io/Keyway/docs/)
 
+[![CI](https://github.com/tebanieo/Keyway/actions/workflows/ci.yml/badge.svg)](https://github.com/tebanieo/Keyway/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tebanieo/Keyway/graph/badge.svg)](https://codecov.io/gh/tebanieo/Keyway)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 <img src="docs/public/demo.gif" alt="Keyway in action: typing a DynamoDB model as text and watching it project into the base table and indexes, with per-write cost" width="900" />
 
 </div>

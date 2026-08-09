@@ -2,7 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // Vitest reads this config too; its default environment (node) is all the pure
-// engine tests need, so there's no `test` block here.
+// engine tests need, so there's no `test` block here (coverage config lives in
+// vitest.config.ts, kept separate to avoid the dual-Vite type clash between
+// this file's plugins and vitest/config's `defineConfig`).
 //
 // `base: "./"` makes asset paths relative so the built app works when served
 // from a subpath (e.g. GitHub Pages project sites at /repo-name/) without
