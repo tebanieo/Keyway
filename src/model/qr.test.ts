@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { qrPath } from "./qr";
+import { qrPath, qrLogoFraction } from "./qr";
 
 describe("qrPath", () => {
   it("encodes a short link into a square module grid", () => {
@@ -26,5 +26,25 @@ describe("qrPath", () => {
   it("returns null when the payload exceeds even version 40", () => {
     // Byte mode at ECC L tops out around 2953 bytes; well past it → no symbol.
     expect(qrPath("a".repeat(5000))).toBeNull();
+  });
+
+  it("uses the strongest correction that fits, stepping down as data grows", () => {
+    // A short link fits at the highest level (best logo tolerance)...
+    expect(qrPath("https://tebanieo.github.io/Keyway/#m=abc")!.level).toBe("H");
+    // ...2000 bytes is past H (~1273) and Q (~1663) but within M (~2331).
+    expect(qrPath("a".repeat(2000))!.level).toBe("M");
+  });
+
+  it("keeps the logo fraction well under each level's recovery budget", () => {
+    // area erased ~= fraction²; must stay under the recovery ratio (H .30 … L .07)
+    for (const [level, budget] of [
+      ["H", 0.3],
+      ["Q", 0.25],
+      ["M", 0.15],
+      ["L", 0.07],
+    ] as const) {
+      const f = qrLogoFraction(level);
+      expect(f * f).toBeLessThan(budget);
+    }
   });
 });
