@@ -1,0 +1,20 @@
+# Codecov config. The engine/model/hooks and most components are unit-tested;
+# App.tsx and Editor.tsx (CodeMirror wiring) are intentionally out of the
+# coverage scope (see vitest.config.ts). Coverage sits around 95%.
+coverage:
+  status:
+    # Total-project coverage: don't fail CI over normal churn (e.g. widening
+    # the include set shifts the denominator). Allow a small dip; a real
+    # regression bigger than the threshold still flags.
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    # New/changed lines should be reasonably covered.
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+
+# Don't post the PR comment for a solo project; the badge + checks are enough.
+comment: false
