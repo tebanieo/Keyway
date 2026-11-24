@@ -350,6 +350,16 @@ describe("parseDoc: conditional writes (@if)", () => {
     expect(ops).toHaveLength(1);
   });
 
+  it("reports a bad escape in a quoted value instead of crashing", () => {
+    const { diagnostics } = parseDoc('a: PK=A  SK=1  x=1  @if x = :v  :v="C:\\dir"', BASE);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: "error",
+        message: expect.stringMatching(/invalid quoted value/),
+      }),
+    );
+  });
+
   it("warns when a comparison reads a bare word as an attribute", () => {
     const { diagnostics } = parseDoc("u1: PK=U#1  SK=P  @if tier = gold", BASE);
     expect(diagnostics).toContainEqual(

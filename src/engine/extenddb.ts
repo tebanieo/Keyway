@@ -99,17 +99,26 @@ export function validateKeyCompiled(
   }
 }
 
-/** Does `c` hold against `item`, by ExtendDB's DynamoDB semantics? Throws a
- *  DynamoDB-style validation message when the expression is invalid. */
+/** Does `c` hold against `item`, by ExtendDB's DynamoDB semantics? `c` should
+ *  come from `parseExpression`, which validated it; this never throws. */
 export function evaluateCompiled(c: CompiledExpression, item: Item, kind: ExpressionKind): boolean {
   assertReady();
-  return evaluateExpression(
-    kind,
-    c.expression,
-    JSON.stringify(toWireItem(item.attrs)),
-    JSON.stringify(c.names),
-    JSON.stringify(c.values),
-  );
+  try {
+    return evaluateExpression(
+      kind,
+      c.expression,
+      JSON.stringify(toWireItem(item.attrs)),
+      JSON.stringify(c.names),
+      JSON.stringify(c.values),
+    );
+  } catch {
+    // Validation (parseExpression) already caught every mistake in the
+    // expression itself. What's left depends on the item's data, e.g.
+    // `begins_with(a, b)` where attribute b holds a Number: DynamoDB treats a
+    // wrongly typed attribute operand as a false comparison, not an error. So
+    // the clause doesn't hold, and the app never crashes mid-render.
+    return false;
+  }
 }
 
 /** The item's size in bytes as DynamoDB counts it for capacity. */
