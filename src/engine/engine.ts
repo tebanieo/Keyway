@@ -96,7 +96,7 @@ export function findById(state: Map<string, Item>, id: string): Item | undefined
  */
 export function conditionHolds(condition: Condition | undefined, existing: Item | null): boolean {
   if (!condition) return true;
-  return evaluateCompiled(condition, existing ?? { id: "", attrs: {} });
+  return evaluateCompiled(condition, existing ?? { id: "", attrs: {} }, "condition");
 }
 
 /**

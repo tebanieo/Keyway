@@ -84,12 +84,31 @@ describe("QueryPanel", () => {
 
   it("surfaces a filter parse error", () => {
     setup();
-    fireEvent.change(screen.getByPlaceholderText(/status = pending/), {
+    fireEvent.change(screen.getByPlaceholderText(/#s=status/), {
       target: { value: "((" },
     });
     fireEvent.click(screen.getByRole("button", { name: "run" }));
     expect(document.querySelector(".query-result.err")).not.toBeNull();
-    expect(screen.getByText(/filter:/)).toBeInTheDocument();
+    expect(screen.getByText(/filter: Invalid FilterExpression/)).toBeInTheDocument();
+  });
+
+  it("reports DynamoDB's error for a reserved word in a filter", () => {
+    setup();
+    fireEvent.change(screen.getByPlaceholderText(/#s=status/), {
+      target: { value: "status = :p  :p=pending" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "run" }));
+    expect(screen.getByText(/reserved keyword: status/)).toBeInTheDocument();
+  });
+
+  it("warns when a filter compares against a bare word", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Scan" }));
+    fireEvent.change(screen.getByPlaceholderText(/#s=status/), {
+      target: { value: "tier = gold" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "run" }));
+    expect(screen.getByText(/`gold` is read as an attribute name/)).toBeInTheDocument();
   });
 
   it("clear resets the result and empties the highlight", () => {

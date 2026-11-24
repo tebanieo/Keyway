@@ -1,7 +1,6 @@
-import type { IndexSpec, Item } from "./types";
+import type { Expression, IndexSpec, Item } from "./types";
 import { keyOf, pkAttrs, skAttrs } from "./engine";
-import { evalFilter } from "./filter";
-import type { FilterNode } from "./filter";
+import { evaluateCompiled } from "./extenddb";
 import { itemSize, rcu } from "./itemsize";
 import type { ReadMode } from "./itemsize";
 
@@ -23,9 +22,9 @@ export interface QuerySpec {
   /** query: a condition per sort-key attribute, left-to-right (a prefix). All
    *  but the last must be "=", that's the multi-key sort rule. */
   skParts: Cond[];
-  /** A parsed filter expression, applied AFTER the read, so it trims results
-   *  but not cost. null = no filter. */
-  filter: FilterNode | null;
+  /** A real FilterExpression (see `parseExpression`), applied AFTER the read
+   *  by ExtendDB, so it trims results but not cost. null = no filter. */
+  filter: Expression | null;
   /** Strong (1 RCU / 4KB) vs eventually consistent (0.5 RCU / 4KB). */
   consistent: boolean;
 }
@@ -136,7 +135,8 @@ export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: Query
     });
   }
 
-  const items = spec.filter ? read.filter((it) => evalFilter(spec.filter!, it)) : read;
+  const filter = spec.filter;
+  const items = filter ? read.filter((it) => evaluateCompiled(filter, it, "filter")) : read;
 
   // Query/Scan RCU is the CUMULATIVE size of all items read, rounded once.
   const bytes = read.reduce((n, it) => n + itemSize(it), 0);

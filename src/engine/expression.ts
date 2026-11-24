@@ -1,19 +1,25 @@
-import { type AttributeValue, toAttributeValue, validateCompiled } from "./extenddb";
-import type { Condition } from "./types";
+import {
+  type AttributeValue,
+  type ExpressionKind,
+  toAttributeValue,
+  validateCompiled,
+} from "./extenddb";
+import type { Expression } from "./types";
 
 /**
- * Parse the text after `@if`: a real DynamoDB ConditionExpression, followed by
- * its placeholders as `#name=attr` / `:value=literal` pairs.
+ * Parse a real DynamoDB expression written Keyway-style: the expression,
+ * followed by its placeholders as `#name=attr` / `:value=literal` pairs. Used
+ * for `@if` (a ConditionExpression) and the Query panel's FilterExpression.
  *
- *     @if attribute_not_exists(PK) OR #s = :s   #s=status :s=pending
+ *     attribute_not_exists(PK) OR #s = :s   #s=status :s=pending
  *
  * A bare value that looks like a number is a Number (`N`), anything else a
  * String (`S`); quote it (`:v="42"`, `:v="Ada Lovelace"`) to force a String or
  * include spaces. The expression is validated by ExtendDB exactly as PutItem
  * would: reserved words, syntax, undefined and unused placeholders.
  */
-export interface ParsedCondition {
-  condition?: Condition;
+export interface ParsedExpression {
+  expression?: Expression;
   error?: string;
   /** Valid DynamoDB that probably isn't what was meant. */
   warnings: string[];
@@ -23,7 +29,7 @@ export interface ParsedCondition {
 // `#s=:s` stays part of the expression instead of being read as a pair.
 const PAIR = /\s+([#:][A-Za-z0-9_]+)=("(?:[^"\\]|\\.)*"|[^\s"#:]\S*)$/;
 
-export function parseCondition(text: string): ParsedCondition {
+export function parseExpression(text: string, kind: ExpressionKind): ParsedExpression {
   let expression = text.trim();
   const names: Record<string, string> = {};
   const values: Record<string, AttributeValue> = {};
@@ -32,7 +38,7 @@ export function parseCondition(text: string): ParsedCondition {
     pairs.unshift([m[1], m[2]]);
     expression = expression.slice(0, m.index).trimEnd();
   }
-  if (expression === "") return { error: "an @if needs a condition expression", warnings: [] };
+  if (expression === "") return { error: "an expression is required", warnings: [] };
 
   for (const [ref, raw] of pairs) {
     const quoted = raw.startsWith('"');
@@ -43,10 +49,10 @@ export function parseCondition(text: string): ParsedCondition {
     else values[ref] = quoted ? { S: literal } : toAttributeValue(literal);
   }
 
-  const error = validateCompiled({ expression, names, values });
+  const error = validateCompiled({ expression, names, values }, kind);
   if (error) return { error, warnings: [] };
   return {
-    condition: { expression, names, values, text: text.trim() },
+    expression: { expression, names, values, text: text.trim() },
     warnings: bareComparisons(expression),
   };
 }

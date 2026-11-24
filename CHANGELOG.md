@@ -16,6 +16,9 @@ hand-curated summary. It follows
   own (reserved words, undefined or unused placeholders), and a write with an
   invalid condition no longer lands. A comparison against a bare word warns that
   DynamoDB reads it as an attribute name.
+- **The Query panel's filter is a real DynamoDB `FilterExpression`**, written
+  the same way (expression, then `#name=attr` / `:value=literal` pairs) and
+  evaluated by ExtendDB, with DynamoDB's `Invalid FilterExpression` errors.
 - **Breaking:** the old inline syntax (`@if status=pending`) is no longer
   accepted; write `@if #s = :p  #s=status :p=pending`. Shared links that use it
   show the error on those lines.
