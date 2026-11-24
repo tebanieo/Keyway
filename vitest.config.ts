@@ -11,7 +11,7 @@ export default defineConfig({
     // Registers jest-dom matchers + after-each cleanup. Individual UI test
     // files opt into jsdom with a `// @vitest-environment jsdom` docblock; the
     // engine/model tests stay in the faster default node environment.
-    setupFiles: ["./src/test/setup.ts"],
+    setupFiles: ["./src/test/setup.ts", "./src/test/extenddb.setup.mjs"],
     coverage: {
       provider: "v8",
       // `text` for the CI log, `lcov` for the report Codecov ingests.
