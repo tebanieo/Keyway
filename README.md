@@ -177,14 +177,19 @@ u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user   # label: attrs (label = stable
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace      # same label = update
 o1: PK=USER#2  SK=PROFILE                          # a new PK = atomic key change
 u2: PK=USER#3  SK=PROFILE  @if attribute_not_exists(PK)   # conditional write (create-only)
+o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  #s=status :p=pending   # real ConditionExpression
 delete o1                                          # remove an item
 ```
 
 - **`@ap`** declares an access pattern (a requirement); the app runs it against
   the model and shows which patterns are served and which aren't.
-- **`@if`**, as the last clause on a put/delete, is a conditional write: it
-  applies only if the condition holds, else it's rejected (and a failed check
-  still costs).
+- **`@if`**, as the last clause on a put/delete, is a conditional write: a real
+  DynamoDB `ConditionExpression`, followed by its `#name=attr` and `:value=literal`
+  placeholders. It applies only if the condition holds, else it's rejected (and
+  a failed check still costs). It's checked by
+  [ExtendDB](https://github.com/ExtendDB/extenddb)'s expression engine, compiled
+  to WebAssembly and running in your browser, so reserved words, syntax, and
+  unused placeholders fail exactly as DynamoDB would report them.
 - **`_type`** groups items into entities the editor can scaffold and backfill.
 - Comments (`#`) are free text; a comment directly above a line narrates that step.
 

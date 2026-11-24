@@ -7,6 +7,19 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`@if` now takes a real DynamoDB `ConditionExpression`**, with its
+  placeholders as trailing `#name=attr` / `:value=literal` pairs (quote a value
+  to force a String). It's parsed, validated, and evaluated by ExtendDB's
+  `extenddb-core` running as WebAssembly in the page, so errors are DynamoDB's
+  own (reserved words, undefined or unused placeholders), and a write with an
+  invalid condition no longer lands. A comparison against a bare word warns that
+  DynamoDB reads it as an attribute name.
+- **Breaking:** the old inline syntax (`@if status=pending`) is no longer
+  accepted; write `@if #s = :p  #s=status :p=pending`. Shared links that use it
+  show the error on those lines.
+
 ### Added
 
 - `wasm/`: a WASM wrapper over ExtendDB's `extenddb-core`, exposing its real

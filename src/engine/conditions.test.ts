@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { conditionRejected, fold } from "./engine";
 import { writeCost } from "./cost";
-import { parseFilter } from "./filter";
+import { parseCondition } from "./condition";
 import type { Condition, IndexSpec, Item, Op } from "./types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
 const GSI1: IndexSpec = { name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" };
 
-/** Build a Condition from expression text (mirrors what the DSL parser does). */
+/** Build a Condition from `@if` text (exactly what the DSL parser does). */
 function cond(text: string): Condition {
-  const p = parseFilter(text);
-  if (!p.ast) throw new Error(`bad test condition: ${text}`);
-  return { ast: p.ast, text };
+  const p = parseCondition(text);
+  if (!p.condition) throw new Error(`bad test condition: ${text}: ${p.error}`);
+  return p.condition;
 }
 
 function put(id: string, attrs: Record<string, string>, condition?: Condition): Op {
@@ -41,8 +41,12 @@ describe("fold: conditional writes", () => {
   it("applies an optimistic update while the guard holds, then rejects it", () => {
     const ops: Op[] = [
       put("o1", { PK: "U#1", SK: "O#1", status: "pending" }),
-      put("o1", { PK: "U#1", SK: "O#1", status: "shipped" }, cond("status=pending")),
-      put("o1", { PK: "U#1", SK: "O#1", status: "cancelled" }, cond("status=pending")),
+      put("o1", { PK: "U#1", SK: "O#1", status: "shipped" }, cond("#s = :s  #s=status :s=pending")),
+      put(
+        "o1",
+        { PK: "U#1", SK: "O#1", status: "cancelled" },
+        cond("#s = :s  #s=status :s=pending"),
+      ),
     ];
     const state = fold(ops, BASE);
     // second write ships (guard held); third is rejected (no longer pending)
@@ -53,7 +57,7 @@ describe("fold: conditional writes", () => {
     const held = fold(
       [
         put("o1", { PK: "U#1", SK: "O#1", status: "shipped" }),
-        { kind: "delete", id: "o1", condition: cond("status=shipped") },
+        { kind: "delete", id: "o1", condition: cond("#s = :s  #s=status :s=shipped") },
       ],
       BASE,
     );
@@ -62,7 +66,7 @@ describe("fold: conditional writes", () => {
     const blocked = fold(
       [
         put("o1", { PK: "U#1", SK: "O#1", status: "pending" }),
-        { kind: "delete", id: "o1", condition: cond("status=shipped") },
+        { kind: "delete", id: "o1", condition: cond("#s = :s  #s=status :s=shipped") },
       ],
       BASE,
     );
@@ -109,7 +113,7 @@ describe("writeCost: rejected conditional write", () => {
         {
           kind: "put",
           item: { id: "t1", attrs: { PK: "U#2", SK: "T#open" } },
-          condition: cond("status=pending"),
+          condition: cond("#s = :s  #s=status :s=pending"),
         },
       ],
     };

@@ -1,4 +1,9 @@
-import init, { evaluateCondition, initSync, itemSize } from "../../wasm/pkg/keyway_extenddb.js";
+import init, {
+  evaluateCondition,
+  initSync,
+  itemSize,
+  validateCondition,
+} from "../../wasm/pkg/keyway_extenddb.js";
 import type { FilterNode, Operand } from "./filter";
 import type { Item } from "./types";
 
@@ -112,17 +117,32 @@ export function compile(node: FilterNode): CompiledExpression {
   return { expression: walk(node), names, values };
 }
 
-/** Does `node` hold against `item`, by ExtendDB's DynamoDB semantics? Throws a
- *  DynamoDB-style validation message when the expression is invalid. */
-export function evaluate(node: FilterNode, item: Item): boolean {
+/** DynamoDB's ValidationException message for `c`, or null when it's valid. */
+export function validateCompiled(c: CompiledExpression): string | null {
   assertReady();
-  const { expression, names, values } = compile(node);
+  try {
+    validateCondition(c.expression, JSON.stringify(c.names), JSON.stringify(c.values));
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+/** Does `c` hold against `item`, by ExtendDB's DynamoDB semantics? Throws a
+ *  DynamoDB-style validation message when the expression is invalid. */
+export function evaluateCompiled(c: CompiledExpression, item: Item): boolean {
+  assertReady();
   return evaluateCondition(
-    expression,
+    c.expression,
     JSON.stringify(toWireItem(item.attrs)),
-    JSON.stringify(names),
-    JSON.stringify(values),
+    JSON.stringify(c.names),
+    JSON.stringify(c.values),
   );
+}
+
+/** Does `node` hold against `item`, by ExtendDB's DynamoDB semantics? */
+export function evaluate(node: FilterNode, item: Item): boolean {
+  return evaluateCompiled(compile(node), item);
 }
 
 /** The item's size in bytes as DynamoDB counts it for capacity. */
