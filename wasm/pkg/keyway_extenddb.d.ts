@@ -14,6 +14,12 @@ export function itemSize(item: string): number;
  */
 export function validateExpression(kind: string, expr: string, names: string, values: string): void;
 
+/**
+ * Validate a KeyConditionExpression against an index's key schema (`hash` and
+ * `range` are JSON arrays of attribute names). Throws DynamoDB's message.
+ */
+export function validateKeyCondition(expr: string, names: string, values: string, hash: string, range: string): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -21,6 +27,7 @@ export interface InitOutput {
     readonly evaluateExpression: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => void;
     readonly itemSize: (a: number, b: number, c: number) => void;
     readonly validateExpression: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+    readonly validateKeyCondition: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
