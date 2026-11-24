@@ -290,3 +290,14 @@ describe("runQuery: validation (ExtendDB key-condition rules)", () => {
     expect(r.error).toMatch(/does not match the schema/);
   });
 });
+
+describe("runQuery: GSI reads are billed by the projected entry", () => {
+  it("a KEYS_ONLY index reads fewer bytes than the full item", () => {
+    const keysOnly: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
+    const k = key(keysOnly, "GSI1PK = :s  :s=STATUS#pending");
+    const full = runQuery(state, GSI1, spec({ key: k }), BASE);
+    const keys = runQuery(state, keysOnly, spec({ key: k }), BASE);
+    expect(keys.items.map((i) => i.id)).toEqual(full.items.map((i) => i.id));
+    expect(keys.bytes).toBeLessThan(full.bytes); // `status` isn't projected
+  });
+});

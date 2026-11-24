@@ -1,30 +1,21 @@
+import { sizeOf } from "./extenddb";
 import type { Item } from "./types";
 
 /**
- * Real DynamoDB item size and the capacity units it drives, so cost stops
- * being a ≤4KB estimate and becomes exact. Pure.
+ * Real DynamoDB item size and the capacity units it drives. Pure.
  *
- * Item size = Σ over attributes of (UTF-8 bytes of the NAME + bytes of the
- * VALUE). Our model is flat and every value is a string, so each value is sized
- * as a DynamoDB String (S): its UTF-8 byte length. (Number/Binary/Set/Map sizing
- * lands if/when typed attributes do.) The 100-byte per-item overhead in the docs
- * is *storage* overhead, not capacity, so it's excluded here.
+ * The size comes from ExtendDB's `item_size_bytes`, measured against the
+ * service: Σ over attributes of (UTF-8 bytes of the NAME + size of the VALUE).
+ * A String (S) is its UTF-8 length; a Number (N) is sized by its significant
+ * digits, `1 + ceil(int digits / 2) + ceil(fraction digits / 2)` (+1 if
+ * negative), so `2024` is 3 bytes, not 4. Keyway sends a numeric-looking value
+ * as N, the same typing conditions and filters use. The 100-byte per-item
+ * overhead in the docs is *storage* overhead, not capacity, so it's excluded.
  */
-
-const enc = new TextEncoder();
-
-/** UTF-8 byte length of a string (not `.length`, which counts code units). */
-export function utf8Len(s: string): number {
-  return enc.encode(s).length;
-}
 
 /** The capacity-relevant size of an item, in bytes. */
 export function itemSize(item: Item): number {
-  let bytes = 0;
-  for (const name of Object.keys(item.attrs)) {
-    bytes += utf8Len(name) + utf8Len(item.attrs[name]);
-  }
-  return bytes;
+  return sizeOf(item);
 }
 
 /** DynamoDB's 400 KB hard item-size limit. */
@@ -32,7 +23,8 @@ export const MAX_ITEM_BYTES = 400 * 1024;
 
 /**
  * Write capacity units for a single item write: 1 WCU per 1 KB (rounded up,
- * min 1); transactional writes cost double.
+ * min 1); transactional writes cost double. Same as ExtendDB's
+ * `write_capacity_units`.
  */
 export function wcu(bytes: number, transactional = false): number {
   const units = Math.max(1, Math.ceil(bytes / 1024));
@@ -42,7 +34,8 @@ export function wcu(bytes: number, transactional = false): number {
 export type ReadMode = "eventual" | "strong" | "transactional";
 
 /**
- * Read capacity units for a given number of bytes read: 1 RCU per 4 KB
+ * Read capacity units for a given number of bytes read (ExtendDB's
+ * `read_capacity_units`): 1 RCU per 4 KB
  * (rounded up, min 1) for strongly-consistent reads; eventually-consistent is
  * half; transactional is double. For Query/Scan, pass the CUMULATIVE size of
  * all items read (DynamoDB rounds the total once, not per item).

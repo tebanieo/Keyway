@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { itemSize, rcu, utf8Len, wcu } from "./itemsize";
+import { itemSize, rcu, wcu } from "./itemsize";
 import type { Item } from "./types";
 
 const item = (attrs: Record<string, string>): Item => ({ id: "x", attrs });
@@ -10,9 +10,17 @@ describe("itemSize", () => {
     expect(itemSize(item({ PK: "U#1", SK: "PROFILE" }))).toBe(14);
   });
   it("counts multi-byte UTF-8 correctly (not code units)", () => {
-    expect(utf8Len("é")).toBe(2); // 2 bytes in UTF-8, .length is 1
-    // n(1) + é(2) = 3
+    // n(1) + é(2 bytes in UTF-8, though .length is 1) = 3
     expect(itemSize(item({ n: "é" }))).toBe(3);
+  });
+  it("sizes numbers by significant digits, as DynamoDB does (via ExtendDB)", () => {
+    // y(1) + 2024 as N: 1 + ceil(4 / 2) = 3, not the 4 bytes of the text
+    expect(itemSize(item({ y: "2024" }))).toBe(1 + 3);
+    // 1.5 as N: 1 + ceil(1/2) + ceil(1/2) = 3; -7 as N: 1 + 1 + 1 (sign) = 3
+    expect(itemSize(item({ a: "1.5" }))).toBe(1 + 3);
+    expect(itemSize(item({ a: "-7" }))).toBe(1 + 3);
+    // a numeric-looking value inside a string is still a string
+    expect(itemSize(item({ a: "v2024" }))).toBe(1 + 5);
   });
   it("is empty for an item with no attributes", () => {
     expect(itemSize(item({}))).toBe(0);

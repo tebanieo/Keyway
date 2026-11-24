@@ -80,11 +80,14 @@ function transitionCost(
     return { index: g.name, effect: "delete", writes: gWcu(prev!), from: partitionLabel(prev!, g) };
   }
   if (prevKey === newKey) {
+    // An in-place update bills the LARGER of the old and new index entries,
+    // and nothing at all when the projected entry is unchanged (ExtendDB's
+    // `one_index_write_units`, measured against the service).
     const changed = projectedChanged(prev!, next, g);
     return {
       index: g.name,
       effect: changed ? "update" : "none",
-      writes: changed ? gWcu(next) : 0,
+      writes: changed ? Math.max(gWcu(prev!), gWcu(next)) : 0,
       to: partitionLabel(next, g),
     };
   }
@@ -174,7 +177,8 @@ export function writeCost(
     const baseKey = keyOf(op.item, baseIndex);
     const prev = baseKey ? (prevState.get(baseKey) ?? null) : null;
     const indexes = gsis.map((g) => transitionCost(prev, op.item, g, baseIndex));
-    const baseWrites = wcu(itemSize(op.item));
+    // An overwrite bills the larger of the old and new item (ExtendDB's PutItem).
+    const baseWrites = wcu(Math.max(itemSize(op.item), prev ? itemSize(prev) : 0));
     return {
       base: "put",
       baseWrites,
@@ -187,7 +191,9 @@ export function writeCost(
   if (op.kind === "delete") {
     const prev = findById(prevState, op.id);
     const indexes = gsis.map((g) => removalCost(prev, g, baseIndex));
-    const baseWrites = prev ? wcu(itemSize(prev)) : 0;
+    // Billed by the deleted item's size; a delete of a missing item still
+    // costs the 1-WCU minimum (ExtendDB sizes it by the key).
+    const baseWrites = wcu(prev ? itemSize(prev) : 0);
     return {
       base: "delete",
       baseWrites,
@@ -210,13 +216,14 @@ export function writeCost(
       for (const g of gsis) {
         perIndexParts.get(g.name)!.push(transitionCost(prev, action.item, g, baseIndex));
       }
-      baseWrites += wcu(itemSize(action.item), true); // transactional 2×
+      // transactional 2×, by the larger of old and new, as a plain put
+      baseWrites += wcu(Math.max(itemSize(action.item), prev ? itemSize(prev) : 0), true);
     } else {
       const prev = findById(running, action.id);
       for (const g of gsis) {
         perIndexParts.get(g.name)!.push(removalCost(prev, g, baseIndex));
       }
-      if (prev) baseWrites += wcu(itemSize(prev), true);
+      baseWrites += wcu(prev ? itemSize(prev) : 0, true);
     }
     applyAction(running, action, baseIndex);
   }

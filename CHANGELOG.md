@@ -25,6 +25,12 @@ hand-curated summary. It follows
   key schema, so a broken key rule shows DynamoDB's own error (and flags the
   pattern `invalid` in coverage). GetItem keeps its `Key` (`get PK=… SK=…`) and
   no longer shows a filter box, since GetItem has no FilterExpression.
+- **Capacity follows ExtendDB's measured rules.** Item size is ExtendDB's
+  `item_size_bytes` (a numeric-looking value is sized as a Number: `2024` is 3
+  bytes); an overwrite bills the larger of the old and new item; deleting a
+  missing item bills the 1-WCU minimum; an in-place index update bills the
+  larger index entry; and a GSI read is sized by its projected entries, so a
+  `KEYS_ONLY` index reads cheaper.
 - **Breaking:** the old compact `@ap` key syntax, like
   `PK=USER#1 SK begins_with ORDER#`, is no longer read; the editor points at
   the new form.

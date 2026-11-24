@@ -80,7 +80,7 @@ export function QueryPanel({
     const parsed = op !== "get" && filterText.trim() ? parseExpression(filterText, "filter") : null;
     if (parsed?.error) return fail(`filter: ${parsed.error}`);
     const filter = parsed?.expression ?? null;
-    const r = runQuery(state, index, { ...common, filter });
+    const r = runQuery(state, index, { ...common, filter }, base);
     setResult({
       scanned: r.scanned,
       bytes: r.bytes,
@@ -94,7 +94,7 @@ export function QueryPanel({
       return;
     }
     // the "read" set (before filter) drives the faint "you paid for this" highlight
-    const read = runQuery(state, index, { ...common, filter: null });
+    const read = runQuery(state, index, { ...common, filter: null }, base);
     onHighlight({
       matched: new Set(r.items.map((i) => i.id)),
       scanned: new Set(read.items.map((i) => i.id)),
