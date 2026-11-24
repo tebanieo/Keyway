@@ -12,7 +12,14 @@ import prettier from "eslint-config-prettier";
  */
 export default tseslint.config(
   {
-    ignores: ["dist", "docs/.vitepress/dist", "docs/.vitepress/cache", "coverage"],
+    ignores: [
+      "dist",
+      "docs/.vitepress/dist",
+      "docs/.vitepress/cache",
+      "coverage",
+      "wasm/target",
+      "wasm/pkg",
+    ],
   },
   {
     files: ["**/*.{ts,tsx}"],
