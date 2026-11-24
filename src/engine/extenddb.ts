@@ -1,8 +1,8 @@
 import init, {
-  evaluateCondition,
+  evaluateExpression,
   initSync,
   itemSize,
-  validateCondition,
+  validateExpression,
 } from "../../wasm/pkg/keyway_extenddb.js";
 import type { FilterNode, Operand } from "./filter";
 import type { Item } from "./types";
@@ -117,11 +117,18 @@ export function compile(node: FilterNode): CompiledExpression {
   return { expression: walk(node), names, values };
 }
 
+/**
+ * Which request parameter an expression is. They share one grammar, but
+ * DynamoDB labels their errors differently, and a FilterExpression also gets
+ * Query/Scan's `begins_with` operand check.
+ */
+export type ExpressionKind = "condition" | "filter";
+
 /** DynamoDB's ValidationException message for `c`, or null when it's valid. */
-export function validateCompiled(c: CompiledExpression): string | null {
+export function validateCompiled(c: CompiledExpression, kind: ExpressionKind): string | null {
   assertReady();
   try {
-    validateCondition(c.expression, JSON.stringify(c.names), JSON.stringify(c.values));
+    validateExpression(kind, c.expression, JSON.stringify(c.names), JSON.stringify(c.values));
     return null;
   } catch (e) {
     return e instanceof Error ? e.message : String(e);
@@ -130,9 +137,10 @@ export function validateCompiled(c: CompiledExpression): string | null {
 
 /** Does `c` hold against `item`, by ExtendDB's DynamoDB semantics? Throws a
  *  DynamoDB-style validation message when the expression is invalid. */
-export function evaluateCompiled(c: CompiledExpression, item: Item): boolean {
+export function evaluateCompiled(c: CompiledExpression, item: Item, kind: ExpressionKind): boolean {
   assertReady();
-  return evaluateCondition(
+  return evaluateExpression(
+    kind,
     c.expression,
     JSON.stringify(toWireItem(item.attrs)),
     JSON.stringify(c.names),
@@ -142,7 +150,7 @@ export function evaluateCompiled(c: CompiledExpression, item: Item): boolean {
 
 /** Does `node` hold against `item`, by ExtendDB's DynamoDB semantics? */
 export function evaluate(node: FilterNode, item: Item): boolean {
-  return evaluateCompiled(compile(node), item);
+  return evaluateCompiled(compile(node), item, "filter");
 }
 
 /** The item's size in bytes as DynamoDB counts it for capacity. */

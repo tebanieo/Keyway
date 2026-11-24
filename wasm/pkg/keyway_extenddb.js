@@ -1,24 +1,28 @@
 /* @ts-self-types="./keyway_extenddb.d.ts" */
 
 /**
+ * Evaluate an expression (`kind` is "condition" or "filter") against one item.
+ * @param {string} kind
  * @param {string} expr
  * @param {string} item
  * @param {string} names
  * @param {string} values
  * @returns {boolean}
  */
-export function evaluateCondition(expr, item, names, values) {
+export function evaluateExpression(kind, expr, item, names, values) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr0 = passStringToWasm0(kind, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(item, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr1 = passStringToWasm0(expr, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(names, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr2 = passStringToWasm0(item, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(values, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr3 = passStringToWasm0(names, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len3 = WASM_VECTOR_LEN;
-        wasm.evaluateCondition(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        const ptr4 = passStringToWasm0(values, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len4 = WASM_VECTOR_LEN;
+        wasm.evaluateExpression(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -54,22 +58,25 @@ export function itemSize(item) {
 }
 
 /**
- * Validate a ConditionExpression without evaluating it. Throws DynamoDB's
- * ValidationException message when it's invalid.
+ * Validate an expression (`kind` is "condition" or "filter") without
+ * evaluating it. Throws DynamoDB's ValidationException message when invalid.
+ * @param {string} kind
  * @param {string} expr
  * @param {string} names
  * @param {string} values
  */
-export function validateCondition(expr, names, values) {
+export function validateExpression(kind, expr, names, values) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr0 = passStringToWasm0(kind, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(names, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr1 = passStringToWasm0(expr, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(values, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const ptr2 = passStringToWasm0(names, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len2 = WASM_VECTOR_LEN;
-        wasm.validateCondition(retptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        const ptr3 = passStringToWasm0(values, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.validateExpression(retptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         if (r1) {

@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 import { fold } from "./engine";
 import { runQuery } from "./query";
 import type { QuerySpec } from "./query";
-import { parseFilter } from "./filter";
+import { parseExpression } from "./expression";
 import type { IndexSpec, Op } from "./types";
 
-const filter = (expr: string) => parseFilter(expr).ast ?? null;
+/** A FilterExpression as the Query panel builds it (throws if invalid). */
+const filter = (text: string) => {
+  const p = parseExpression(text, "filter");
+  if (!p.expression) throw new Error(`bad test filter: ${text}: ${p.error}`);
+  return p.expression;
+};
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
 const GSI1: IndexSpec = { name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" };
@@ -83,7 +88,7 @@ describe("runQuery: query", () => {
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filter: filter("status = pending"),
+        filter: filter("#s = :p  #s=status :p=pending"),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]); // returned
@@ -102,7 +107,7 @@ describe("runQuery: query", () => {
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filter: filter("status = pending AND GSI1SK > 2024-02"),
+        filter: filter("#s = :p AND GSI1SK > :d  #s=status :p=pending :d=2024-02"),
       }),
     );
     expect(r.items.map((i) => i.id)).toEqual(["o3"]);
@@ -115,7 +120,7 @@ describe("runQuery: query", () => {
       spec({
         pk: ["U#1"],
         skParts: [{ op: "begins_with", value: "ORDER#" }],
-        filter: filter("status = shipped OR GSI1SK = 2024-03"),
+        filter: filter("#s = :sh OR GSI1SK = :d  #s=status :sh=shipped :d=2024-03"),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o3"]);
@@ -146,7 +151,11 @@ describe("runQuery: scan", () => {
     expect(r.scanned).toBe(3); // only the 3 orders carry GSI1 keys
   });
   it("a scan filter trims results, not cost", () => {
-    const r = runQuery(state, BASE, spec({ op: "scan", filter: filter("status = pending") }));
+    const r = runQuery(
+      state,
+      BASE,
+      spec({ op: "scan", filter: filter("#s = :p  #s=status :p=pending") }),
+    );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
     expect(r.scanned).toBe(5); // still read everything
   });

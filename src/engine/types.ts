@@ -47,18 +47,23 @@ export interface IndexSpec {
 }
 
 /**
- * A real DynamoDB ConditionExpression guarding a write (`@if <expr> #n=.. :v=..`).
- * The write applies only if it holds against the item's CURRENT state (checked
- * by ExtendDB); otherwise it's rejected (a ConditionalCheckFailed) and nothing
- * changes. `names`/`values` are its ExpressionAttributeNames/Values, and `text`
- * is everything after `@if`, kept so the DSL round-trips.
+ * A real DynamoDB expression with its ExpressionAttributeNames/Values, parsed
+ * from Keyway's `expr  #n=attr  :v=value` form (see `parseExpression`). `text`
+ * is what was written, kept so the DSL round-trips.
  */
-export interface Condition {
+export interface Expression {
   expression: string;
   names: Record<string, string>;
   values: Record<string, AttributeValue>;
   text: string;
 }
+
+/**
+ * A ConditionExpression guarding a write (`@if ...`). The write applies only if
+ * it holds against the item's CURRENT state (checked by ExtendDB); otherwise
+ * it's rejected (a ConditionalCheckFailed) and nothing changes.
+ */
+export type Condition = Expression;
 
 /** A single write against the table. The atoms a transaction is built from. */
 export type WriteAction =

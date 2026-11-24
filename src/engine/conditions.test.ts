@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { conditionRejected, fold } from "./engine";
 import { writeCost } from "./cost";
-import { parseCondition } from "./condition";
+import { parseExpression } from "./expression";
 import type { Condition, IndexSpec, Item, Op } from "./types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
@@ -9,9 +9,9 @@ const GSI1: IndexSpec = { name: "GSI1", pk: "GSI1PK", sk: "GSI1SK" };
 
 /** Build a Condition from `@if` text (exactly what the DSL parser does). */
 function cond(text: string): Condition {
-  const p = parseCondition(text);
-  if (!p.condition) throw new Error(`bad test condition: ${text}: ${p.error}`);
-  return p.condition;
+  const p = parseExpression(text, "condition");
+  if (!p.expression) throw new Error(`bad test condition: ${text}: ${p.error}`);
+  return p.expression;
 }
 
 function put(id: string, attrs: Record<string, string>, condition?: Condition): Op {

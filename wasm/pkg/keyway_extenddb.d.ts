@@ -1,23 +1,26 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function evaluateCondition(expr: string, item: string, names: string, values: string): boolean;
+/**
+ * Evaluate an expression (`kind` is "condition" or "filter") against one item.
+ */
+export function evaluateExpression(kind: string, expr: string, item: string, names: string, values: string): boolean;
 
 export function itemSize(item: string): number;
 
 /**
- * Validate a ConditionExpression without evaluating it. Throws DynamoDB's
- * ValidationException message when it's invalid.
+ * Validate an expression (`kind` is "condition" or "filter") without
+ * evaluating it. Throws DynamoDB's ValidationException message when invalid.
  */
-export function validateCondition(expr: string, names: string, values: string): void;
+export function validateExpression(kind: string, expr: string, names: string, values: string): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly evaluateCondition: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+    readonly evaluateExpression: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => void;
     readonly itemSize: (a: number, b: number, c: number) => void;
-    readonly validateCondition: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly validateExpression: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

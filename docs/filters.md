@@ -7,8 +7,10 @@ interchangeable:
    and are restricted to what a real DynamoDB Query allows.
 2. **Filter expressions** run _after_ the read to trim what's returned.
 
-The filter language lives in [`src/engine/filter.ts`](https://github.com/); the
-query key rules in [`src/engine/query.ts`](https://github.com/).
+Filters are real DynamoDB `FilterExpression`s, parsed, validated, and evaluated
+by [ExtendDB](https://github.com/ExtendDB/extenddb)'s expression engine
+(compiled to WebAssembly, running in your browser). The query key rules live in
+[`src/engine/query.ts`](https://github.com/tebanieo/Keyway/blob/main/src/engine/query.ts).
 
 ## Filters run AFTER the read
 
@@ -24,7 +26,7 @@ from their **cumulative** size, and only then applies the filter to decide what
 to _return_:
 
 ```ts
-const items = spec.filter ? read.filter((it) => evalFilter(spec.filter, it)) : read;
+const items = filter ? read.filter((it) => evaluateCompiled(filter, it, "filter")) : read;
 const bytes = read.reduce((n, it) => n + itemSize(it), 0);   // cost = what was READ
 return { scanned: read.length, items, rcu: rcu(bytes, mode), … };
 ```
@@ -32,80 +34,46 @@ return { scanned: read.length, items, rcu: rcu(bytes, mode), … };
 Use filters to express intent and see results; use **key design** to control
 cost.
 
-## Filter grammar
+## Writing a filter
 
-Values are written **inline**: there is no `:placeholder` / `#name` indirection.
-The **left** side of a comparison is an attribute path; the **right** side is a
-literal. Quote a value if it contains spaces:
-
-```text
-status = shipped
-name = "Ada Lovelace"
-```
-
-### Comparators
+Type the `FilterExpression` exactly as you would send it to DynamoDB, then its
+placeholders as pairs, the same form `@if` uses (see [The DSL](/dsl)):
 
 ```text
-=   <>   <   <=   >   >=
+#s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5
 ```
 
-Numeric-looking operands compare numerically; otherwise they compare as strings.
-A missing attribute makes a comparison false.
+- `#name=attr` is an `ExpressionAttributeNames` entry: needed for reserved
+  words (`status`, `name`, `date`, …) and special characters.
+- `:value=literal` is an `ExpressionAttributeValues` entry. A bare number is a
+  Number (`N`); anything else is a String (`S`). Quote it to force a String or
+  include spaces: `:who="Ada Lovelace"`.
 
-### BETWEEN and IN
+The whole DynamoDB grammar works: comparators, `BETWEEN`, `IN`, `AND`/`OR`/`NOT`
+with parentheses, and the functions (`attribute_exists`, `attribute_not_exists`,
+`attribute_type`, `begins_with`, `contains`, `size`). Errors are DynamoDB's
+own, labelled `Invalid FilterExpression`: a reserved word without a `#name`, an
+undefined or unused placeholder, a `begins_with` on a Number.
 
-```text
-total between 10 and 100
-tier in (vip, general, comp)
-```
+::: tip `status = pending` compares two attributes
+A bare word on the right of a comparison is an attribute name, not a value. The
+panel warns when it sees one; use a placeholder (`:p=pending`).
+:::
 
-### Boolean logic and grouping
+Keyway attributes are untyped text: a value that looks like a number is stored
+as a Number (`N`), anything else as a String (`S`), so `#t > :n  :n=10` compares
+numerically.
 
-```text
-AND   OR   NOT   ( … )
-```
-
-`AND` / `OR` / `NOT` are case-insensitive. Precedence, highest to lowest:
-
-1. `( … )` and functions
-2. `NOT`
-3. `AND`
-4. `OR`
-
-So `a = 1 OR b = 2 AND c = 3` parses as `a = 1 OR (b = 2 AND c = 3)`. Parenthesize
-to override.
-
-### Functions
-
-```text
-attribute_exists(attr)
-attribute_not_exists(attr)
-attribute_type(attr, S)          # S or N (see note)
-begins_with(attr, prefix)
-contains(attr, substring)
-size(attr)                       # usable on either side of a comparison
-```
-
-- `attribute_exists` / `attribute_not_exists` test presence. Reads are
-  own-property only, so inherited names like `constructor` never masquerade as
-  attributes.
-- `attribute_type`: since the model is currently all strings, a value is
-  reported as `N` if it looks numeric, else `S` (real N/S/B typing is
-  backlogged). This keeps typing consistent with how comparisons order values.
-- `size(attr)` resolves to the string length and can appear on either side, e.g.
-  `size(name) > 10`.
-
-Examples:
-
-```text
-attribute_exists(GSI1PK) AND status <> cancelled
-begins_with(SK, ORDER#) AND total between 20 and 100
-NOT contains(tags, archived)
-```
+::: warning Not checked yet
+A real Query refuses a filter on the index's own key attributes ("Filter
+Expression can only contain non-primary key attributes"). ExtendDB doesn't
+enforce that for Query yet, so Keyway doesn't either; put key constraints in the
+key condition.
+:::
 
 ## Query sort-key conditions are a restricted set
 
-A Query's key condition is not the free filter grammar: it mirrors DynamoDB's
+A Query's key condition is not the filter grammar: it mirrors DynamoDB's
 real rules (enforced in `validate()` and `runQuery()`):
 
 - The **partition key** must be **equality** (`=`) for **every** partition

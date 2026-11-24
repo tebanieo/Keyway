@@ -2,7 +2,7 @@ import { useState } from "react";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
 import type { Cond, CondOp } from "../engine/query";
-import { parseFilter } from "../engine/filter";
+import { parseExpression } from "../engine/expression";
 import type { IndexSpec, Item } from "../engine/types";
 
 const OPS: CondOp[] = ["=", "begins_with", "<", "<=", ">", ">=", "between"];
@@ -52,6 +52,7 @@ export function QueryPanel({
     returned: number;
     rcu: number;
     error: string | null;
+    warnings?: string[];
   } | null>(null);
 
   const setPk = (a: string, v: string) => setPkVals((p) => ({ ...p, [a]: v }));
@@ -76,13 +77,14 @@ export function QueryPanel({
       skParts,
       consistent,
     };
-    const parsed = parseFilter(filterText);
-    if (parsed.error) {
+    // An empty filter box means no FilterExpression at all.
+    const parsed = filterText.trim() ? parseExpression(filterText, "filter") : null;
+    if (parsed?.error) {
       setResult({ scanned: 0, bytes: 0, returned: 0, rcu: 0, error: `filter: ${parsed.error}` });
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
     }
-    const filter = parsed.ast ?? null;
+    const filter = parsed?.expression ?? null;
     const r = runQuery(state, index, { ...common, filter });
     setResult({
       scanned: r.scanned,
@@ -90,6 +92,7 @@ export function QueryPanel({
       returned: r.items.length,
       rcu: r.rcu,
       error: r.error,
+      warnings: parsed?.warnings,
     });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
@@ -239,7 +242,7 @@ export function QueryPanel({
         <input
           className="q-filter-input"
           value={filterText}
-          placeholder="e.g.  status = pending AND size(name) > 5 OR begins_with(SK, ORDER#)"
+          placeholder="e.g.  #s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5"
           onChange={(e) => setFilterText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") run();
@@ -247,8 +250,8 @@ export function QueryPanel({
           spellCheck={false}
         />
         <span className="q-hint">
-          applied after the read - trims results, not cost. = &lt;&gt; &lt; &gt; BETWEEN IN( ) AND
-          OR NOT ( ) begins_with contains attribute_exists size
+          a real DynamoDB FilterExpression, checked by ExtendDB, then its #name=attr and
+          :value=literal placeholders. Applied after the read: trims results, not cost.
         </span>
       </div>
 
@@ -276,6 +279,11 @@ export function QueryPanel({
                   don't save RCU
                 </span>
               )}
+              {result.warnings?.map((w) => (
+                <span key={w} className="q-note">
+                  ⚠ {w}
+                </span>
+              ))}
             </>
           )}
         </div>

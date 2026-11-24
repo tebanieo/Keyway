@@ -1,5 +1,5 @@
 import { keyOf } from "../engine/engine";
-import { parseCondition } from "../engine/condition";
+import { parseExpression } from "../engine/expression";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
 import type { CondOp } from "../engine/query";
 
@@ -368,18 +368,18 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     const ifm = /\s@if\s+(.+)$/i.exec(s);
     if (ifm) {
       core = s.slice(0, ifm.index);
-      const parsed = parseCondition(ifm[1]);
+      const parsed = parseExpression(ifm[1], "condition");
       for (const message of parsed.warnings) {
         diagnostics.push({ line, message: `@if: ${message}`, severity: "warning" });
       }
-      if (!parsed.condition) {
+      if (!parsed.expression) {
         // DynamoDB answers an invalid expression with a ValidationException:
         // the write never happens, so the line contributes no op.
         diagnostics.push({ line, message: `@if: ${parsed.error}`, severity: "error" });
         pending = [];
         return;
       }
-      condition = parsed.condition;
+      condition = parsed.expression;
     }
 
     const del = DELETE.exec(core);
