@@ -2,27 +2,32 @@
 
 Keyway **estimates** the capacity units each write consumes, computed from the
 item's size and the indexes it touches, so you can see why a write costs what it
-does. It follows DynamoDB's documented formulas, but it is a model-based estimate,
-not your actual bill. The math lives in
-[`src/engine/itemsize.ts`](https://github.com/) (sizes and units) and
-[`src/engine/cost.ts`](https://github.com/) (per-op, per-index effects).
+does. It follows the capacity rules [ExtendDB](https://github.com/ExtendDB/extenddb)
+measured against the service, but it is a model-based estimate, not your actual
+bill. The math lives in
+[`src/engine/itemsize.ts`](https://github.com/tebanieo/Keyway/blob/main/src/engine/itemsize.ts)
+(sizes and units) and
+[`src/engine/cost.ts`](https://github.com/tebanieo/Keyway/blob/main/src/engine/cost.ts)
+(per-op, per-index effects).
 
 ## Item size
 
 An item's capacity-relevant size is the sum, over its attributes, of the **UTF-8
-byte length of the name plus the value**:
+byte length of the name plus the size of the value**. It's computed by ExtendDB's
+`item_size_bytes`, running as WebAssembly in your browser:
 
 ```text
-itemSize(item) = Σ  utf8Len(name) + utf8Len(value)
+itemSize(item) = Σ  utf8Len(name) + size(value)
 ```
 
 Notes that keep this honest:
 
 - Bytes are counted as **UTF-8**, not JavaScript `.length` (which counts code
   units), so multi-byte characters cost their real size.
-- Every value is sized as a DynamoDB **String (S)**: its UTF-8 byte length. The
-  model is flat and all-strings today; Number/Binary/Set/Map sizing lands with
-  typed attributes.
+- A value that looks like a number is a **Number (N)**, sized by its significant
+  digits: `1 + ceil(integer digits / 2) + ceil(fraction digits / 2)`, plus 1 if
+  negative. So `2024` is 3 bytes and `1.5` is 3. Anything else is a **String
+  (S)**: its UTF-8 byte length.
 - The 100-byte per-item overhead from the AWS docs is _storage_ overhead, not
   capacity, so it's excluded here. The 400 KB hard item limit is tracked as
   `MAX_ITEM_BYTES`.
@@ -34,6 +39,10 @@ WCU = ceil(size / 1KB) × (1 standard | 2 transactional)      # min 1
 ```
 
 - 1 WCU per 1 KB, rounded up, minimum 1.
+- An **overwrite** bills the **larger** of the old and the new item, so shrinking
+  a big item still costs what the big one did.
+- A **delete** bills the deleted item's size; deleting an item that doesn't
+  exist still costs the 1-WCU minimum.
 - A **transactional** write bills **double**: its base writes cost 2×.
 
 ## Read capacity (RCU)
@@ -45,6 +54,8 @@ RCU = ceil(cumulativeBytes / 4KB) × (0.5 eventual | 1 strong | 2 transactional)
 - 1 RCU per 4 KB, rounded up, minimum 1 _unit_.
 - **Eventually consistent** reads are half; **strong** is full; **transactional**
   is double.
+- A read on a **GSI** is sized by the index's **projected** entries, so a
+  `KEYS_ONLY` index is cheaper to read than the full items behind it.
 - For a **Query/Scan**, pass the **cumulative** size of every item read:
   DynamoDB rounds the _total_ once, not per item. This is why a filter that drops
   most rows still leaves the cost high: cost is computed from what was read, not
@@ -55,13 +66,13 @@ RCU = ceil(cumulativeBytes / 4KB) × (0.5 eventual | 1 strong | 2 transactional)
 Every write is priced per index by its **transition**, not a snapshot. The
 vocabulary (`IndexEffect`):
 
-| Effect    | Meaning                                                                 | Writes |
-| --------- | ----------------------------------------------------------------------- | ------ |
-| `none`    | the write doesn't touch this index (no key before or after)             | 0      |
-| `insert`  | the item enters the index for the first time                            | 1×     |
-| `delete`  | the item leaves the index (a key attr removed, or the row deleted)      | 1×     |
-| `update`  | the item stays put, but a _projected_ attribute changed                 | 1×     |
-| `reindex` | the index **key** changed → delete the old projection **and** put a new | 2×     |
+| Effect    | Meaning                                                                     | Writes |
+| --------- | --------------------------------------------------------------------------- | ------ |
+| `none`    | the write doesn't touch this index (no key before or after)                 | 0      |
+| `insert`  | the item enters the index for the first time                                | 1×     |
+| `delete`  | the item leaves the index (a key attr removed, or the row deleted)          | 1×     |
+| `update`  | the item stays put, but a _projected_ attribute changed (larger of old/new) | 1×     |
+| `reindex` | the index **key** changed → delete the old projection **and** put a new     | 2×     |
 
 A GSI write is sized by the **projected** item, so a `KEYS_ONLY` or `INCLUDE`
 index that carries less data costs less. An `update` only fires when an attribute
