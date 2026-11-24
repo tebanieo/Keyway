@@ -5,7 +5,7 @@ name: CI
 # install, and so pull requests (including from forks) are checked before merge.
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
 
 concurrency:
