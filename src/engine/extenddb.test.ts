@@ -98,3 +98,24 @@ describe("keyConditionTemplate", () => {
     expect(parseExpression(filled, "key", schema).error).toBeUndefined();
   });
 });
+
+describe("evaluateCompiled never throws", () => {
+  it("treats a wrongly typed attribute operand as false, as DynamoDB does", () => {
+    // begins_with(a, b) is valid; it only goes wrong when b holds a Number
+    const p = parseExpression("begins_with(a, b)", "filter");
+    expect(p.error).toBeUndefined();
+    const item: Item = { id: "x", attrs: { a: "abc", b: "42" } };
+    expect(evaluateCompiled(p.expression!, item, "filter")).toBe(false);
+  });
+});
+
+describe("parseExpression: quoted values", () => {
+  it("unescapes a quoted value, and reports a bad escape instead of throwing", () => {
+    // the DSL text  :v="C:\\dir"  is the value  C:\dir
+    const ok = parseExpression('x = :v  :v="C:\\\\dir"', "condition");
+    expect(ok.expression?.values[":v"]).toEqual({ S: "C:\\dir" });
+    // the DSL text  :v="C:\dir"  has an escape JSON doesn't know (\d)
+    const bad = parseExpression('x = :v  :v="C:\\dir"', "condition");
+    expect(bad.error).toMatch(/:v has an invalid quoted value/);
+  });
+});

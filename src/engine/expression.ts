@@ -61,7 +61,17 @@ export function parseExpression(
       return { error: `${ref} needs a value, e.g. ${ref}=USER#1`, warnings: [] };
     }
     const quoted = raw.startsWith('"');
-    const literal = quoted ? (JSON.parse(raw) as string) : raw;
+    let literal = raw;
+    if (quoted) {
+      try {
+        literal = JSON.parse(raw) as string;
+      } catch {
+        return {
+          error: `${ref} has an invalid quoted value; inside quotes, write a backslash as \\\\ and a quote as \\"`,
+          warnings: [],
+        };
+      }
+    }
     const seen = ref.startsWith("#") ? ref in names : ref in values;
     if (seen) return { error: `${ref} is defined twice`, warnings: [] };
     if (ref.startsWith("#")) names[ref] = literal;
