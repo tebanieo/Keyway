@@ -69,6 +69,27 @@ describe("QueryPanel", () => {
     expect(key.value).toBe("GSI1PK = :pk  :pk=");
   });
 
+  it("resets the template when the index's keys change under it", () => {
+    const { rerender, onHighlight, onClose } = setup();
+    const key = screen.getByLabelText("KeyConditionExpression") as HTMLInputElement;
+    fireEvent.change(key, { target: { value: "PK = :pk  :pk=U#1" } });
+    const parsed = parseDoc(
+      DSL.replace("@table T pk=PK sk=SK", "@table T pk=ID sk=SK"),
+      BASE_INDEX,
+    );
+    rerender(
+      <QueryPanel
+        open
+        base={parsed.base}
+        gsis={parsed.gsis}
+        state={fold(parsed.ops, parsed.base)}
+        onHighlight={onHighlight}
+        onClose={onClose}
+      />,
+    );
+    expect(key.value).toBe("ID = :pk  :pk=");
+  });
+
   it("runs a Query from its KeyConditionExpression and highlights the match", () => {
     const p = setup(); // op defaults to "query", index = base
     fireEvent.change(screen.getByLabelText("KeyConditionExpression"), {
