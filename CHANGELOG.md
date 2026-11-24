@@ -23,6 +23,11 @@ hand-curated summary. It follows
   accepted; write `@if #s = :p  #s=status :p=pending`. Shared links that use it
   show the error on those lines.
 
+### Removed
+
+- Keyway's hand-written filter/condition parser and evaluator
+  (`src/engine/filter.ts`, ~400 lines): ExtendDB does that job now.
+
 ### Added
 
 - `wasm/`: a WASM wrapper over ExtendDB's `extenddb-core`, exposing its real

@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { compile, evaluate, sizeOf, toWireItem } from "./extenddb";
-import { parseFilter } from "./filter";
+import { evaluateCompiled, sizeOf, toWireItem, validateCompiled } from "./extenddb";
+import { parseExpression } from "./expression";
 import type { Item } from "./types";
 
-const ast = (text: string) => {
-  const parsed = parseFilter(text);
-  if (!parsed.ast) throw new Error(parsed.error ?? "empty");
-  return parsed.ast;
-};
+// The WASM is loaded by src/test/extenddb.setup.mjs.
 
 const ada: Item = {
   id: "u1",
   attrs: { PK: "USER#1", SK: "PROFILE", name: "Ada Lovelace", age: "36", status: "active" },
 };
 
-// The WASM is loaded by src/test/extenddb.setup.mjs.
+/** Evaluate Keyway-style `expr  #n=..  :v=..` text against an item, as a filter. */
+const holds = (text: string, item: Item = ada) => {
+  const p = parseExpression(text, "filter");
+  if (!p.expression) throw new Error(`bad test expression: ${text}: ${p.error}`);
+  return evaluateCompiled(p.expression, item, "filter");
+};
 
 describe("toWireItem", () => {
   it("sends numeric-looking values as N and the rest as S", () => {
@@ -27,56 +28,46 @@ describe("toWireItem", () => {
   });
 });
 
-describe("compile", () => {
-  it("moves names and values into placeholders", () => {
-    expect(compile(ast("status = active AND age > 30"))).toEqual({
-      expression: "(#n0 = :v0 AND #n1 > :v1)",
-      names: { "#n0": "status", "#n1": "age" },
-      values: { ":v0": { S: "active" }, ":v1": { N: "30" } },
-    });
-  });
-
-  it("reuses a placeholder for a repeated name or value", () => {
-    const c = compile(ast("a = x OR b = x OR a = y"));
-    expect(Object.keys(c.names)).toEqual(["#n0", "#n1"]);
-    expect(Object.keys(c.values)).toEqual([":v0", ":v1"]);
-  });
-
-  it("translates functions, BETWEEN, IN and size()", () => {
-    expect(compile(ast("attribute_not_exists(PK)")).expression).toBe("attribute_not_exists(#n0)");
-    expect(compile(ast("begins_with(SK, ORDER#)")).expression).toBe("begins_with(#n0, :v0)");
-    expect(compile(ast("age BETWEEN 1 AND 9")).expression).toBe("#n0 BETWEEN :v0 AND :v1");
-    expect(compile(ast("status IN (a, b)")).expression).toBe("#n0 IN (:v0, :v1)");
-    expect(compile(ast("size(name) > 3")).expression).toBe("size(#n0) > :v0");
-  });
-});
-
-describe("evaluate (ExtendDB)", () => {
+describe("evaluateCompiled (ExtendDB)", () => {
   it.each([
     ["attribute_exists(PK)", true],
     ["attribute_not_exists(PK)", false],
-    ["status = active", true],
-    ["status <> active", false],
-    ["age > 30 AND age < 40", true],
-    ["age BETWEEN 37 AND 99", false],
-    ["status IN (pending, active)", true],
-    ['begins_with(PK, "USER#")', true],
-    ["contains(name, Love)", true],
-    ["size(name) = 12", true],
-    ["attribute_type(age, N)", true],
-    ["NOT (status = active)", false],
+    ["#s = :a  #s=status :a=active", true],
+    ["#s <> :a  #s=status :a=active", false],
+    ["age > :lo AND age < :hi  :lo=30 :hi=40", true],
+    ["age BETWEEN :lo AND :hi  :lo=37 :hi=99", false],
+    ["#s IN (:p, :a)  #s=status :p=pending :a=active", true],
+    ["begins_with(PK, :u)  :u=USER#", true],
+    ["contains(#n, :x)  #n=name :x=Love", true],
+    ["size(#n) = :len  #n=name :len=12", true],
+    ["attribute_type(age, :t)  :t=N", true],
+    ["NOT (#s = :a)  #s=status :a=active", false],
   ])("%s → %s", (text, expected) => {
-    expect(evaluate(ast(text), ada)).toBe(expected);
+    expect(holds(text)).toBe(expected);
   });
 
   it("treats a missing item as empty, as DynamoDB does", () => {
     const none: Item = { id: "", attrs: {} };
-    expect(evaluate(ast("attribute_not_exists(PK)"), none)).toBe(true);
-    expect(evaluate(ast("status = active"), none)).toBe(false);
+    expect(holds("attribute_not_exists(PK)", none)).toBe(true);
+    expect(holds("#s = :a  #s=status :a=active", none)).toBe(false);
   });
 
   it("compares numbers numerically, not as text", () => {
-    expect(evaluate(ast("age > 4"), ada)).toBe(true); // "36" > "4" as text would be false
+    expect(holds("age > :n  :n=4")).toBe(true); // "36" > "4" as text would be false
+  });
+});
+
+describe("validateCompiled", () => {
+  const c = { expression: "status = :s", names: {}, values: { ":s": { S: "x" } } };
+
+  it("labels the error by expression kind", () => {
+    expect(validateCompiled(c, "condition")).toMatch(/^Invalid ConditionExpression:/);
+    expect(validateCompiled(c, "filter")).toMatch(/^Invalid FilterExpression:/);
+  });
+
+  it("returns null for a valid expression", () => {
+    const valid = { ...c, expression: "#s = :s", names: { "#s": "status" } };
+    expect(validateCompiled(valid, "filter")).toBeNull();
   });
 });
 
