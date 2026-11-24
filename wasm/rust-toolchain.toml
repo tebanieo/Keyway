@@ -1,0 +1,6 @@
+# Pinned so the committed wasm/pkg build is reproducible byte-for-byte;
+# CI rebuilds it with this toolchain and fails on any difference.
+[toolchain]
+channel = "1.97.0"
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"
