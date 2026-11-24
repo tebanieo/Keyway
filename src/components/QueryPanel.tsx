@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
-import type { Cond, CondOp } from "../engine/query";
-import { parseExpression } from "../engine/expression";
+import { keyConditionTemplate, parseExpression } from "../engine/expression";
 import type { IndexSpec, Item } from "../engine/types";
 
-const OPS: CondOp[] = ["=", "begins_with", "<", "<=", ">", ">=", "between"];
+const schemaOf = (index: IndexSpec) => ({ hash: pkAttrs(index), range: skAttrs(index) });
 
 export interface QueryHighlight {
   matched: Set<string>; // returned items
@@ -13,9 +12,10 @@ export interface QueryHighlight {
 }
 
 /**
- * A read against the current model: GetItem / Query / Scan. Reads the selected
- * index's key shape and enforces the query rules (equality on partition keys,
- * range only on the last sort key). Reports read cost and highlights results.
+ * A read against the current model: GetItem / Query / Scan. GetItem takes the
+ * Key (a value per key attribute); Query takes a real KeyConditionExpression,
+ * pre-filled for the chosen index and checked by ExtendDB against its keys.
+ * Reports read cost and highlights results.
  *
  * NOTE: first-cut UX, functional, not yet styled to the "professional" bar.
  */
@@ -42,8 +42,9 @@ export function QueryPanel({
   const pks = pkAttrs(index);
   const sks = skAttrs(index);
 
-  const [pkVals, setPkVals] = useState<Record<string, string>>({});
-  const [skConds, setSkConds] = useState<Record<string, Cond>>({});
+  // GetItem: a value per key attribute. Query: the KeyConditionExpression text.
+  const [keyVals, setKeyVals] = useState<Record<string, string>>({});
+  const [keyText, setKeyText] = useState(() => keyConditionTemplate(schemaOf(base)));
   const [filterText, setFilterText] = useState("");
   const [consistent, setConsistent] = useState(false);
   const [result, setResult] = useState<{
@@ -55,35 +56,29 @@ export function QueryPanel({
     warnings?: string[];
   } | null>(null);
 
-  const setPk = (a: string, v: string) => setPkVals((p) => ({ ...p, [a]: v }));
-  const setSk = (a: string, patch: Partial<Cond>) =>
-    setSkConds((p) => {
-      const cur: Cond = p[a] ?? { op: "=", value: "" };
-      return { ...p, [a]: { ...cur, ...patch } };
-    });
+  const setKeyVal = (a: string, v: string) => setKeyVals((p) => ({ ...p, [a]: v }));
+  const fail = (error: string) => {
+    setResult({ scanned: 0, bytes: 0, returned: 0, rcu: 0, error });
+    onHighlight({ matched: new Set(), scanned: new Set() });
+  };
 
   const run = () => {
-    // sort-key prefix: contiguous filled leading attributes
-    const skParts: Cond[] = [];
-    for (const a of sks) {
-      const c = skConds[a];
-      if (!c || c.value === "") break;
-      skParts.push(c);
+    let key = null;
+    if (op === "query") {
+      const parsedKey = parseExpression(keyText, "key", schemaOf(index));
+      if (!parsedKey.expression) return fail(`key: ${parsedKey.error}`);
+      key = parsedKey.expression;
     }
     const common = {
       op,
-      pk: pks.map((a) => pkVals[a] ?? ""),
-      sk: sks.map((a) => skConds[a]?.value ?? ""),
-      skParts,
+      pk: pks.map((a) => keyVals[a] ?? ""),
+      sk: sks.map((a) => keyVals[a] ?? ""),
+      key,
       consistent,
     };
-    // An empty filter box means no FilterExpression at all.
-    const parsed = filterText.trim() ? parseExpression(filterText, "filter") : null;
-    if (parsed?.error) {
-      setResult({ scanned: 0, bytes: 0, returned: 0, rcu: 0, error: `filter: ${parsed.error}` });
-      onHighlight({ matched: new Set(), scanned: new Set() });
-      return;
-    }
+    // An empty filter box means no FilterExpression at all (and GetItem has none).
+    const parsed = op !== "get" && filterText.trim() ? parseExpression(filterText, "filter") : null;
+    if (parsed?.error) return fail(`filter: ${parsed.error}`);
     const filter = parsed?.expression ?? null;
     const r = runQuery(state, index, { ...common, filter });
     setResult({
@@ -140,6 +135,8 @@ export function QueryPanel({
             onChange={(e) => {
               const name = e.target.value;
               setIndexName(name);
+              const next = indexes.find((i) => i.name === name) ?? base;
+              setKeyText(keyConditionTemplate(schemaOf(next)));
               // GetItem can't run on a GSI: fall back to query.
               if (name !== base.name && op === "get") setOp("query");
             }}
@@ -171,89 +168,64 @@ export function QueryPanel({
         </button>
       </div>
 
-      {op !== "scan" && (
+      {op === "get" && (
         <div className="query-keys">
-          {pks.map((a) => (
+          {[...pks, ...sks].map((a) => (
             <label key={a} className="q-field">
               <span className="q-key">{a}</span>
               <span className="q-eq">=</span>
               <input
-                value={pkVals[a] ?? ""}
+                value={keyVals[a] ?? ""}
                 placeholder="value"
-                onChange={(e) => setPk(a, e.target.value)}
+                onChange={(e) => setKeyVal(a, e.target.value)}
               />
             </label>
           ))}
-          {op === "query" &&
-            sks.map((a, i) => {
-              const last = i === sks.length - 1;
-              const c = skConds[a] ?? { op: "=", value: "" };
-              return (
-                <label key={a} className="q-field">
-                  <span className="q-key">{a}</span>
-                  {last ? (
-                    <select
-                      value={c.op}
-                      onChange={(e) => setSk(a, { op: e.target.value as CondOp })}
-                    >
-                      {OPS.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="q-eq" title="leading sort keys must be equality">
-                      =
-                    </span>
-                  )}
-                  <input
-                    value={c.value}
-                    placeholder="value"
-                    onChange={(e) => setSk(a, { value: e.target.value })}
-                  />
-                  {last && c.op === "between" && (
-                    <input
-                      value={c.value2 ?? ""}
-                      placeholder="…and"
-                      onChange={(e) => setSk(a, { value2: e.target.value })}
-                    />
-                  )}
-                </label>
-              );
-            })}
-          {op === "get" &&
-            sks.map((a) => (
-              <label key={a} className="q-field">
-                <span className="q-key">{a}</span>
-                <span className="q-eq">=</span>
-                <input
-                  value={skConds[a]?.value ?? ""}
-                  placeholder="value"
-                  onChange={(e) => setSk(a, { value: e.target.value })}
-                />
-              </label>
-            ))}
         </div>
       )}
 
-      <div className="query-filter">
-        <span className="q-flabel">filter</span>
-        <input
-          className="q-filter-input"
-          value={filterText}
-          placeholder="e.g.  #s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5"
-          onChange={(e) => setFilterText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") run();
-          }}
-          spellCheck={false}
-        />
-        <span className="q-hint">
-          a real DynamoDB FilterExpression, checked by ExtendDB, then its #name=attr and
-          :value=literal placeholders. Applied after the read: trims results, not cost.
-        </span>
-      </div>
+      {op === "query" && (
+        <div className="query-filter">
+          <span className="q-flabel">key</span>
+          <input
+            className="q-filter-input q-key-input"
+            aria-label="KeyConditionExpression"
+            value={keyText}
+            onChange={(e) => setKeyText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") run();
+            }}
+            spellCheck={false}
+          />
+          <span className="q-hint">
+            a real KeyConditionExpression for {index.name}: partition key{pks.length > 1 ? "s" : ""}{" "}
+            {pks.join(", ")} with =
+            {sks.length > 0 &&
+              `, optionally sort key ${sks.join(", ")} with = < <= > >= BETWEEN begins_with`}
+            , then its :value=literal pairs.
+          </span>
+        </div>
+      )}
+
+      {op !== "get" && (
+        <div className="query-filter">
+          <span className="q-flabel">filter</span>
+          <input
+            className="q-filter-input"
+            value={filterText}
+            placeholder="e.g.  #s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5"
+            onChange={(e) => setFilterText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") run();
+            }}
+            spellCheck={false}
+          />
+          <span className="q-hint">
+            a real DynamoDB FilterExpression, checked by ExtendDB, then its #name=attr and
+            :value=literal placeholders. Applied after the read: trims results, not cost.
+          </span>
+        </div>
+      )}
 
       {result && (
         <div className={result.error ? "query-result err" : "query-result"}>

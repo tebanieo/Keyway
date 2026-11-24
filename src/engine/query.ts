@@ -1,27 +1,18 @@
 import type { Expression, IndexSpec, Item } from "./types";
 import { keyOf, pkAttrs, skAttrs } from "./engine";
-import { evaluateCompiled } from "./extenddb";
+import { evaluateCompiled, validateKeyCompiled } from "./extenddb";
 import { itemSize, rcu } from "./itemsize";
 import type { ReadMode } from "./itemsize";
 
-/** Comparison operators usable on a sort key's last attribute, or a filter. */
-export type CondOp = "=" | "begins_with" | "<" | "<=" | ">" | ">=" | "between";
-
-export interface Cond {
-  op: CondOp;
-  value: string;
-  value2?: string; // for "between"
-}
-
 export interface QuerySpec {
   op: "get" | "query" | "scan";
-  /** Equality values for each partition-key attribute (get / query). */
+  /** get: the Key, a value per partition-key attribute. */
   pk: string[];
-  /** get: exact value per sort-key attribute. */
+  /** get: the Key, a value per sort-key attribute. */
   sk: string[];
-  /** query: a condition per sort-key attribute, left-to-right (a prefix). All
-   *  but the last must be "=", that's the multi-key sort rule. */
-  skParts: Cond[];
+  /** query: a real KeyConditionExpression (see `parseExpression`), checked
+   *  against the index's key schema and matched by ExtendDB. */
+  key: Expression | null;
   /** A real FilterExpression (see `parseExpression`), applied AFTER the read
    *  by ExtendDB, so it trims results but not cost. null = no filter. */
   filter: Expression | null;
@@ -41,51 +32,23 @@ export interface QueryResult {
   error: string | null;
 }
 
-function cmp(v: string, c: Cond): boolean {
-  switch (c.op) {
-    case "=":
-      return v === c.value;
-    case "begins_with":
-      return v.startsWith(c.value);
-    case "<":
-      return v < c.value;
-    case "<=":
-      return v <= c.value;
-    case ">":
-      return v > c.value;
-    case ">=":
-      return v >= c.value;
-    case "between":
-      return v >= c.value && v <= (c.value2 ?? c.value);
-  }
-}
-
 /**
- * The multi-key query rule, validated so the tool teaches it: all partition
- * attributes need equality (implicit), and among the sort attributes only the
- * LAST supplied one may use a range. The earlier ones must be "=". You also
- * can't skip a sort attribute (the UI only offers a left prefix).
+ * Which read rule (if any) the spec breaks, the teaching guardrail. A GetItem
+ * needs the full primary key; a Query's KeyConditionExpression is checked by
+ * ExtendDB against the index's key schema: equality on every partition key,
+ * at most a range on the last sort key given, no non-key attributes.
  */
 export function validate(index: IndexSpec, spec: QuerySpec): string | null {
   if (spec.op === "scan") return null;
-  const pks = pkAttrs(index);
-  if (spec.pk.length < pks.length || spec.pk.some((v) => v === "")) {
-    return `query needs an equality value for every partition key (${pks.join(", ")})`;
+  if (spec.op === "get") {
+    const given = [...spec.pk, ...spec.sk];
+    const missing = [...pkAttrs(index), ...skAttrs(index)].filter((_, i) => !given[i]);
+    return missing.length
+      ? `The provided key element does not match the schema: GetItem needs ${missing.join(", ")}`
+      : null;
   }
-  if (spec.op === "query") {
-    const sks = skAttrs(index);
-    for (let i = 0; i < spec.skParts.length; i++) {
-      const isLast = i === spec.skParts.length - 1;
-      if (!isLast && spec.skParts[i].op !== "=") {
-        return `only the last sort key (${sks[spec.skParts.length - 1] ?? "?"}) can use a range; ${sks[i]} must be "="`;
-      }
-    }
-  }
-  return null;
-}
-
-function inPartition(item: Item, index: IndexSpec, pk: string[]): boolean {
-  return pkAttrs(index).every((a, i) => item.attrs[a] === pk[i]);
+  if (!spec.key) return "a Query needs a KeyConditionExpression";
+  return validateKeyCompiled(spec.key, pkAttrs(index), skAttrs(index));
 }
 
 /**
@@ -93,8 +56,9 @@ function inPartition(item: Item, index: IndexSpec, pk: string[]): boolean {
  *
  * - **get**: reads exactly one item by full key; costs 1 read whether or not it
  *   exists.
- * - **query**: reads the items matching the key condition (partition equality +
- *   the sort-key prefix). A filter trims what's *returned* but not what's read.
+ * - **query**: reads the items matching the KeyConditionExpression (partition
+ *   equality + the sort-key condition). A filter trims what's *returned* but not
+ *   what's read.
  * - **scan**: reads EVERY item in the index, the expensive one; a filter still
  *   doesn't reduce the read.
  */
@@ -128,11 +92,8 @@ export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: Query
   if (spec.op === "scan") {
     read = [...state.values()].filter(inIndex);
   } else {
-    const sks = skAttrs(index);
-    read = [...state.values()].filter((it) => {
-      if (!inIndex(it) || !inPartition(it, index, spec.pk)) return false;
-      return spec.skParts.every((c, i) => sks[i] && cmp(it.attrs[sks[i]] ?? "", c));
-    });
+    const key = spec.key!; // validate() guarantees it
+    read = [...state.values()].filter((it) => inIndex(it) && evaluateCompiled(key, it, "key"));
   }
 
   const filter = spec.filter;

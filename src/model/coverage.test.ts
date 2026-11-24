@@ -23,33 +23,35 @@ const MODEL = [
 
 describe("apCoverage (v2: runs the declared query)", () => {
   it("served: a valid query that returns data", () => {
-    const c = grade(MODEL + "\n@ap A user's items -> AppTable PK=USER#1");
+    const c = grade(MODEL + "\n@ap A user's items -> AppTable PK = :u  :u=USER#1");
     expect(c.status).toBe("served");
     expect(c.returned).toBe(3); // profile + order 1 + order 2
   });
 
   it("served: a GSI query with a sort-key range", () => {
-    const c = grade(MODEL + "\n@ap Orders by email -> GSI1 GSI1PK=EMAIL#ada");
+    const c = grade(MODEL + "\n@ap Orders by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada");
     expect(c.status).toBe("served");
     expect(c.returned).toBe(1);
   });
 
   it("empty: valid query but no item matches", () => {
-    const c = grade(MODEL + "\n@ap Cancelled orders -> GSI1 GSI1PK=STATUS#cancelled");
+    const c = grade(MODEL + "\n@ap Cancelled orders -> GSI1 GSI1PK = :s  :s=STATUS#cancelled");
     expect(c.status).toBe("empty");
     expect(c.returned).toBe(0);
   });
 
   it("invalid: query is missing the partition key (teaches the rule)", () => {
-    const c = grade(MODEL + "\n@ap Orders by date -> GSI1 GSI1SK begins_with 2024");
+    const c = grade(MODEL + "\n@ap Orders by date -> GSI1 begins_with(GSI1SK, :y)  :y=2024");
     expect(c.status).toBe("invalid");
-    expect(c.message).toMatch(/partition key/i);
+    expect(c.message).toMatch(/partition key condition must use equality/);
   });
 
-  it("invalid: a range on a non-key attribute", () => {
-    const c = grade(MODEL + "\n@ap Bad -> GSI1 total > 10");
+  it("invalid: a sort-key condition on a non-key attribute", () => {
+    const c = grade(
+      MODEL + "\n@ap Bad -> GSI1 GSI1PK = :s AND price > :n  :s=STATUS#pending :n=10",
+    );
     expect(c.status).toBe("invalid");
-    expect(c.message).toMatch(/isn't a key/i);
+    expect(c.message).toMatch(/missed key schema element: GSI1SK/);
   });
 
   it("assigned: index named but no key condition to verify", () => {
@@ -58,7 +60,7 @@ describe("apCoverage (v2: runs the declared query)", () => {
   });
 
   it("no-index: names an index that isn't defined", () => {
-    const c = grade(MODEL + "\n@ap Something -> GSI9 GSI9PK=x");
+    const c = grade(MODEL + "\n@ap Something -> GSI9 GSI9PK = :x  :x=x");
     expect(c.status).toBe("no-index");
   });
 
@@ -71,6 +73,18 @@ describe("apCoverage (v2: runs the declared query)", () => {
     const c = grade(MODEL + "\n@ap Get profile -> AppTable get PK=USER#1 SK=PROFILE");
     expect(c.status).toBe("served");
     expect(c.returned).toBe(1);
+  });
+
+  it("invalid: a reserved word without a #name (DynamoDB's own error)", () => {
+    const c = grade(MODEL + "\n@ap Bad -> GSI1 GSI1PK = :s AND status = :x  :s=a :x=b");
+    expect(c.status).toBe("invalid");
+    expect(c.message).toMatch(/reserved keyword: status/);
+  });
+
+  it("invalid: a GetItem key with a non-key attribute", () => {
+    const c = grade(MODEL + "\n@ap Get -> AppTable get PK=USER#1 name=Ada");
+    expect(c.status).toBe("invalid");
+    expect(c.message).toMatch(/does not match the schema/);
   });
 
   it("served: a scan returns the whole index", () => {

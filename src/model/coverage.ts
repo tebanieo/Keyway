@@ -1,8 +1,10 @@
 import { pkAttrs, skAttrs } from "../engine/engine";
+import { parseExpression } from "../engine/expression";
 import { runQuery } from "../engine/query";
-import type { Cond, QuerySpec } from "../engine/query";
+import type { QuerySpec } from "../engine/query";
 import type { IndexSpec, Item } from "../engine/types";
-import type { AccessPattern, ApCond } from "./dsl";
+import { parseGetKey } from "./dsl";
+import type { AccessPattern } from "./dsl";
 
 /**
  * v2 access-pattern coverage: instead of "does the named index exist?", we build
@@ -36,39 +38,33 @@ export function isServed(c: Coverage): boolean {
   return c.status === "served";
 }
 
-/** Map the AP's conditions onto the index's key shape → a runnable QuerySpec,
- *  or an error string if a condition doesn't fit the index's keys. */
+/** Turn the AP's key into the real request for `index` → a runnable QuerySpec,
+ *  or DynamoDB's error when it isn't a valid read on that index. */
 function buildSpec(
   readOp: "get" | "query" | "scan",
-  pks: string[],
-  sks: string[],
-  conds: ApCond[],
+  index: IndexSpec,
+  keyText: string,
 ): QuerySpec | string {
-  if (readOp === "scan") {
-    return { op: "scan", pk: [], sk: [], skParts: [], filter: null, consistent: false };
-  }
-  const keyAttrs = new Set([...pks, ...sks]);
-  const stray = conds.find((c) => !keyAttrs.has(c.attr));
-  if (stray) {
-    return `"${stray.attr}" isn't a key of this index (keys: ${[...pks, ...sks].join(", ")})`;
-  }
-  const byAttr = new Map(conds.map((c) => [c.attr, c]));
-  const pk = pks.map((a) => byAttr.get(a)?.value ?? "");
-
+  const base = { pk: [], sk: [], key: null, filter: null, consistent: false };
+  if (readOp === "scan") return { ...base, op: "scan" };
+  const pks = pkAttrs(index);
+  const sks = skAttrs(index);
   if (readOp === "get") {
-    const sk = sks.map((a) => byAttr.get(a)?.value ?? "");
-    return { op: "get", pk, sk, skParts: [], filter: null, consistent: false };
+    const key = parseGetKey(keyText);
+    const stray = Object.keys(key).find((a) => !pks.includes(a) && !sks.includes(a));
+    if (stray) {
+      return `The provided key element does not match the schema: "${stray}" isn't a key of ${index.name}`;
+    }
+    return {
+      ...base,
+      op: "get",
+      pk: pks.map((a) => key[a] ?? ""),
+      sk: sks.map((a) => key[a] ?? ""),
+    };
   }
-
-  // query: the sort-key prefix - leading contiguous sort attributes that have a
-  // condition. validate() (inside runQuery) enforces equality-except-last.
-  const skParts: Cond[] = [];
-  for (const a of sks) {
-    const c = byAttr.get(a);
-    if (!c) break;
-    skParts.push({ op: c.op, value: c.value, value2: c.value2 });
-  }
-  return { op: "query", pk, sk: [], skParts, filter: null, consistent: false };
+  const parsed = parseExpression(keyText, "key", { hash: pks, range: sks });
+  if (!parsed.expression) return parsed.error ?? "invalid KeyConditionExpression";
+  return { ...base, op: "query", key: parsed.expression };
 }
 
 export function apCoverage(
@@ -95,17 +91,17 @@ export function apCoverage(
   }
 
   const readOp = ap.readOp ?? "query";
-  const conds = ap.conds ?? [];
-  if (conds.length === 0 && readOp !== "scan") {
+  const keyText = ap.keyText ?? "";
+  if (keyText === "" && readOp !== "scan") {
     return {
       status: "assigned",
-      message: "index exists, but no key condition to verify - add e.g. `PK=USER#1`",
+      message: "index exists, but no key condition to verify - add e.g. `PK = :u  :u=USER#1`",
       returned: 0,
       scanned: 0,
     };
   }
 
-  const spec = buildSpec(readOp, pkAttrs(index), skAttrs(index), conds);
+  const spec = buildSpec(readOp, index, keyText);
   if (typeof spec === "string") {
     return { status: "invalid", message: spec, returned: 0, scanned: 0 };
   }

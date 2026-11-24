@@ -61,14 +61,37 @@ describe("QueryPanel", () => {
     expect(last.matched.size).toBe(2); // both items returned
   });
 
-  it("runs a Query on a filled partition key and highlights the match", () => {
+  it("pre-fills a KeyConditionExpression template for the chosen index", () => {
+    setup();
+    const key = screen.getByLabelText("KeyConditionExpression") as HTMLInputElement;
+    expect(key.value).toBe("PK = :pk  :pk=");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "GSI1" } });
+    expect(key.value).toBe("GSI1PK = :pk  :pk=");
+  });
+
+  it("runs a Query from its KeyConditionExpression and highlights the match", () => {
     const p = setup(); // op defaults to "query", index = base
-    // pk input comes first, then the sk input (both placeholder "value")
-    const pk = screen.getAllByPlaceholderText("value")[0];
-    fireEvent.change(pk, { target: { value: "U#1" } });
+    fireEvent.change(screen.getByLabelText("KeyConditionExpression"), {
+      target: { value: "PK = :pk  :pk=U#1" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "run" }));
     const last = p.onHighlight.mock.calls.at(-1)![0];
     expect(last.matched.size).toBe(1); // only u1 is under PK=U#1
+  });
+
+  it("asks for a value the template left empty", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "run" }));
+    expect(screen.getByText(/key: :pk needs a value/)).toBeInTheDocument();
+  });
+
+  it("reports DynamoDB's error for a key condition that breaks the key rules", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText("KeyConditionExpression"), {
+      target: { value: "begins_with(PK, :p)  :p=U#" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "run" }));
+    expect(screen.getByText(/partition key condition must use equality/)).toBeInTheDocument();
   });
 
   it("runs a GetItem with pk + sk on the base table", () => {
@@ -84,6 +107,7 @@ describe("QueryPanel", () => {
 
   it("surfaces a filter parse error", () => {
     setup();
+    fireEvent.click(screen.getByRole("button", { name: "Scan" }));
     fireEvent.change(screen.getByPlaceholderText(/#s=status/), {
       target: { value: "((" },
     });
@@ -94,6 +118,7 @@ describe("QueryPanel", () => {
 
   it("reports DynamoDB's error for a reserved word in a filter", () => {
     setup();
+    fireEvent.click(screen.getByRole("button", { name: "Scan" }));
     fireEvent.change(screen.getByPlaceholderText(/#s=status/), {
       target: { value: "status = :p  :p=pending" },
     });

@@ -1,7 +1,6 @@
 import { keyOf } from "../engine/engine";
 import { parseExpression } from "../engine/expression";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
-import type { CondOp } from "../engine/query";
 
 /**
  * A tiny, readable text format for a DynamoDB data model. One line = one op =
@@ -27,15 +26,6 @@ export interface Diagnostic {
   severity: "error" | "warning";
 }
 
-/** One key condition on an `@ap`'s query (`GSI1PK=EMAIL#ada`, `SK begins_with ORDER#`). */
-export interface ApCond {
-  attr: string;
-  op: CondOp;
-  value: string;
-  /** Second bound, for `between a and b`. */
-  value2?: string;
-}
-
 /** A declared access pattern (the SPEC): what a query needs to serve. */
 export interface AccessPattern {
   /** Auto-assigned number (AP1, AP2, …) by declaration order. */
@@ -45,64 +35,47 @@ export interface AccessPattern {
   index?: string;
   /** Read op the pattern uses against that index (default: query). */
   readOp?: "get" | "query" | "scan";
-  /** Key conditions that make it a real, runnable query (v2 coverage). */
-  conds?: ApCond[];
+  /**
+   * What makes it a real, runnable read, as written:
+   * - query: a KeyConditionExpression and its pairs (`GSI1PK = :e  :e=EMAIL#ada`),
+   *   validated against the index's keys when the pattern runs (coverage);
+   * - get: the Key, as `attr=value` pairs (`PK=USER#1 SK=PROFILE`).
+   */
+  keyText?: string;
 }
 
-const AP_OPS = new Set<string>(["=", "begins_with", "<", "<=", ">", ">=", "between"]);
-
-/**
- * Parse the tail after `@ap … ->` into an index + optional read op + key
- * conditions. Conditions reuse the item/query key syntax: compact `attr=value`
- * for equality, or `attr op value` (`SK begins_with ORDER#`, `SK between a and
- * b`) for a sort-key range. Order is preserved so it round-trips.
- */
+/** `@ap … -> <Index> [get|query|scan] [key]`: split the tail after the arrow. */
 function parseApTail(tail: string): {
   index?: string;
   readOp: "get" | "query" | "scan";
-  conds: ApCond[];
-  error?: string;
+  keyText?: string;
 } {
-  const toks = tail.trim().split(/\s+/).filter(Boolean);
-  const index = toks.shift();
-  let readOp: "get" | "query" | "scan" = "query";
-  if (toks[0] === "get" || toks[0] === "query" || toks[0] === "scan") {
-    readOp = toks.shift() as "get" | "query" | "scan";
-  }
-  const conds: ApCond[] = [];
-  let i = 0;
-  while (i < toks.length) {
-    const attr = toks[i++];
-    const eq = /^([A-Za-z0-9_.]+)=(.*)$/.exec(attr);
-    if (eq) {
-      conds.push({ attr: eq[1], op: "=", value: eq[2] });
-      continue;
-    }
-    const op = toks[i++];
-    if (!op || !AP_OPS.has(op)) {
-      return {
-        index,
-        readOp,
-        conds,
-        error: `expected an operator (=, begins_with, <, between…) after "${attr}"`,
-      };
-    }
-    if (op === "between") {
-      const v1 = toks[i++];
-      if (toks[i] === "and") i++;
-      const v2 = toks[i++];
-      if (v1 === undefined || v2 === undefined) {
-        return { index, readOp, conds, error: `"${attr} between" needs two values` };
-      }
-      conds.push({ attr, op: "between", value: v1, value2: v2 });
-    } else {
-      const v = toks[i++];
-      if (v === undefined) return { index, readOp, conds, error: `"${attr} ${op}" needs a value` };
-      conds.push({ attr, op: op as CondOp, value: v });
-    }
-  }
-  return { index, readOp, conds };
+  const m = /^\s*(\S+)?\s*(?:\b(get|query|scan)\b)?\s*(.*)$/.exec(tail)!;
+  const keyText = m[3].trim();
+  return {
+    index: m[1],
+    readOp: (m[2] as "get" | "query" | "scan" | undefined) ?? "query",
+    keyText: keyText || undefined,
+  };
 }
+
+/** A GetItem Key written as `attr=value` pairs (values may not contain spaces). */
+export function parseGetKey(text: string): Record<string, string> {
+  return Object.fromEntries(
+    text
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((pair) => {
+        const eq = pair.indexOf("=");
+        return eq > 0 ? [pair.slice(0, eq), pair.slice(eq + 1)] : [pair, ""];
+      }),
+  );
+}
+
+// The pre-ExtendDB @ap form, e.g. `PK=USER#1 SK begins_with ORDER#`: no
+// placeholders, and a bare attr=value. A real KeyConditionExpression always
+// has a `:value`, so this is a safe tell.
+const OLD_AP_KEY = /^\w+=[^:\s]/;
 
 export interface ParseResult {
   ops: Op[];
@@ -310,23 +283,22 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       }
       let index: string | undefined;
       let readOp: "get" | "query" | "scan" = "query";
-      let conds: ApCond[] = [];
+      let keyText: string | undefined;
       if (arrow >= 0) {
         const t = parseApTail(rest.slice(arrow + 2));
         index = t.index;
         readOp = t.readOp;
-        conds = t.conds;
-        if (t.error) {
-          diagnostics.push({ line, message: `@ap: ${t.error}`, severity: "warning" });
+        keyText = t.keyText;
+        if (readOp === "query" && keyText && OLD_AP_KEY.test(keyText) && !keyText.includes(":")) {
+          diagnostics.push({
+            line,
+            message:
+              "@ap: a query's key is a real KeyConditionExpression now, e.g. `PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#`",
+            severity: "warning",
+          });
         }
       }
-      aps.push({
-        n: aps.length + 1,
-        description,
-        index,
-        readOp,
-        conds: conds.length ? conds : undefined,
-      });
+      aps.push({ n: aps.length + 1, description, index, readOp, keyText });
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
@@ -437,12 +409,6 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   return { ops, diagnostics, base, gsis, aps, notes, opLines };
 }
 
-function serializeCond(c: ApCond): string {
-  if (c.op === "=") return `${c.attr}=${c.value}`;
-  if (c.op === "between") return `${c.attr} between ${c.value} and ${c.value2 ?? ""}`;
-  return `${c.attr} ${c.op} ${c.value}`;
-}
-
 /** Serialize access patterns back to `@ap` directive lines. */
 export function serializeAps(aps: readonly AccessPattern[]): string {
   if (aps.length === 0) return "";
@@ -453,7 +419,7 @@ export function serializeAps(aps: readonly AccessPattern[]): string {
         if (a.index) {
           s += ` -> ${a.index}`;
           if (a.readOp && a.readOp !== "query") s += ` ${a.readOp}`;
-          for (const c of a.conds ?? []) s += ` ${serializeCond(c)}`;
+          if (a.keyText) s += ` ${a.keyText}`;
         }
         return s;
       })

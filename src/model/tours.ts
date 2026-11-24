@@ -45,8 +45,8 @@ const REINDEX = `# Reindex on Ship: shipping an order moves it across the GSI, i
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-@ap List pending orders -> GSI1 GSI1PK=STATUS#pending
-@ap List shipped orders -> GSI1 GSI1PK=STATUS#shipped
+@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
+@ap List shipped orders -> GSI1 GSI1PK = :s  :s=STATUS#shipped
 
 # Three orders arrive pending. GSI1 overloads status into its partition key, so
 # STATUS#pending gathers every open order under one queryable partition.
@@ -66,7 +66,7 @@ const SPARSE = `# Sparse Index: an index only holds items that carry its key. Le
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@analytical.io
+@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@analytical.io
 
 # Two profiles carry GSI1PK=EMAIL#..., so both appear on GSI1, keyed by email.
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  GSI1PK=EMAIL#ada@analytical.io  GSI1SK=USER#1  _type=user-profile
@@ -114,10 +114,11 @@ const MODELING = `# How to Model: in Keyway you design top-down. Start from the 
 @table AppTable pk=PK sk=SK
 
 # 2. Write the access patterns as @ap lines: one plain-language question each.
-# They are the SPEC. The rail tracks which ones your design actually serves.
-@ap Get a user and their orders -> AppTable PK=USER#1
-@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@keyway.dev
-@ap List pending orders -> GSI1 GSI1PK=STATUS#pending
+# They are the SPEC. After "->", name the index and the real KeyConditionExpression
+# that answers it, with its :values. The rail tracks which ones your design serves.
+@ap Get a user and their orders -> AppTable PK = :u  :u=USER#1
+@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@keyway.dev
+@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
 
 # 3. Two of those questions do not fit the base key, so add a GSI to answer them.
 # A GSI is a second view of the same items under different keys. Overload it: it
