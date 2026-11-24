@@ -4,7 +4,7 @@ Declaring access patterns with `@ap` gives Keyway something to check. It answers
 the real question (_"can my design serve all of its access patterns?"_) by
 **building each pattern's declared query and running it against the finished
 model**, then grading the result. The logic is in
-[`src/model/coverage.ts`](https://github.com/).
+[`src/model/coverage.ts`](https://github.com/tebanieo/Keyway/blob/main/src/model/coverage.ts).
 
 This is stronger than "does the named index exist?". Because the query actually
 runs, an unserved pattern tells you _why_, and an invalid one surfaces the exact
@@ -12,20 +12,23 @@ key rule it broke.
 
 ## How a pattern becomes a runnable query
 
-For each `@ap … -> Index [op] [conditions]`:
+For each `@ap … -> Index [op] [key]`:
 
 1. The named index is looked up.
-2. The conditions are mapped onto that index's key shape (`buildSpec`):
-   - `scan` needs no conditions.
-   - `get` maps each condition value onto the pk/sk attributes.
-   - `query` builds the **sort-key prefix** (the leading contiguous sort
-     attributes that have a condition) and lets `validate()` enforce the
-     equality-except-last rule.
+2. The key becomes the real request for that index (`buildSpec`):
+   - `scan` needs nothing.
+   - `get` maps the `attr=value` pairs onto the index's key attributes (the
+     `Key`).
+   - `query` takes the `KeyConditionExpression`, which
+     [ExtendDB](https://github.com/ExtendDB/extenddb) validates against the
+     index's key schema: equality on every partition key, at most a range on
+     the last sort key given, no non-key attributes, no reserved words without
+     a `#name`.
 3. The spec runs through the same `runQuery` the query panel uses, against the
    folded state.
 
-A condition on an attribute that **isn't a key** of the index is rejected before
-running: _"`x` isn't a key of this index (keys: …)"_.
+A rule broken in step 2 makes the pattern `invalid`, with DynamoDB's message,
+e.g. _"Query condition missed key schema element: SK"_.
 
 ## The six statuses
 
@@ -45,17 +48,18 @@ Only `served` counts as truly covered (`isServed`). Each result also reports
 ## Examples
 
 ```text
-@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@analytical.io
+@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@analytical.io
 #   -> served: the GSI1 partition holds the profile row.
 
-@ap List pending orders -> GSI1 GSI1PK=STATUS#pending
+@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
 #   -> served while pending orders exist; becomes empty once they all ship.
 
 @ap Get a user's notification settings by type
 #   -> unassigned: no `-> Index` yet, a coverage gap the app highlights.
 
-@ap Open orders -> ByRegion tenant=acme status=open
-#   -> invalid if it violates the multi-key sort rule; the message names it.
+@ap Open orders -> ByRegion tenant = :t AND #s = :s  #s=status :t=acme :s=open
+#   -> invalid: ByRegion's partition key is (tenant, region), and region has no
+#      equality. DynamoDB's message names the missing attribute.
 ```
 
 Because coverage runs the _actual_ query, editing your data changes the verdict

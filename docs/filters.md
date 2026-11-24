@@ -73,25 +73,30 @@ key condition.
 
 ## Query sort-key conditions are a restricted set
 
-A Query's key condition is not the filter grammar: it mirrors DynamoDB's
-real rules (enforced in `validate()` and `runQuery()`):
+A Query takes a real `KeyConditionExpression`, written like a filter (the
+expression, then its pairs). The panel pre-fills one for the chosen index, e.g.
+`PK = :pk  :pk=`, so you only type the value. It's not the filter grammar: it
+mirrors DynamoDB's real rules, checked by ExtendDB against the index's keys:
 
 - The **partition key** must be **equality** (`=`) for **every** partition
   attribute. (A multi-key GSI needs an equality value for each pk attr.)
 - A **sort-key** condition may use only:
 
   ```text
-  =   begins_with   <   <=   >   >=   between
+  =   <   <=   >   >=   BETWEEN   begins_with
   ```
 
 - On a **multi-key** sort key, only the **last supplied** sort attribute may use
   a range: every earlier sort attribute must be `=`. You also can't skip a sort
   attribute; conditions apply as a left prefix.
+- Only `AND` joins the clauses: no `OR`, no `NOT`, no other functions.
 
-Breaking a rule doesn't silently misbehave: the query returns an error that
-names the rule, e.g. _"only the last sort key (date) can use a range; status must
-be `=`"_. That error is exactly what drives the `invalid` status in
-[Access-pattern coverage](/access-patterns).
+Breaking a rule doesn't silently misbehave: you get DynamoDB's error, e.g.
+_"Query condition missed key schema element: SK"_. That error is exactly what
+drives the `invalid` status in [Access-pattern coverage](/access-patterns).
+
+GetItem takes the `Key` instead: a value for every key attribute. It has no
+FilterExpression, so the panel hides the filter box for it.
 
 See [The cost model](/cost) for the multi-key query rules in the context of what
 each read costs.
