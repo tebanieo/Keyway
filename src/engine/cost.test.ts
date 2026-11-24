@@ -200,3 +200,43 @@ describe("writeCost: delete", () => {
     expect(cost.totalWrites).toBe(1);
   });
 });
+
+// The capacity rules ExtendDB measured against the service.
+describe("writeCost: ExtendDB's measured capacity rules", () => {
+  const big = "x".repeat(1500); // pushes an item past 1 KB: 2 WCU
+
+  it("an overwrite bills the LARGER of the old and new item", () => {
+    const prior = fold([put("u1", { PK: "U#1", SK: "P", bio: big })], BASE);
+    const shrink = put("u1", { PK: "U#1", SK: "P", bio: "short" });
+    expect(writeCost(prior, shrink, BASE, []).baseWrites).toBe(2); // old was 2 KB
+  });
+
+  it("deleting a missing item still costs the 1-WCU minimum", () => {
+    const del: Op = { kind: "delete", id: "ghost" };
+    expect(writeCost(empty, del, BASE, []).baseWrites).toBe(1);
+  });
+
+  it("an in-place index update bills the larger of the old and new entry", () => {
+    const keys = { PK: "U#1", SK: "P", GSI1PK: "G", GSI1SK: "1" };
+    const prior = fold([put("u1", { ...keys, bio: big })], BASE);
+    const cost = writeCost(prior, put("u1", { ...keys, bio: "short" }), BASE, [GSI1]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "update", writes: 2 });
+  });
+
+  it("an unchanged projected entry bills no index write", () => {
+    const keys = { PK: "U#1", SK: "P", GSI1PK: "G", GSI1SK: "1" };
+    const keysOnly: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
+    const prior = fold([put("u1", { ...keys, bio: "a" })], BASE);
+    const cost = writeCost(prior, put("u1", { ...keys, bio: "b" }), BASE, [keysOnly]);
+    expect(cost.indexes[0]).toMatchObject({ effect: "none", writes: 0 });
+  });
+
+  it("a transactional overwrite also bills the larger item, at 2x", () => {
+    const prior = fold([put("u1", { PK: "U#1", SK: "P", bio: big })], BASE);
+    const tx: Op = {
+      kind: "transact",
+      actions: [{ kind: "put", item: { id: "u1", attrs: { PK: "U#1", SK: "P", bio: "s" } } }],
+    };
+    expect(writeCost(prior, tx, BASE, []).baseWrites).toBe(4); // 2 WCU × 2
+  });
+});

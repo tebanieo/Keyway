@@ -106,7 +106,7 @@ export function apCoverage(
     return { status: "invalid", message: spec, returned: 0, scanned: 0 };
   }
 
-  const r = runQuery(state, index, spec);
+  const r = runQuery(state, index, spec, indexes[0]);
   if (r.error) {
     return { status: "invalid", message: r.error, returned: 0, scanned: 0 };
   }

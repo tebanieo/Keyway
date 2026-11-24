@@ -1,5 +1,5 @@
 import type { Expression, IndexSpec, Item } from "./types";
-import { keyOf, pkAttrs, skAttrs } from "./engine";
+import { keyOf, pkAttrs, projectItem, skAttrs } from "./engine";
 import { evaluateCompiled, validateKeyCompiled } from "./extenddb";
 import { itemSize, rcu } from "./itemsize";
 import type { ReadMode } from "./itemsize";
@@ -62,11 +62,20 @@ export function validate(index: IndexSpec, spec: QuerySpec): string | null {
  * - **scan**: reads EVERY item in the index, the expensive one; a filter still
  *   doesn't reduce the read.
  */
-export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: QuerySpec): QueryResult {
+export function runQuery(
+  state: Map<string, Item>,
+  index: IndexSpec,
+  spec: QuerySpec,
+  /** The base table. A read on a GSI is billed by its PROJECTED entries (a
+   *  KEYS_ONLY index reads less), as ExtendDB meters it; omit for the base. */
+  base: IndexSpec = index,
+): QueryResult {
   const error = validate(index, spec);
   if (error) return { scanned: 0, bytes: 0, items: [], rcu: 0, error };
 
   const mode: ReadMode = spec.consistent ? "strong" : "eventual";
+  const readSize = (it: Item) =>
+    itemSize(index.name === base.name ? it : projectItem(it, index, base));
   const inIndex = (it: Item) => keyOf(it, index) !== null;
 
   if (spec.op === "get") {
@@ -78,7 +87,7 @@ export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: Query
         pks.every((a, i) => it.attrs[a] === spec.pk[i]) &&
         sks.every((a, i) => it.attrs[a] === spec.sk[i]),
     );
-    const bytes = found ? itemSize(found) : 0;
+    const bytes = found ? readSize(found) : 0;
     return {
       scanned: 1, // a GetItem is charged even on a miss
       bytes,
@@ -100,7 +109,7 @@ export function runQuery(state: Map<string, Item>, index: IndexSpec, spec: Query
   const items = filter ? read.filter((it) => evaluateCompiled(filter, it, "filter")) : read;
 
   // Query/Scan RCU is the CUMULATIVE size of all items read, rounded once.
-  const bytes = read.reduce((n, it) => n + itemSize(it), 0);
+  const bytes = read.reduce((n, it) => n + readSize(it), 0);
   return {
     scanned: read.length,
     bytes,
