@@ -177,8 +177,9 @@ expression, list them as pairs:
   attribute whose name is a reserved word (`status`, `name`, `date`, …) or has
   special characters.
 - `:value=literal` is an `ExpressionAttributeValues` entry. A bare number
-  (`:n=3`) is a Number (`N`); anything else is a String (`S`). Quote it to force
-  a String or include spaces: `:c="007"`, `:who="Ada Lovelace"`.
+  (`:n=3`, `:p=-1.5`) is a Number (`N`); anything else, including `007`, is a
+  String (`S`). Quote it to force a String or include spaces: `:c="42"`,
+  `:who="Ada Lovelace"`.
 
 The expression is parsed, validated, and evaluated by
 [ExtendDB](https://github.com/ExtendDB/extenddb)'s `extenddb-core`, compiled to

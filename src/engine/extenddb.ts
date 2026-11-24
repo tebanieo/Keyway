@@ -5,6 +5,7 @@ import init, {
   validateExpression,
   validateKeyCondition,
 } from "../../wasm/pkg/keyway_extenddb.js";
+import { isNumber } from "./number";
 import type { Item } from "./types";
 
 /**
@@ -14,8 +15,9 @@ import type { Item } from "./types";
  * Expressions arrive already in DynamoDB form (see `parseExpression`), so they
  * are exactly what you would send to DynamoDB.
  *
- * Keyway attributes are untyped strings; a numeric-looking value is sent as a
- * Number (`N`), anything else as a String (`S`), matching how Keyway sorts.
+ * Keyway attributes are untyped strings; a canonical number is sent as a
+ * Number (`N`), anything else as a String (`S`), by the rule in `number.ts`
+ * that sorting and sizing share.
  */
 
 let ready = false;
@@ -34,11 +36,9 @@ function assertReady(): void {
 
 export type AttributeValue = { S: string } | { N: string };
 
-const NUM = /^-?\d+(\.\d+)?$/;
-
 /** One Keyway value as DynamoDB wire JSON. */
 export function toAttributeValue(value: string): AttributeValue {
-  return NUM.test(value) ? { N: value } : { S: value };
+  return isNumber(value) ? { N: value } : { S: value };
 }
 
 /** A Keyway item's attributes as a DynamoDB wire item. */
