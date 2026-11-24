@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "wasm:build": "scripts/build-wasm.sh"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

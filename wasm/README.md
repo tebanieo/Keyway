@@ -9,12 +9,17 @@ Values cross the boundary as DynamoDB wire JSON (`{"S":"x"}`, `{"N":"1"}`).
 
 ## Build
 
+The built bindings in `pkg/` are **committed**, so working on the app needs no
+Rust. Rebuild them only when something in `wasm/` changes:
+
 ```bash
-rustup target add wasm32-unknown-unknown
-cargo install wasm-bindgen-cli --version 0.2.118 --locked
-cargo build --release --target wasm32-unknown-unknown
-wasm-bindgen --target web --out-dir pkg target/wasm32-unknown-unknown/release/keyway_extenddb.wasm
+cargo install wasm-bindgen-cli --version 0.2.118 --locked   # once
+npm run wasm:build
 ```
+
+The toolchain is pinned (`rust-toolchain.toml`) and the build is reproducible,
+so CI rebuilds `pkg/` from source and fails if it differs from what's committed:
+the shipped binary is provably built from this source.
 
 ```bash
 cargo test   # native unit tests
@@ -22,5 +27,5 @@ cargo test   # native unit tests
 
 ## License
 
-This crate is MIT, like Keyway. `extenddb-core` is Apache-2.0; any build that
-ships the compiled `.wasm` must carry ExtendDB's `LICENSE` and `NOTICE`.
+This crate is MIT, like Keyway. `extenddb-core` is Apache-2.0: its `LICENSE` and
+`NOTICE` ship with the site under `public/licenses/extenddb/`.
