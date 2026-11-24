@@ -25,7 +25,8 @@ hand-curated summary. It follows
 - `wasm/`: a WASM wrapper over ExtendDB's `extenddb-core`, exposing its real
   ConditionExpression evaluator and DynamoDB item sizing to JavaScript
   (spike, not yet wired into the app). The built bindings are committed and
-  reproducible (`npm run wasm:build`), so working on the app needs no Rust;
+  reproducible on any machine (`npm run wasm:build` remaps build paths, so no
+  local paths ship either), so working on the app needs no Rust;
   ExtendDB's Apache-2.0 `LICENSE` and `NOTICE` ship under `/licenses/extenddb/`.
 
 ## [0.1.0-alpha] - 2026-08-02

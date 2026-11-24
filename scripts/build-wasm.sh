@@ -13,6 +13,11 @@ if [[ "$have" != "$want" ]]; then
   exit 1
 fi
 
+# Panic messages embed source paths. Remap the machine-specific prefixes
+# (cargo home, this checkout) to fixed names so the binary is identical on
+# every machine, and no local paths ship with the site.
+cargo_home=$(cd "${CARGO_HOME:-$HOME/.cargo}" && pwd -P)
+export RUSTFLAGS="--remap-path-prefix=$cargo_home=/cargo --remap-path-prefix=$(pwd -P)=/keyway"
 cargo build --release --locked --target wasm32-unknown-unknown
 wasm-bindgen --target web --out-dir pkg \
   target/wasm32-unknown-unknown/release/keyway_extenddb.wasm
