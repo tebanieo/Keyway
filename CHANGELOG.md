@@ -45,12 +45,24 @@ hand-curated summary. It follows
 
 ### Added
 
-- `wasm/`: a WASM wrapper over ExtendDB's `extenddb-core`, exposing its real
-  ConditionExpression evaluator and DynamoDB item sizing to JavaScript
-  (spike, not yet wired into the app). The built bindings are committed and
-  reproducible on any machine (`npm run wasm:build` remaps build paths, so no
-  local paths ship either), so working on the app needs no Rust;
-  ExtendDB's Apache-2.0 `LICENSE` and `NOTICE` ship under `/licenses/extenddb/`.
+- **ExtendDB as Keyway's DynamoDB engine.** `wasm/` wraps ExtendDB's
+  `extenddb-core` (Apache-2.0, pinned to v1.0.0, no fork) and compiles it to
+  WebAssembly, which the page loads from the site itself and runs in the tab:
+  conditions, filters, key conditions, and item size all go through it. The
+  built bindings are committed, so working on the app needs no Rust, and the
+  build is reproducible byte-for-byte (`npm run wasm:build`), with no local
+  paths in the binary. ExtendDB's `LICENSE` and `NOTICE` ship under
+  `/licenses/extenddb/`.
+
+### Tooling
+
+- A Claude Code guard hook (`scripts/guard-git.mjs`, wired in
+  `.claude/settings.json`) that blocks any attempt to skip or disable the
+  Lefthook pre-commit gate, plus `AGENTS.md` rules for coding agents.
+- CI runs the full gate on pushes to every branch, not just `main`, as the
+  backstop for anything that skips the local hook.
+- A CI `wasm` job runs the Rust format, lint, and unit tests, rebuilds
+  `wasm/pkg`, and fails if the committed binary differs from its source.
 
 ## [0.1.0-alpha] - 2026-08-02
 
