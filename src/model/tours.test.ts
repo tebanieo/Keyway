@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { TOURS } from "./tours";
 import { parseDoc } from "./dsl";
 import { conditionRejected, fold } from "../engine/engine";
+import { apCoverage } from "./coverage";
+import { DEFAULT_DOC } from "./doc";
 import type { IndexSpec } from "../engine/types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
@@ -13,6 +15,18 @@ describe("tours", () => {
       const { ops, diagnostics, base } = parseDoc(dsl, BASE);
       expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
       expect(fold(ops, base).size).toBeGreaterThan(0);
+    },
+  );
+
+  it.each([...TOURS.map((t) => [t.name, t.dsl]), ["the starter document", DEFAULT_DOC]])(
+    "%s: every @ap with an index is a valid read",
+    (_, dsl) => {
+      const { aps, base, gsis, ops } = parseDoc(dsl, BASE);
+      const state = fold(ops, base);
+      for (const ap of aps.filter((a) => a.index)) {
+        const cov = apCoverage(ap, [base, ...gsis], state);
+        expect(cov.status, `AP${ap.n} "${ap.description}": ${cov.message}`).not.toBe("invalid");
+      }
     },
   );
 
