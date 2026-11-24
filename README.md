@@ -64,6 +64,12 @@ network calls with your data: your model lives in the tab (it isn't even saved t
 which browsers never send to a server. You can create your data model without
 anything leaving your machine.
 
+The DynamoDB logic itself (expressions, key rules, item size) is
+[ExtendDB](https://github.com/ExtendDB/extenddb)'s open-source engine compiled
+to **WebAssembly**. It's a file served with the site, loaded once, and run inside
+the tab: it has no network access of its own and never sees anything but the
+model you're looking at.
+
 The one thing I count is **anonymous page-views** (via
 [GoatCounter](https://www.goatcounter.com)), so I can tell roughly how many people
 find Keyway useful. No cookies, no personal data, and **no IP addresses or
@@ -91,6 +97,10 @@ exact lines:
   else — e.g. `example:users-orders` or `tour:getting-started`, a slugified label
   built from the item's title, never your model. See
   [`src/analytics.ts`](src/analytics.ts).
+- **The WebAssembly is provably built from its source.** `wasm/` is a small
+  wrapper over ExtendDB's `extenddb-core`, pinned to a release tag. The build is
+  reproducible, and CI rebuilds the committed `.wasm` from source on every push
+  and fails if a single byte differs. See [`wasm/README.md`](wasm/README.md).
 - **No IPs or cookies are stored**: that's GoatCounter's design, and both its
   server and the [count.js](https://github.com/arp242/goatcounter/blob/main/public/count.js)
   client are open source, so you can read exactly what runs.
@@ -161,7 +171,10 @@ npm run format       # Prettier
 A **Lefthook** pre-commit hook runs format, lint, typecheck, and the full test
 suite on every commit; `npm install` wires it up automatically (no Python
 needed). The engine lives in `src/engine/` (pure, DOM-free), the DSL and model
-logic in `src/model/`, and the React UI in `src/components/`.
+logic in `src/model/`, and the React UI in `src/components/`. DynamoDB semantics
+come from ExtendDB through `src/engine/extenddb.ts`; the compiled bindings in
+`wasm/pkg/` are committed, so you only need Rust (and `npm run wasm:build`) when
+changing `wasm/` itself. Coding agents follow [`AGENTS.md`](AGENTS.md).
 
 ## The DSL, briefly
 
@@ -197,7 +210,8 @@ delete o1                                          # remove an item
 ---
 
 Created by [**Esteban Serna**](https://github.com/tebanieo) with ♥.
-Built with React · Vite · CodeMirror, and developed with the help of
+Built with React · Vite · CodeMirror, DynamoDB semantics by
+[ExtendDB](https://github.com/ExtendDB/extenddb) (Apache-2.0), and developed with the help of
 [Claude Code](https://claude.com/claude-code). **MIT-licensed**: use it, fork it, teach
 with it, or better yet, use the version already deployed at
 <https://tebanieo.github.io/Keyway/>.
