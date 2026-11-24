@@ -300,4 +300,12 @@ describe("runQuery: GSI reads are billed by the projected entry", () => {
     expect(keys.items.map((i) => i.id)).toEqual(full.items.map((i) => i.id));
     expect(keys.bytes).toBeLessThan(full.bytes); // `status` isn't projected
   });
+
+  it("a filter on a GSI sees only the projected attributes", () => {
+    const keysOnly: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
+    const k = key(keysOnly, "GSI1PK = :s  :s=STATUS#pending");
+    const f = filter("attribute_exists(#s)  #s=status");
+    expect(runQuery(state, GSI1, spec({ key: k, filter: f }), BASE).items).toHaveLength(2);
+    expect(runQuery(state, keysOnly, spec({ key: k, filter: f }), BASE).items).toHaveLength(0);
+  });
 });

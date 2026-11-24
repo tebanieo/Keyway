@@ -74,8 +74,10 @@ export function runQuery(
   if (error) return { scanned: 0, bytes: 0, items: [], rcu: 0, error };
 
   const mode: ReadMode = spec.consistent ? "strong" : "eventual";
-  const readSize = (it: Item) =>
-    itemSize(index.name === base.name ? it : projectItem(it, index, base));
+  // On a GSI, DynamoDB reads the index ENTRY: only its projected attributes
+  // exist there, for the read cost and for the filter alike.
+  const entry = (it: Item) => (index.name === base.name ? it : projectItem(it, index, base));
+  const readSize = (it: Item) => itemSize(entry(it));
   const inIndex = (it: Item) => keyOf(it, index) !== null;
 
   if (spec.op === "get") {
@@ -106,7 +108,7 @@ export function runQuery(
   }
 
   const filter = spec.filter;
-  const items = filter ? read.filter((it) => evaluateCompiled(filter, it, "filter")) : read;
+  const items = filter ? read.filter((it) => evaluateCompiled(filter, entry(it), "filter")) : read;
 
   // Query/Scan RCU is the CUMULATIVE size of all items read, rounded once.
   const bytes = read.reduce((n, it) => n + readSize(it), 0);
