@@ -35,6 +35,11 @@ jobs:
           want=$(sed -n 's/^wasm-bindgen = "=\(.*\)"/\1/p' wasm/Cargo.toml)
           wasm-bindgen --version | grep -q " $want$" ||
             cargo install wasm-bindgen-cli --version "$want" --locked --force
+      - name: Format and lint (rustfmt, clippy)
+        working-directory: wasm
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
       - name: Unit tests (native)
         working-directory: wasm
         run: cargo test --locked
