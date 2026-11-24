@@ -21,7 +21,8 @@ coverage
 *.local
 .vite
 .DS_Store
-.claude/
+.claude/*
+!.claude/settings.json
 
 # internal-only notes (kept locally, never published)
 docs/CODE_REVIEW.md
