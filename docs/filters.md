@@ -60,9 +60,10 @@ A bare word on the right of a comparison is an attribute name, not a value. The
 panel warns when it sees one; use a placeholder (`:p=pending`).
 :::
 
-Keyway attributes are untyped text: a value that looks like a number is stored
-as a Number (`N`), anything else as a String (`S`), so `#t > :n  :n=10` compares
-numerically.
+Keyway attributes are untyped text: a value written as a plain number (`42`,
+`-1.5`; no leading zeros, at most 38 digits) is a Number (`N`), anything else
+(`007`, `v2`) a String (`S`). So `#t > :n  :n=10` compares numerically, and the
+panes sort Number keys numerically too, as DynamoDB does.
 
 ::: warning Not checked yet
 A real Query refuses a filter on the index's own key attributes ("Filter

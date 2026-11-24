@@ -14,7 +14,7 @@ import type { Expression } from "./types";
  *
  *     attribute_not_exists(PK) OR #s = :s   #s=status :s=pending
  *
- * A bare value that looks like a number is a Number (`N`), anything else a
+ * A bare canonical number (`42`, `-1.5`; see `number.ts`) is a Number (`N`), anything else a
  * String (`S`); quote it (`:v="42"`, `:v="Ada Lovelace"`) to force a String or
  * include spaces. The expression is validated by ExtendDB exactly as PutItem
  * would: reserved words, syntax, undefined and unused placeholders.

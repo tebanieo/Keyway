@@ -8,8 +8,8 @@ import type { Item } from "./types";
  * service: Σ over attributes of (UTF-8 bytes of the NAME + size of the VALUE).
  * A String (S) is its UTF-8 length; a Number (N) is sized by its significant
  * digits, `1 + ceil(int digits / 2) + ceil(fraction digits / 2)` (+1 if
- * negative), so `2024` is 3 bytes, not 4. Keyway sends a numeric-looking value
- * as N, the same typing conditions and filters use. The 100-byte per-item
+ * negative), so `2024` is 3 bytes, not 4. Keyway sends a canonical number as
+ * N (see `number.ts`), the same typing conditions and filters use. The 100-byte per-item
  * overhead in the docs is *storage* overhead, not capacity, so it's excluded.
  */
 

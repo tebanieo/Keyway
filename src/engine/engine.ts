@@ -1,5 +1,6 @@
 import type { Condition, IndexSpec, Item, Op, Partition, View, WriteAction } from "./types";
 import { evaluateCompiled } from "./extenddb";
+import { compareKeyValues } from "./number";
 
 /**
  * Separator joining pk and sk into a composite key string. A NUL control
@@ -22,17 +23,16 @@ export function skAttrs(index: IndexSpec): string[] {
 
 /**
  * Order items within a partition: by every sort attribute in turn (multi-key
- * safe), then by id as a stable tie-break. Shared by `project` and the diff so
+ * safe; Numbers numerically, as DynamoDB orders them), then by id as a stable
+ * tie-break. Shared by `project` and the diff so
  * the two can never disagree on row order.
  */
 export function bySortThenId(index: IndexSpec): (a: Item, b: Item) => number {
   const sks = skAttrs(index);
   return (a, b) => {
     for (const attr of sks) {
-      const va = a.attrs[attr] ?? "";
-      const vb = b.attrs[attr] ?? "";
-      if (va < vb) return -1;
-      if (va > vb) return 1;
+      const c = compareKeyValues(a.attrs[attr] ?? "", b.attrs[attr] ?? "");
+      if (c !== 0) return c;
     }
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   };

@@ -24,7 +24,8 @@ Notes that keep this honest:
 
 - Bytes are counted as **UTF-8**, not JavaScript `.length` (which counts code
   units), so multi-byte characters cost their real size.
-- A value that looks like a number is a **Number (N)**, sized by its significant
+- A value written as a plain number (no leading zeros, at most 38 digits) is a
+  **Number (N)**, sized by its significant
   digits: `1 + ceil(integer digits / 2) + ceil(fraction digits / 2)`, plus 1 if
   negative. So `2024` is 3 bytes and `1.5` is 3. Anything else is a **String
   (S)**: its UTF-8 byte length.
