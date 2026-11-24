@@ -6,8 +6,8 @@ use std::collections::{HashMap, HashSet};
 
 use extenddb_core::error::DynamoDbError;
 use extenddb_core::expression::{
-    Expr, ExpressionMaps, PathElement, collect_key_condition_refs, evaluate_condition,
-    parse_condition_with_depth_limit, parse_key_condition, tokenize_with_limit,
+    Expr, ExpressionMaps, PathElement, collect_key_condition_refs, collect_value_placeholders,
+    evaluate_condition, parse_condition_with_depth_limit, parse_key_condition, tokenize_with_limit,
     validate_begins_with_operands, validate_no_reserved_words, validate_ordering_operand_types,
     validate_unused_attributes,
 };
@@ -96,9 +96,6 @@ pub fn prepare(
     validate_no_reserved_words(&tokens).map_err(labelled)?;
     let ast =
         parse_condition_with_depth_limit(&tokens, limits.max_expression_depth).map_err(labelled)?;
-    if kind == Kind::Filter {
-        validate_begins_with_operands(&ast, &maps).map_err(labelled)?;
-    }
     validate_ordering_operand_types(&ast, &maps).map_err(labelled)?;
     validate_unused_attributes(
         &maps.names,
@@ -109,10 +106,73 @@ pub fn prepare(
         &HashSet::new(),
     )
     .map_err(labelled)?;
-    // Evaluating against an empty item resolves every placeholder, so an
-    // undefined `#name` or `:value` is reported here rather than at write time.
-    evaluate_condition(&ast, &Item::new(), &maps).map_err(labelled)?;
+    check_every_clause(&ast, &maps).map_err(labelled)?;
     Ok((ast, maps))
+}
+
+/// Check every clause of `ast` on its own, so nothing hides behind `AND`/`OR`
+/// short-circuiting: evaluating the whole expression against an empty item
+/// stops at the first clause that decides it, and a typo after it would only
+/// surface later, against a real item. Checks that every `#name` and `:value`
+/// is defined, `begins_with` operand types, and each comparison (including
+/// `BETWEEN`'s bound order and types) by evaluating it alone.
+fn check_every_clause(ast: &Expr, maps: &ExpressionMaps) -> Result<(), DynamoDbError> {
+    let mut placeholders = Vec::new();
+    collect_value_placeholders(ast, &mut placeholders);
+    for p in placeholders {
+        let bare = p.strip_prefix(':').unwrap_or(&p);
+        maps.resolve_value(bare)?;
+    }
+    check_names(ast, maps)?;
+    validate_begins_with_operands(ast, maps)?;
+    check_clauses(ast, maps)
+}
+
+fn check_names(expr: &Expr, maps: &ExpressionMaps) -> Result<(), DynamoDbError> {
+    let path = |p: &[PathElement]| -> Result<(), DynamoDbError> {
+        for el in p {
+            if let PathElement::Attribute(a) = el
+                && let Some(r) = a.strip_prefix('#')
+            {
+                maps.resolve_name(r)?;
+            }
+        }
+        Ok(())
+    };
+    match expr {
+        Expr::Path(p) => path(p),
+        Expr::Placeholder(_) => Ok(()),
+        Expr::Compare { left, right, .. } | Expr::Arithmetic { left, right, .. } => {
+            check_names(left, maps)?;
+            check_names(right, maps)
+        }
+        Expr::And(a, b) | Expr::Or(a, b) => {
+            check_names(a, maps)?;
+            check_names(b, maps)
+        }
+        Expr::Not(a) => check_names(a, maps),
+        Expr::Function { args, .. } => args.iter().try_for_each(|a| check_names(a, maps)),
+        Expr::Between { operand, low, high } => {
+            check_names(operand, maps)?;
+            check_names(low, maps)?;
+            check_names(high, maps)
+        }
+        Expr::In { operand, list } => {
+            check_names(operand, maps)?;
+            list.iter().try_for_each(|a| check_names(a, maps))
+        }
+    }
+}
+
+fn check_clauses(expr: &Expr, maps: &ExpressionMaps) -> Result<(), DynamoDbError> {
+    match expr {
+        Expr::And(a, b) | Expr::Or(a, b) => {
+            check_clauses(a, maps)?;
+            check_clauses(b, maps)
+        }
+        Expr::Not(a) => check_clauses(a, maps),
+        leaf => evaluate_condition(leaf, &Item::new(), maps).map(drop),
+    }
 }
 
 fn maps_from_json(names: &str, values: &str) -> Result<ExpressionMaps, String> {
@@ -198,8 +258,7 @@ pub fn prepare_key(
 
     let ast =
         parse_condition_with_depth_limit(&tokens, limits.max_expression_depth).map_err(labelled)?;
-    // Resolves every placeholder, so an undefined `:value` is reported now.
-    evaluate_condition(&ast, &Item::new(), &maps).map_err(labelled)?;
+    check_every_clause(&ast, &maps).map_err(labelled)?;
     Ok((ast, maps))
 }
 
@@ -418,5 +477,81 @@ mod tests {
         // only the last sort key given may use a range
         let bad = "tenant = :t AND #g = :r AND begins_with(#s, :s) AND opened = :d";
         assert!(prepare_key(bad, names, vals, &h, &range).is_err());
+    }
+
+    /// The reviewer's cases: each hid a mistake behind a clause that already
+    /// decided the result, so it passed validation and threw later.
+    #[test]
+    fn checks_clauses_behind_and_or() {
+        let c = |e: &str, n: &str, v: &str| prepare(Kind::Condition, e, n, v).map(drop);
+        assert!(
+            c(
+                "attribute_not_exists(PK) OR #s = :s",
+                "",
+                r#"{":s":{"S":"x"}}"#
+            )
+            .unwrap_err()
+            .contains("#s")
+        );
+        assert!(
+            c("attribute_exists(PK) AND a = :x", "", "")
+                .unwrap_err()
+                .contains(":x")
+        );
+        let n = r#"{":p":{"N":"2024"}}"#;
+        assert!(
+            c("attribute_exists(PK) AND begins_with(SK, :p)", "", n)
+                .unwrap_err()
+                .contains("begins_with")
+        );
+        let rev = r#"{":x":{"N":"5"},":y":{"N":"1"}}"#;
+        let f = prepare(
+            Kind::Filter,
+            "attribute_exists(a) AND n BETWEEN :x AND :y",
+            "",
+            rev,
+        );
+        assert!(f.unwrap_err().contains("BETWEEN"));
+        let mixed = r#"{":x":{"N":"1"},":y":{"S":"z"}}"#;
+        let f = prepare(
+            Kind::Filter,
+            "attribute_exists(a) OR n BETWEEN :x AND :y",
+            "",
+            mixed,
+        );
+        assert!(f.unwrap_err().contains("same data type"));
+        // contains() with an undefined value, behind nothing at all
+        assert!(
+            c("contains(a, :nope)", "", "")
+                .unwrap_err()
+                .contains(":nope")
+        );
+    }
+
+    #[test]
+    fn checks_key_condition_clauses_too() {
+        let v = |a: &[&str]| a.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        let (h, r) = (v(&["PK"]), v(&["SK"]));
+        let k = |e: &str, vals: &str| prepare_key(e, "", vals, &h, &r).map(drop);
+        let d = r#"{":u":{"S":"U"},":d":{"N":"2024"}}"#;
+        assert!(
+            k("PK = :u AND begins_with(SK, :d)", d)
+                .unwrap_err()
+                .contains("begins_with")
+        );
+        assert!(
+            k("PK = :p AND SK > :typo", r#"{":p":{"S":"A"}}"#)
+                .unwrap_err()
+                .contains(":typo")
+        );
+        let rev = r#"{":pk":{"S":"U"},":a":{"S":"b"},":b":{"S":"a"}}"#;
+        assert!(
+            k("PK = :pk AND SK BETWEEN :a AND :b", rev)
+                .unwrap_err()
+                .contains("BETWEEN")
+        );
+        // and a correct one still passes
+        let ok = r#"{":u":{"S":"U"},":d":{"S":"2024"}}"#;
+        assert_eq!(k("PK = :u AND begins_with(SK, :d)", ok), Ok(()));
     }
 }
