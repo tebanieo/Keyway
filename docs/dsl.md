@@ -151,6 +151,41 @@ del o1
 -o1
 ```
 
+## `@if`: a conditional write
+
+End a put or delete line with `@if` and a real DynamoDB `ConditionExpression`.
+The write applies only if the condition holds against the item's **current**
+state; otherwise it's rejected, nothing changes, and the failed check is still
+billed (see [The cost model](/cost)).
+
+```text
+u1: PK=USER#1  SK=PROFILE  name=Ada  @if attribute_not_exists(PK)
+o1: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  #s=status :p=pending
+delete o1  @if #s = :s  #s=status :s=shipped
+```
+
+As in the API, names and values live outside the expression. After the
+expression, list them as pairs:
+
+- `#name=attr` is an `ExpressionAttributeNames` entry. You need one for an
+  attribute whose name is a reserved word (`status`, `name`, `date`, …) or has
+  special characters.
+- `:value=literal` is an `ExpressionAttributeValues` entry. A bare number
+  (`:n=3`) is a Number (`N`); anything else is a String (`S`). Quote it to force
+  a String or include spaces: `:c="007"`, `:who="Ada Lovelace"`.
+
+The expression is parsed, validated, and evaluated by
+[ExtendDB](https://github.com/ExtendDB/extenddb)'s `extenddb-core`, compiled to
+WebAssembly and running in your browser. So the editor reports DynamoDB's own
+errors: a reserved word without a `#name`, a placeholder that's undefined or
+never used, bad syntax. A line with an invalid condition is a
+`ValidationException`: it never writes.
+
+::: tip `status = pending` compares two attributes
+In DynamoDB, a bare word on the right of a comparison is an attribute name, not
+a value. The editor warns when it sees one; use a placeholder (`:p=pending`).
+:::
+
 ## Comments and narration
 
 - Lines starting with `#` or `//` are comments. Blank lines are ignored.
