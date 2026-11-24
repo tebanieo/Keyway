@@ -45,6 +45,15 @@ export function QueryPanel({
   // GetItem: a value per key attribute. Query: the KeyConditionExpression text.
   const [keyVals, setKeyVals] = useState<Record<string, string>>({});
   const [keyText, setKeyText] = useState(() => keyConditionTemplate(schemaOf(base)));
+  // When the queried index's keys change under the panel (the document's @table
+  // or @gsi was edited, or the selected GSI was removed), start over from a
+  // fresh template rather than keep one written for the old keys.
+  const schemaSig = JSON.stringify([index.name, pks, sks]);
+  const [templateSig, setTemplateSig] = useState(schemaSig);
+  if (templateSig !== schemaSig) {
+    setTemplateSig(schemaSig);
+    setKeyText(keyConditionTemplate(schemaOf(index)));
+  }
   const [filterText, setFilterText] = useState("");
   const [consistent, setConsistent] = useState(false);
   const [result, setResult] = useState<{
@@ -135,8 +144,6 @@ export function QueryPanel({
             onChange={(e) => {
               const name = e.target.value;
               setIndexName(name);
-              const next = indexes.find((i) => i.name === name) ?? base;
-              setKeyText(keyConditionTemplate(schemaOf(next)));
               // GetItem can't run on a GSI: fall back to query.
               if (name !== base.name && op === "get") setOp("query");
             }}
