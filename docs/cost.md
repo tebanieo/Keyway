@@ -102,11 +102,13 @@ columns. When you _query_ one:
 ```text
 @gsi ByRegion pk=tenant,region sk=status,date
 
-@ap Open orders for a tenant+region -> ByRegion tenant=acme region=us status=open
-#   tenant= and region= are equality (both partition attrs); status= is the
-#   first sort attr as equality; add `date between …` as the last, rangeable one.
+@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  #r=region #s=status :t=acme :r=us :s=open
+#   tenant and region are equality (both partition attrs); status is the first
+#   sort attr as equality; add `#d BETWEEN :a AND :b` on date as the last,
+#   rangeable one. (region, status, date are reserved words, hence the #names.)
 ```
 
-Break a rule and the query returns a naming error (e.g. _"only the last sort key
-(date) can use a range; status must be `=`"_) rather than misbehaving: the same
-error that flags a pattern `invalid` under [coverage](/access-patterns).
+Break a rule and ExtendDB returns DynamoDB's error (e.g. _"RANGE key attributes
+status must have equality conditions specified in the query because a condition
+is present on key attribute date"_) rather than misbehaving: the same error that
+flags a pattern `invalid` under [coverage](/access-patterns).

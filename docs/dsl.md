@@ -72,27 +72,33 @@ An access pattern is the **spec**: what your design must be able to serve. They
 are auto-numbered (AP1, AP2, …) in declaration order.
 
 ```text
-@ap <description> [-> <Index> [get|query|scan] <key conditions>]
+@ap <description> [-> <Index> [get|query|scan] <key>]
 ```
 
 - `<description>` is required (everything before the `->`).
 - `-> <Index>` names the index that should serve it.
 - The read op defaults to `query`; you can write `get` or `scan` explicitly.
-- **Key conditions** reuse the item/query key syntax so the pattern becomes a
-  _real, runnable query_:
-  - `attr=value` for equality (compact form).
-  - `attr <op> value` for a sort-key range, where `<op>` is one of
-    `= begins_with < <= > >= between`.
-  - `attr between a and b` for a range (the `and` is optional in the text).
+- The **key** makes the pattern a _real, runnable read_:
+  - **query**: a real DynamoDB `KeyConditionExpression`, followed by its
+    `#name=attr` / `:value=literal` pairs, the same form as [`@if`](#if-a-conditional-write).
+    Equality on the partition key; optionally a sort-key condition with
+    `= < <= > >= BETWEEN begins_with`.
+  - **get**: the `Key`, as `attr=value` pairs for every key attribute.
+  - **scan**: nothing.
 
 ```text
-@ap Get a user's profile and orders -> AppTable PK=USER#1
-@ap Look up a user by email        -> GSI1 GSI1PK=EMAIL#ada
-@ap List a tenant's users          -> SaasTable PK=TENANT#acme SK begins_with USER#
-@ap Open orders for a tenant+region -> ByRegion tenant=acme region=us status=open
+@ap Get a user's profile and orders -> AppTable PK = :u  :u=USER#1
+@ap Look up a user by email        -> GSI1 GSI1PK = :e  :e=EMAIL#ada
+@ap List a tenant's users          -> SaasTable PK = :t AND begins_with(SK, :u)  :t=TENANT#acme :u=USER#
+@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  #r=region #s=status :t=acme :r=us :s=open
 @ap Get an event                   -> EventsTable get PK=EVENT#reinvent SK=META
 @ap Get a user's notification settings by type
 ```
+
+The key condition is checked by ExtendDB against the index's keys when the
+pattern runs, so a broken rule shows DynamoDB's own error. The old compact form
+(`PK=USER#1 SK begins_with ORDER#`) is no longer read; the editor points you at
+the new one.
 
 The last line declares a pattern with **no index yet**: a coverage gap that the
 app surfaces. See [Access-pattern coverage](/access-patterns) for how each

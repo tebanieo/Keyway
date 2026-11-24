@@ -170,8 +170,8 @@ logic in `src/model/`, and the React UI in `src/components/`.
 @gsi GSI1 pk=GSI1PK sk=GSI1SK            # declare an index (one pane per @gsi)
 @gsi ByRegion pk=tenant,region sk=status,date   # native multi-key GSI
 
-@ap List a user's orders -> AppTable PK=USER#1 SK begins_with ORDER#   # a requirement
-@ap Look up a user by email -> GSI1 GSI1PK=EMAIL#ada@x.io              # the app runs it + grades coverage
+@ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#   # a requirement
+@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@x.io     # the app runs it + grades coverage
 
 u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user   # label: attrs (label = stable id)
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace      # same label = update
@@ -181,7 +181,8 @@ o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  #s=status :p=pending   #
 delete o1                                          # remove an item
 ```
 
-- **`@ap`** declares an access pattern (a requirement); the app runs it against
+- **`@ap`** declares an access pattern (a requirement) with the index and the
+  real `KeyConditionExpression` that should serve it; the app runs it against
   the model and shows which patterns are served and which aren't.
 - **`@if`**, as the last clause on a put/delete, is a conditional write: a real
   DynamoDB `ConditionExpression`, followed by its `#name=attr` and `:value=literal`
