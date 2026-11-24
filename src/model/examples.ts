@@ -19,9 +19,9 @@ const SAAS = `# Multi-tenant SaaS - tenants, users, and projects, all scoped by 
 @table SaasTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
-@ap List a tenant's users -> SaasTable PK=TENANT#acme SK begins_with USER#
-@ap Find a user by email -> GSI1 GSI1PK=EMAIL#ada@acme.com
-@ap List a tenant's active projects -> GSI1 GSI1PK=STATUS#active
+@ap List a tenant's users -> SaasTable PK = :t AND begins_with(SK, :u)  :t=TENANT#acme :u=USER#
+@ap Find a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@acme.com
+@ap List a tenant's active projects -> GSI1 GSI1PK = :s  :s=STATUS#active
 
 t1: PK=TENANT#acme  SK=META  name=Acme Corp  plan=enterprise  _type=tenant
 u1: PK=TENANT#acme  SK=USER#ada  name=Ada  email=ada@acme.com  role=admin  GSI1PK=EMAIL#ada@acme.com  GSI1SK=TENANT#acme  _type=user
@@ -35,8 +35,8 @@ const SOCIAL = `# Social graph - profiles, follows (adjacency-list edges), and p
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 
 @ap Get a profile -> SocialTable get PK=USER#ada SK=PROFILE
-@ap Who follows a user -> GSI1 GSI1PK=USER#alan GSI1SK begins_with FOLLOWER#
-@ap A user's feed, newest first -> GSI1 GSI1PK=FEED#ada
+@ap Who follows a user -> GSI1 GSI1PK = :u AND begins_with(GSI1SK, :f)  :u=USER#alan :f=FOLLOWER#
+@ap A user's feed, newest first -> GSI1 GSI1PK = :f  :f=FEED#ada
 
 a1: PK=USER#ada  SK=PROFILE  handle=ada  name=Ada Lovelace  _type=profile
 a2: PK=USER#alan  SK=PROFILE  handle=alan  name=Alan Turing  _type=profile
@@ -52,12 +52,14 @@ const MULTIKEY = `# Native multi-key GSI - up to 4 partition + 4 sort attributes
 # natively-typed columns (no string concatenation). "ByRegion" partitions by
 # (tenant, region) and sorts by (status, date). In a query, all partition attrs
 # are equality; of the sort attrs only the LAST (date) can take a range.
+# region, status, and date are DynamoDB reserved words, so the query names them
+# through #placeholders.
 @table OrdersTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
 @gsi ByRegion pk=tenant,region sk=status,date
 
 @ap Get an order by id -> OrdersTable get PK=ORDER#1 SK=META
-@ap Open orders for a tenant + region -> ByRegion tenant=acme region=us status=open
+@ap Open orders for a tenant + region -> ByRegion tenant = :t AND #r = :r AND #s = :s  #r=region #s=status :t=acme :r=us :s=open
 
 o1: PK=ORDER#1  SK=META  tenant=acme  region=us  status=open  date=2024-03-01  total=42  _type=order
 o2: PK=ORDER#2  SK=META  tenant=acme  region=us  status=shipped  date=2024-02-10  total=17  _type=order

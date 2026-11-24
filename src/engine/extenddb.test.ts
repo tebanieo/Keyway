@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateCompiled, sizeOf, toWireItem, validateCompiled } from "./extenddb";
-import { parseExpression } from "./expression";
+import { keyConditionTemplate, needsNamePlaceholder, parseExpression } from "./expression";
 import type { Item } from "./types";
 
 // The WASM is loaded by src/test/extenddb.setup.mjs.
@@ -74,5 +74,27 @@ describe("validateCompiled", () => {
 describe("sizeOf", () => {
   it("counts attribute names and values as DynamoDB does", () => {
     expect(sizeOf({ id: "x", attrs: { PK: "USER#1" } })).toBe(2 + 6);
+  });
+});
+
+describe("keyConditionTemplate", () => {
+  it("names the partition key, leaving its value to fill in", () => {
+    expect(keyConditionTemplate({ hash: ["PK"], range: ["SK"] })).toBe("PK = :pk  :pk=");
+  });
+
+  it("routes reserved words through #names, as DynamoDB requires", () => {
+    expect(needsNamePlaceholder("region")).toBe(true);
+    expect(needsNamePlaceholder("GSI1PK")).toBe(false);
+    expect(keyConditionTemplate({ hash: ["tenant", "region"], range: ["status", "date"] })).toBe(
+      "tenant = :pk1 AND #pk2 = :pk2  #pk2=region :pk1= :pk2=",
+    );
+  });
+
+  it("is a valid key condition once the values are filled in", () => {
+    const schema = { hash: ["tenant", "region"], range: ["status", "date"] };
+    const filled = keyConditionTemplate(schema)
+      .replace(":pk1=", ":pk1=acme")
+      .replace(":pk2=", ":pk2=us");
+    expect(parseExpression(filled, "key", schema).error).toBeUndefined();
   });
 });

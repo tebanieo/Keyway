@@ -167,31 +167,45 @@ describe("parseDoc", () => {
         description: "Get a user by id",
         index: undefined,
         readOp: "query",
-        conds: undefined,
+        keyText: undefined,
       },
-      { n: 2, description: "Find user by email", index: "GSI1", readOp: "query", conds: undefined },
+      {
+        n: 2,
+        description: "Find user by email",
+        index: "GSI1",
+        readOp: "query",
+        keyText: undefined,
+      },
     ]);
   });
 
-  it("parses @ap key conditions (equality + sort-key range) and round-trips them", () => {
-    const { aps, diagnostics } = parseDoc(
-      "@ap List a user's orders -> AppTable PK=USER#1 SK begins_with ORDER#\n" +
-        "@ap Orders in a window -> GSI1 GSI1PK=STATUS#open GSI1SK between 2024-01 and 2024-06",
+  it("keeps an @ap's KeyConditionExpression (or GetItem key) as written, and round-trips it", () => {
+    const src =
+      "@ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#\n" +
+      "@ap Get a profile -> AppTable get PK=USER#1 SK=PROFILE\n" +
+      "@ap Everything -> AppTable scan";
+    const { aps, diagnostics } = parseDoc(src, BASE);
+    expect(diagnostics).toEqual([]);
+    expect(aps.map((a) => [a.readOp, a.keyText])).toEqual([
+      ["query", "PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#"],
+      ["get", "PK=USER#1 SK=PROFILE"],
+      ["scan", undefined],
+    ]);
+    const reparsed = parseDoc(serializeAps(aps), BASE).aps;
+    expect(reparsed).toEqual(aps);
+  });
+
+  it("points the old compact @ap key syntax at a real KeyConditionExpression", () => {
+    const { diagnostics } = parseDoc(
+      "@ap Orders -> AppTable PK=USER#1 SK begins_with ORDER#",
       BASE,
     );
-    expect(diagnostics).toEqual([]);
-    expect(aps[0].conds).toEqual([
-      { attr: "PK", op: "=", value: "USER#1" },
-      { attr: "SK", op: "begins_with", value: "ORDER#" },
-    ]);
-    expect(aps[1].conds).toEqual([
-      { attr: "GSI1PK", op: "=", value: "STATUS#open" },
-      { attr: "GSI1SK", op: "between", value: "2024-01", value2: "2024-06" },
-    ]);
-    // round-trip through the serializer preserves the conditions
-    const text = serializeAps(aps);
-    const reparsed = parseDoc(text, BASE).aps;
-    expect(reparsed.map((a) => a.conds)).toEqual(aps.map((a) => a.conds));
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: "warning",
+        message: expect.stringMatching(/real KeyConditionExpression/),
+      }),
+    );
   });
 
   it("attaches an adjacent comment as an op's narration; blank line silences it", () => {

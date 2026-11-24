@@ -3,6 +3,7 @@ import init, {
   initSync,
   itemSize,
   validateExpression,
+  validateKeyCondition,
 } from "../../wasm/pkg/keyway_extenddb.js";
 import type { Item } from "./types";
 
@@ -56,16 +57,42 @@ export interface CompiledExpression {
 
 /**
  * Which request parameter an expression is. They share one grammar, but
- * DynamoDB labels their errors differently, and a FilterExpression also gets
- * Query/Scan's `begins_with` operand check.
+ * DynamoDB labels their errors differently; a FilterExpression also gets
+ * Query/Scan's `begins_with` operand check, and a KeyConditionExpression is
+ * restricted to the index's keys (see `validateKeyCompiled`).
  */
-export type ExpressionKind = "condition" | "filter";
+export type ExpressionKind = "condition" | "filter" | "key";
 
 /** DynamoDB's ValidationException message for `c`, or null when it's valid. */
 export function validateCompiled(c: CompiledExpression, kind: ExpressionKind): string | null {
   assertReady();
   try {
     validateExpression(kind, c.expression, JSON.stringify(c.names), JSON.stringify(c.values));
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+/**
+ * DynamoDB's error for KeyConditionExpression `c` on an index with partition
+ * key attributes `hash` and sort key attributes `range` (several, for a
+ * multi-attribute key), or null when it's a valid Query.
+ */
+export function validateKeyCompiled(
+  c: CompiledExpression,
+  hash: string[],
+  range: string[],
+): string | null {
+  assertReady();
+  try {
+    validateKeyCondition(
+      c.expression,
+      JSON.stringify(c.names),
+      JSON.stringify(c.values),
+      JSON.stringify(hash),
+      JSON.stringify(range),
+    );
     return null;
   } catch (e) {
     return e instanceof Error ? e.message : String(e);

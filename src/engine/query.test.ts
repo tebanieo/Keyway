@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fold } from "./engine";
 import { runQuery } from "./query";
 import type { QuerySpec } from "./query";
+import { pkAttrs, skAttrs } from "./engine";
 import { parseExpression } from "./expression";
 import type { IndexSpec, Op } from "./types";
 
@@ -9,6 +10,13 @@ import type { IndexSpec, Op } from "./types";
 const filter = (text: string) => {
   const p = parseExpression(text, "filter");
   if (!p.expression) throw new Error(`bad test filter: ${text}: ${p.error}`);
+  return p.expression;
+};
+
+/** A KeyConditionExpression for `index`, as the Query panel builds it. */
+const key = (index: IndexSpec, text: string) => {
+  const p = parseExpression(text, "key", { hash: pkAttrs(index), range: skAttrs(index) });
+  if (!p.expression) throw new Error(`bad test key condition: ${text}: ${p.error}`);
   return p.expression;
 };
 
@@ -50,7 +58,7 @@ const spec = (o: Partial<QuerySpec>): QuerySpec => ({
   op: "query",
   pk: [],
   sk: [],
-  skParts: [],
+  key: null,
   filter: null,
   consistent: false,
   ...o,
@@ -75,7 +83,7 @@ describe("runQuery: query", () => {
     const r = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: "begins_with", value: "ORDER#" }] }),
+      spec({ key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#") }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o2", "o3"]);
     expect(r.scanned).toBe(3); // the profile is not read
@@ -86,8 +94,7 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        pk: ["U#1"],
-        skParts: [{ op: "begins_with", value: "ORDER#" }],
+        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
         filter: filter("#s = :p  #s=status :p=pending"),
       }),
     );
@@ -96,7 +103,7 @@ describe("runQuery: query", () => {
   });
 
   it("queries a GSI partition", () => {
-    const r = runQuery(state, GSI1, spec({ pk: ["STATUS#pending"] }));
+    const r = runQuery(state, GSI1, spec({ key: key(GSI1, "GSI1PK = :s  :s=STATUS#pending") }));
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
   });
 
@@ -105,8 +112,7 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        pk: ["U#1"],
-        skParts: [{ op: "begins_with", value: "ORDER#" }],
+        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
         filter: filter("#s = :p AND GSI1SK > :d  #s=status :p=pending :d=2024-02"),
       }),
     );
@@ -118,8 +124,7 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        pk: ["U#1"],
-        skParts: [{ op: "begins_with", value: "ORDER#" }],
+        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
         filter: filter("#s = :sh OR GSI1SK = :d  #s=status :sh=shipped :d=2024-03"),
       }),
     );
@@ -131,8 +136,10 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        pk: ["U#1"],
-        skParts: [{ op: "between", value: "ORDER#2024-02", value2: "ORDER#2024-99" }],
+        key: key(
+          BASE,
+          "PK = :u AND SK BETWEEN :a AND :b  :u=U#1 :a=ORDER#2024-02 :b=ORDER#2024-99",
+        ),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
@@ -166,21 +173,21 @@ describe("runQuery: sort-key condition matrix", () => {
     const eq = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: "=", value: "ORDER#2024-02" }] }),
+      spec({ key: key(BASE, "PK = :u AND SK = :a  :u=U#1 :a=ORDER#2024-02") }),
     );
     expect(eq.items.map((i) => i.id)).toEqual(["o2"]);
 
     const lt = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: "<", value: "ORDER#2024-02" }] }),
+      spec({ key: key(BASE, "PK = :u AND SK < :a  :u=U#1 :a=ORDER#2024-02") }),
     );
     expect(lt.items.map((i) => i.id)).toEqual(["o1"]);
 
     const lte = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: "<=", value: "ORDER#2024-02" }] }),
+      spec({ key: key(BASE, "PK = :u AND SK <= :a  :u=U#1 :a=ORDER#2024-02") }),
     );
     expect(lte.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
 
@@ -189,26 +196,26 @@ describe("runQuery: sort-key condition matrix", () => {
     const gt = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: ">", value: "ORDER#2024-02" }] }),
+      spec({ key: key(BASE, "PK = :u AND SK > :a  :u=U#1 :a=ORDER#2024-02") }),
     );
     expect(gt.items.map((i) => i.id).sort()).toEqual(["o3", "p"]);
 
     const gte = runQuery(
       state,
       BASE,
-      spec({ pk: ["U#1"], skParts: [{ op: ">=", value: "ORDER#2024-02" }] }),
+      spec({ key: key(BASE, "PK = :u AND SK >= :a  :u=U#1 :a=ORDER#2024-02") }),
     );
     expect(gte.items.map((i) => i.id).sort()).toEqual(["o2", "o3", "p"]);
   });
 
   it("a query with no sort condition reads the whole partition (incl. the profile)", () => {
-    const r = runQuery(state, BASE, spec({ pk: ["U#1"] }));
+    const r = runQuery(state, BASE, spec({ key: key(BASE, "PK = :u  :u=U#1") }));
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o2", "o3", "p"]);
     expect(r.scanned).toBe(4);
   });
 
   it("an empty partition reads nothing but still costs the 1-unit RCU floor", () => {
-    const r = runQuery(state, BASE, spec({ pk: ["U#404"] }));
+    const r = runQuery(state, BASE, spec({ key: key(BASE, "PK = :u  :u=U#404") }));
     expect(r.items).toHaveLength(0);
     expect(r.scanned).toBe(0);
     expect(r.rcu).toBe(0.5); // even a zero-item read bills the minimum eventual unit
@@ -228,44 +235,58 @@ describe("runQuery: read consistency (RCU)", () => {
   });
 });
 
-describe("runQuery: validation (multi-key rules)", () => {
+describe("runQuery: validation (ExtendDB key-condition rules)", () => {
   const MGSI: IndexSpec = {
     name: "M",
     pk: "tenant",
-    pks: ["tenant", "region"],
-    sk: "status",
-    sks: ["status", "date"],
+    pks: ["tenant", "area"],
+    sk: "phase",
+    sks: ["phase", "opened"],
   };
-  it("requires equality on every partition attribute", () => {
-    const r = runQuery(state, MGSI, spec({ pk: ["acme"] })); // missing region
-    expect(r.error).toMatch(/partition key/);
+  const raw = (expression: string, values: Record<string, string>) => ({
+    expression,
+    names: {},
+    values: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, { S: v }])),
+    text: expression,
+  });
+
+  it("a Query needs a KeyConditionExpression", () => {
+    expect(runQuery(state, BASE, spec({})).error).toMatch(/KeyConditionExpression/);
+  });
+  it("requires the partition key", () => {
+    const r = runQuery(state, BASE, spec({ key: raw("SK = :s", { ":s": "PROFILE" }) }));
+    expect(r.error).toMatch(/missed key schema element: PK/);
+  });
+  it("refuses a non-key attribute in place of the sort key", () => {
+    const k = raw("PK = :u AND price = :p", { ":u": "U#1", ":p": "9" });
+    expect(runQuery(state, BASE, spec({ key: k })).error).toMatch(/missed key schema element: SK/);
+  });
+  it("requires equality on every partition attribute of a multi-key index", () => {
+    const r = runQuery(state, MGSI, spec({ key: raw("tenant = :t", { ":t": "acme" }) }));
+    expect(r.error).toMatch(/HASH key attributes area must have equality conditions/);
   });
   it("rejects a range on a non-last sort attribute", () => {
-    const r = runQuery(
-      state,
-      MGSI,
-      spec({
-        pk: ["acme", "us"],
-        skParts: [
-          { op: ">", value: "open" },
-          { op: "=", value: "x" },
-        ],
-      }),
+    const k = raw("tenant = :t AND area = :z AND phase > :p AND opened = :o", {
+      ":t": "acme",
+      ":z": "us",
+      ":p": "open",
+      ":o": "x",
+    });
+    expect(runQuery(state, MGSI, spec({ key: k })).error).toMatch(
+      /RANGE key attributes phase must have equality conditions/,
     );
-    expect(r.error).toMatch(/only the last sort key/);
   });
   it("allows a range on the last sort attribute with equality before it", () => {
-    const r = runQuery(
-      state,
-      MGSI,
-      spec({
-        pk: ["acme", "us"],
-        skParts: [
-          { op: "=", value: "open" },
-          { op: ">", value: "2024-01" },
-        ],
-      }),
-    );
-    expect(r.error).toBeNull();
+    const k = raw("tenant = :t AND area = :z AND phase = :p AND opened > :o", {
+      ":t": "acme",
+      ":z": "us",
+      ":p": "open",
+      ":o": "2024-01",
+    });
+    expect(runQuery(state, MGSI, spec({ key: k })).error).toBeNull();
+  });
+  it("GetItem needs the full primary key", () => {
+    const r = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: [] }));
+    expect(r.error).toMatch(/does not match the schema/);
   });
 });

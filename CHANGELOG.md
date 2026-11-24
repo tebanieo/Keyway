@@ -19,6 +19,15 @@ hand-curated summary. It follows
 - **The Query panel's filter is a real DynamoDB `FilterExpression`**, written
   the same way (expression, then `#name=attr` / `:value=literal` pairs) and
   evaluated by ExtendDB, with DynamoDB's `Invalid FilterExpression` errors.
+- **Queries take a real DynamoDB `KeyConditionExpression`**, in `@ap` lines
+  (`@ap … -> GSI1 GSI1PK = :e  :e=EMAIL#ada`) and in the Query panel, which
+  pre-fills one for the chosen index. ExtendDB checks it against the index's
+  key schema, so a broken key rule shows DynamoDB's own error (and flags the
+  pattern `invalid` in coverage). GetItem keeps its `Key` (`get PK=… SK=…`) and
+  no longer shows a filter box, since GetItem has no FilterExpression.
+- **Breaking:** the old compact `@ap` key syntax, like
+  `PK=USER#1 SK begins_with ORDER#`, is no longer read; the editor points at
+  the new form.
 - **Breaking:** the old inline syntax (`@if status=pending`) is no longer
   accepted; write `@if #s = :p  #s=status :p=pending`. Shared links that use it
   show the error on those lines.
