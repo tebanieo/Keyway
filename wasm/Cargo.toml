@@ -1,0 +1,25 @@
+[package]
+name = "keyway-extenddb"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "WASM bindings over extenddb-core: DynamoDB expression semantics for Keyway"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+extenddb-core = { git = "https://github.com/ExtendDB/extenddb", tag = "v1.0.0" }
+serde = "1"
+serde_json = "1"
+wasm-bindgen = "=0.2.118"
+# extenddb-core uses uuid; on wasm32 it needs a JS source of randomness.
+uuid = { version = "1", features = ["js"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -7,6 +7,12 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Added
+
+- `wasm/`: a WASM wrapper over ExtendDB's `extenddb-core`, exposing its real
+  ConditionExpression evaluator and DynamoDB item sizing to JavaScript
+  (spike, not yet wired into the app).
+
 ## [0.1.0-alpha] - 2026-08-02
 
 First public pre-release.

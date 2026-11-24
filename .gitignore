@@ -36,3 +36,7 @@ scripts/demo_typer.py
 # python caches (from the local demo script)
 __pycache__/
 *.pyc
+
+# rust / wasm build output
+wasm/target
+wasm/pkg
