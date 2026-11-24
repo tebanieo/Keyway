@@ -13,6 +13,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The committed wasm/pkg must be exactly what wasm/ builds to, so the shipped
+  # binary is provably the open-source extenddb-core and nothing else.
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain (wasm/rust-toolchain.toml)
+        working-directory: wasm
+        run: rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/wasm-bindgen
+            ~/.cargo/registry
+            ~/.cargo/git
+            wasm/target
+          key: wasm-${{ hashFiles('wasm/Cargo.lock', 'wasm/rust-toolchain.toml') }}
+      - name: Install wasm-bindgen-cli
+        run: |
+          want=$(sed -n 's/^wasm-bindgen = "=\(.*\)"/\1/p' wasm/Cargo.toml)
+          wasm-bindgen --version | grep -q " $want$" ||
+            cargo install wasm-bindgen-cli --version "$want" --locked --force
+      - name: Unit tests (native)
+        working-directory: wasm
+        run: cargo test --locked
+      - name: Rebuild wasm/pkg
+        run: npm run wasm:build
+      - name: Committed wasm/pkg matches its source
+        run: git diff --exit-code -- wasm/pkg
+
   checks:
     runs-on: ubuntu-latest
     steps:
