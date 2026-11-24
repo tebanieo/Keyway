@@ -7,9 +7,11 @@ pre-commit:
   jobs:
     - name: format
       glob: "*.{ts,tsx,js,css,md,json,html}"
+      exclude: "wasm/pkg/**"
       run: npx prettier --check {staged_files}
     - name: lint
       glob: "*.{ts,tsx}"
+      exclude: "wasm/pkg/**"
       run: npx eslint {staged_files}
     - name: typecheck
       run: npx tsc -b
