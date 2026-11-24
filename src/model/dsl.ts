@@ -1,5 +1,5 @@
 import { keyOf } from "../engine/engine";
-import { parseFilter } from "../engine/filter";
+import { parseCondition } from "../engine/condition";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
 import type { CondOp } from "../engine/query";
 
@@ -359,24 +359,27 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       return;
     }
 
-    // A trailing `@if <expr>` guards the write (put or delete). It must be the
-    // LAST clause on the line: everything after `@if` is the condition, so its
-    // spaces and `=` never collide with the item's own key=value pairs.
+    // A trailing `@if <expr> #n=.. :v=..` guards the write (put or delete) with
+    // a real DynamoDB ConditionExpression. It must be the LAST clause on the
+    // line: everything after `@if` is the condition and its placeholders, so
+    // their spaces and `=` never collide with the item's own key=value pairs.
     let condition: Condition | undefined;
     let core = s;
     const ifm = /\s@if\s+(.+)$/i.exec(s);
     if (ifm) {
       core = s.slice(0, ifm.index);
-      const parsed = parseFilter(ifm[1]);
-      if (!parsed.ast) {
-        diagnostics.push({
-          line,
-          message: `@if condition: ${parsed.error ?? "empty"}`,
-          severity: "error",
-        });
-      } else {
-        condition = { ast: parsed.ast, text: ifm[1].trim() };
+      const parsed = parseCondition(ifm[1]);
+      for (const message of parsed.warnings) {
+        diagnostics.push({ line, message: `@if: ${message}`, severity: "warning" });
       }
+      if (!parsed.condition) {
+        // DynamoDB answers an invalid expression with a ValidationException:
+        // the write never happens, so the line contributes no op.
+        diagnostics.push({ line, message: `@if: ${parsed.error}`, severity: "error" });
+        pending = [];
+        return;
+      }
+      condition = parsed.condition;
     }
 
     const del = DELETE.exec(core);

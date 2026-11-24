@@ -275,22 +275,75 @@ describe("parseDoc: conditional writes (@if)", () => {
 
   it("puts the @if guard on the put action of a key-change transact", () => {
     const { ops } = parseDoc(
-      "t1: PK=U#1  SK=T#open\nt1: PK=U#2  SK=T#open  @if status=pending",
+      "t1: PK=U#1  SK=T#open\nt1: PK=U#2  SK=T#open  @if #s = :s  #s=status :s=pending",
       BASE,
     );
     expect(ops[1]).toMatchObject({
       kind: "transact",
-      actions: [{ kind: "delete" }, { kind: "put", condition: { text: "status=pending" } }],
+      actions: [{ kind: "delete" }, { kind: "put", condition: { expression: "#s = :s" } }],
     });
   });
 
   it("parses an @if guard on a delete", () => {
-    const { ops } = parseDoc("delete o1  @if status=shipped", BASE);
+    const { ops } = parseDoc("delete o1  @if #s = :s  #s=status :s=shipped", BASE);
     expect(ops[0]).toMatchObject({
       kind: "delete",
       id: "o1",
-      condition: { text: "status=shipped" },
+      condition: {
+        expression: "#s = :s",
+        names: { "#s": "status" },
+        values: { ":s": { S: "shipped" } },
+      },
     });
+  });
+
+  it("types placeholder values: bare numbers are N, quoted values are S", () => {
+    const { ops, diagnostics } = parseDoc(
+      'u1: PK=U#1  SK=P  @if #v < :n AND #c = :c AND #n = :who  #v=version #c=code #n=name :n=3 :c="007" :who="Ada Lovelace"',
+      BASE,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(ops[0]).toMatchObject({
+      condition: {
+        expression: "#v < :n AND #c = :c AND #n = :who",
+        values: { ":n": { N: "3" }, ":c": { S: "007" }, ":who": { S: "Ada Lovelace" } },
+      },
+    });
+  });
+
+  it.each([
+    [
+      "the old inline syntax (status is reserved)",
+      "@if status=pending",
+      /reserved keyword: status/,
+    ],
+    ["an undefined value", "@if #s = :s  #s=status", /:s/],
+    ["an unused value", "@if attribute_exists(PK)  :s=x", /ExpressionAttributeValues unused/],
+    ["an unused name", "@if attribute_exists(PK)  #s=status", /ExpressionAttributeNames unused/],
+    ["a placeholder defined twice", "@if #a = :v  #a=x :v=1 :v=2", /defined twice/],
+  ])("rejects %s with DynamoDB's error", (_, guard, message) => {
+    const { diagnostics } = parseDoc(`u1: PK=U#1  SK=P  ${guard}`, BASE);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({ severity: "error", message: expect.stringMatching(message) }),
+    );
+  });
+
+  it("drops a write whose @if is invalid, as a ValidationException would", () => {
+    const { ops } = parseDoc(
+      "u1: PK=U#1  SK=P\nu1: PK=U#1  SK=P  name=X  @if status=pending",
+      BASE,
+    );
+    expect(ops).toHaveLength(1);
+  });
+
+  it("warns when a comparison reads a bare word as an attribute", () => {
+    const { diagnostics } = parseDoc("u1: PK=U#1  SK=P  @if tier = gold", BASE);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: "warning",
+        message: expect.stringMatching(/`gold` is read as an attribute/),
+      }),
+    );
   });
 
   it("flags a malformed condition as an error", () => {

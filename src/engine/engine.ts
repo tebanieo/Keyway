@@ -1,5 +1,5 @@
 import type { Condition, IndexSpec, Item, Op, Partition, View, WriteAction } from "./types";
-import { evalFilter } from "./filter";
+import { evaluateCompiled } from "./extenddb";
 
 /**
  * Separator joining pk and sk into a composite key string. A NUL control
@@ -96,7 +96,7 @@ export function findById(state: Map<string, Item>, id: string): Item | undefined
  */
 export function conditionHolds(condition: Condition | undefined, existing: Item | null): boolean {
   if (!condition) return true;
-  return evalFilter(condition.ast, existing ?? { id: "", attrs: {} });
+  return evaluateCompiled(condition, existing ?? { id: "", attrs: {} });
 }
 
 /**

@@ -1,7 +1,7 @@
 // Core domain types for the DynamoDB data model.
 // Everything here is plain data: no DOM, no React, no async.
 
-import type { FilterNode } from "./filter";
+import type { AttributeValue } from "./extenddb";
 
 /**
  * A stored item. `id` is a stable identity that survives across index views
@@ -47,13 +47,16 @@ export interface IndexSpec {
 }
 
 /**
- * A condition expression guarding a write (`@if <expr>`). The write applies only
- * if `ast` holds against the item's CURRENT state; otherwise it's rejected (a
- * DynamoDB ConditionalCheckFailed) and nothing changes. `text` is the original
- * expression, kept so the DSL round-trips.
+ * A real DynamoDB ConditionExpression guarding a write (`@if <expr> #n=.. :v=..`).
+ * The write applies only if it holds against the item's CURRENT state (checked
+ * by ExtendDB); otherwise it's rejected (a ConditionalCheckFailed) and nothing
+ * changes. `names`/`values` are its ExpressionAttributeNames/Values, and `text`
+ * is everything after `@if`, kept so the DSL round-trips.
  */
 export interface Condition {
-  ast: FilterNode;
+  expression: string;
+  names: Record<string, string>;
+  values: Record<string, AttributeValue>;
   text: string;
 }
 

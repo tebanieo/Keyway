@@ -141,10 +141,11 @@ o3: PK=USER#2  SK=ORDER#3  total=99  status=pending  GSI1PK=STATUS#pending  GSI1
 
 // Guarded writes: @if applies a write only when its condition holds. Watch the
 // panes NOT move on a rejected step, while the cost still ticks up.
-const CONDITIONAL = `# Conditional Writes: a write can carry a guard, "@if <condition>", as the LAST
-# thing on the line. DynamoDB applies the write only if the condition holds
-# against the CURRENT item; otherwise it is rejected and nothing changes, and you
-# still pay a flat 1 WCU for the failed check.
+const CONDITIONAL = `# Conditional Writes: a write can carry a guard, "@if <ConditionExpression>", as
+# the LAST thing on the line. It's a real DynamoDB ConditionExpression, checked by
+# ExtendDB. DynamoDB applies the write only if it holds against the CURRENT item;
+# otherwise it is rejected and nothing changes, and you still pay a flat 1 WCU
+# for the failed check.
 @table AppTable pk=PK sk=SK
 
 # Create-if-not-exists: attribute_not_exists(PK) is true only when the row is
@@ -159,11 +160,13 @@ u1: PK=USER#1  SK=PROFILE  name=Ada Impostor  @if attribute_not_exists(PK)
 o1: PK=USER#1  SK=ORDER#1  total=42  status=pending  _type=order
 
 # Optimistic ship: move to shipped only if it is still pending. It is, so it ships.
-o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if status=pending
+# Values go in :placeholders, like ExpressionAttributeValues, listed after the
+# expression. And "status" is a DynamoDB reserved word, so it needs a #name.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if #s = :p  #s=status :p=pending
 
-# A second worker tries to ship the same order. Now status is shipped, so
-# @if status=pending fails: the double-ship is rejected. No lost update.
-o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if status=pending
+# A second worker tries to cancel the same order. Now status is shipped, so
+# #s = :p fails: the late cancel is rejected. No lost update.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if #s = :p  #s=status :p=pending
 `;
 
 export const TOURS: Tour[] = [
