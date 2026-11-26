@@ -1457,7 +1457,7 @@ body {
 }
 
 .panel-title .idx {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--accent);
 }
@@ -2246,7 +2246,7 @@ body {
 }
 .wb-main {
   display: grid;
-  grid-template-columns: minmax(340px, 40%) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, var(--script-w, 40%)) minmax(0, 1fr);
   gap: var(--s4);
   min-height: 0;
 }
@@ -2361,7 +2361,9 @@ body {
   min-width: 0;
 }
 .wb-main.dock-open {
-  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr) minmax(340px, 30%);
+  grid-template-columns:
+    minmax(300px, calc(var(--script-w, 40%) * 0.8)) minmax(0, 1fr)
+    minmax(340px, 30%);
 }
 .app.no-script .wb-main.dock-open {
   grid-template-columns: minmax(0, 1fr) minmax(340px, 30%);
@@ -2718,4 +2720,34 @@ body {
   background: var(--panel-2);
   font-family: var(--font-mono);
   font-size: 11px;
+}
+
+/* Drag (or arrow-key) the script's right edge to resize it. */
+.wb-script {
+  position: relative;
+}
+.wb-split {
+  position: absolute;
+  top: 0;
+  right: -11px;
+  bottom: 0;
+  width: 8px;
+  z-index: 3;
+  border-radius: 4px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.wb-split:hover,
+.wb-split:focus-visible,
+.wb-split.dragging {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: none;
+}
+.app.script-collapsed .wb-split {
+  display: none;
+}
+@media (max-width: 699px) {
+  .wb-split {
+    display: none;
+  }
 }

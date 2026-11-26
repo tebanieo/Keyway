@@ -80,7 +80,7 @@ defaults:
   Enter runs it.
 - **?** shows every shortcut. Single keys act only when you're not typing:
   `i` script, `q` Query panel, `e` Examples, `l` Learn, `a` Access patterns,
-  `p` play/pause, `]`/`[` step, `t` theme. The cheatsheet has a switch to turn
+  `p` play/pause, `]`/`[` step, `t` theme, `1`–`9` show/hide panes. The cheatsheet has a switch to turn
   them off (remembered in this browser).
 
 ## Live diagnostics (linting)

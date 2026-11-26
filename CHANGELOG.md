@@ -128,6 +128,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Resize the script:** drag its right edge, or focus it and use the arrow keys (Shift for bigger steps); the width is remembered. Keys `1`–`9` show or hide the panes, and pane titles are larger.
 - **Canvas tables work from the keyboard:** each table is one tab stop, the arrow keys (and Home/End) move between cells, Enter or F2 edits a cell, and Enter/Escape bring you back to it.
 - **Command palette (Ctrl/Cmd+K)** with every action, example and tour, and **single-key shortcuts** (`q`, `e`, `l`, `a`, `p`, `[`/`]`, `t`, `i`) that act only when you're not typing. `?` shows them all, with a switch to turn the single keys off.
 - **Ctrl/Cmd+Enter on an `@ap` line runs it** in the Query panel, with the pattern's index, key condition and values filled in.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { parseDoc } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 import { itemSize } from "./engine/itemsize";
@@ -37,6 +38,8 @@ import { CommandPalette } from "./components/CommandPalette";
 import type { Command } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { useShortcuts } from "./hooks/useShortcuts";
+import { Splitter } from "./components/Splitter";
+import { useScriptWidth } from "./hooks/useScriptWidth";
 import type { Shortcut } from "./hooks/useShortcuts";
 import { EXAMPLES } from "./model/examples";
 import { TOURS } from "./model/tours";
@@ -83,6 +86,7 @@ export function App() {
   const [editorCollapsed, setEditorCollapsed] = useState(false);
   // Phone width: one column, so the script and the tables take turns.
   const [narrowView, setNarrowView] = useState<"script" | "tables">("script");
+  const [scriptPct, setScriptPct] = useScriptWidth();
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const editorRef = useRef<EditorHandle>(null);
 
@@ -343,6 +347,11 @@ export function App() {
     { key: "]", label: "Step forward", run: () => step1(1) },
     { key: "[", label: "Step back", run: () => step1(-1) },
     { key: "t", label: "Switch light / dark theme", run: toggleTheme },
+    ...paneNames.slice(0, 9).map((name, i) => ({
+      key: String(i + 1),
+      label: `Show / hide the ${name} pane`,
+      run: () => togglePane(name),
+    })),
     { key: "?", label: "Keyboard shortcuts", run: () => setKeysOpen(true) },
   ];
   const { enabled: keysOn, setEnabled: setKeysOn } = useShortcuts(shortcuts, () =>
@@ -445,6 +454,7 @@ export function App() {
       <main
         className={drawer ? "wb-main dock-open" : "wb-main"}
         data-view={editing ? narrowView : "tables"}
+        style={{ "--script-w": `${scriptPct}%` } as CSSProperties}
       >
         {editing && (
           <section className="wb-script" aria-label="Script">
@@ -467,6 +477,7 @@ export function App() {
               onCaretLine={onCaretLine}
               onRunLine={onRunLine}
             />
+            <Splitter pct={scriptPct} onChange={setScriptPct} />
           </section>
         )}
 
