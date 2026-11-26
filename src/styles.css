@@ -1019,6 +1019,42 @@ body {
   background: var(--fill-1);
   font-size: var(--fs-sm);
 }
+.q-items {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--s2) var(--s4) var(--s3);
+  list-style: none;
+  max-height: 260px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  border-bottom: 1px solid var(--glass-line);
+}
+.q-items.empty {
+  color: var(--muted);
+  font-family: var(--font-ui);
+}
+.q-items li {
+  display: flex;
+  gap: var(--s3);
+  padding: 3px 0;
+  white-space: nowrap;
+  border-top: 1px solid var(--glass-line);
+}
+.q-items li:first-child {
+  border-top: 0;
+}
+.q-item-key {
+  color: var(--key);
+}
+.q-item-rest {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-more {
+  color: var(--muted);
+}
 .query-result.err {
   background: rgba(255, 122, 122, 0.08);
 }

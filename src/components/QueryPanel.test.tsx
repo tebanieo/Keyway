@@ -67,6 +67,16 @@ describe("QueryPanel", () => {
     expect(last.matched.size).toBe(2); // both items returned
   });
 
+  it("lists the returned items in the panel, keys first", () => {
+    setup();
+    type("ExpressionAttributeValues", '{":pk": {"S": "U#1"}}');
+    run();
+    const list = screen.getByRole("list", { name: "Returned items" });
+    expect(list.querySelectorAll("li")).toHaveLength(1);
+    expect(list).toHaveTextContent("U#1 / A");
+    expect(list).toHaveTextContent("GSI1PK=E#a");
+  });
+
   it("starts from a typed request template for the chosen index", () => {
     setup();
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");

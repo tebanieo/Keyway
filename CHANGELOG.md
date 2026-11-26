@@ -127,6 +127,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **The Query panel lists what it returned**, keys first then the other attributes, so you no longer have to hunt for highlighted rows.
 - **ExtendDB as Keyway's DynamoDB engine.** `wasm/` wraps ExtendDB's
   `extenddb-core` (Apache-2.0, pinned to v1.0.0, no fork) and compiles it to
   WebAssembly, which the page loads from the site itself and runs in the tab:

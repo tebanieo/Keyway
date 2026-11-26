@@ -128,6 +128,8 @@ export function QueryPanel({
     rcu: number;
     error: string | null;
     warnings?: string[];
+    items?: Item[];
+    index?: IndexSpec;
   } | null>(null);
 
   const reset = (ix: IndexSpec) => {
@@ -253,6 +255,8 @@ export function QueryPanel({
       rcu: r.rcu,
       error: r.error,
       warnings,
+      items: r.items,
+      index,
     });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
@@ -517,6 +521,10 @@ export function QueryPanel({
         </div>
       )}
 
+      {result && !result.error && result.items && result.index && (
+        <ReturnedItems items={result.items} index={result.index} />
+      )}
+
       <div className="q-cli">
         <div className="q-cli-head">
           <span className="q-pname">AWS CLI</span>
@@ -527,5 +535,29 @@ export function QueryPanel({
         <pre aria-label="AWS CLI command">{cli}</pre>
       </div>
     </div>
+  );
+}
+
+const SHOWN = 50;
+
+/** What the request returned, as DynamoDB would hand it back: keys first. */
+function ReturnedItems({ items, index }: { items: Item[]; index: IndexSpec }) {
+  if (items.length === 0) return <div className="q-items empty">no items returned</div>;
+  const keys = [...pkAttrs(index), ...skAttrs(index)];
+  return (
+    <ol className="q-items" aria-label="Returned items">
+      {items.slice(0, SHOWN).map((it) => {
+        const rest = Object.entries(it.attrs).filter(([k]) => !keys.includes(k));
+        return (
+          <li key={it.id}>
+            <span className="q-item-key">{keys.map((k) => it.attrs[k] ?? "·").join(" / ")}</span>
+            {rest.length > 0 && (
+              <span className="q-item-rest">{rest.map(([k, v]) => `${k}=${v}`).join("  ")}</span>
+            )}
+          </li>
+        );
+      })}
+      {items.length > SHOWN && <li className="q-more">+{items.length - SHOWN} more</li>}
+    </ol>
   );
 }
