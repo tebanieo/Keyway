@@ -342,7 +342,9 @@ export const Editor = forwardRef<
       focus: () => viewRef.current?.focus(),
       revealLine: (line: number) => {
         const view = viewRef.current;
-        if (!view || line < 0 || line >= view.state.doc.lines) return;
+        // Not a line of this doc (e.g. pinned from Canvas before the script
+        // knows the item's line): nothing to reveal.
+        if (!view || !Number.isInteger(line) || line < 0 || line >= view.state.doc.lines) return;
         const at = view.state.doc.line(line + 1).from;
         view.dispatch({
           selection: EditorSelection.cursor(at),

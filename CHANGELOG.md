@@ -9,6 +9,7 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- **"+ item" in Canvas no longer blanks the app.** Pinning the new item tried to reveal a script line that didn't exist yet.
 - **Enter is always a newline in the editor.** The suggestion menu that opens on
   a blank line no longer preselects its first option, so pressing Enter twice
   to leave a blank line no longer inserts an `@ap` template, and Enter after

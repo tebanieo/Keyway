@@ -45,4 +45,12 @@ describe("App (smoke)", () => {
     fireEvent.mouseDown(document.body);
     expect(examples).not.toHaveClass("open");
   });
+
+  it("adds an item from Canvas without crashing (it pins before the script has its line)", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Canvas" }));
+    fireEvent.click(document.querySelector(".add-item")!);
+    expect(screen.getByText(/Opinions are my own/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editor" })).toHaveAttribute("aria-pressed", "true");
+  });
 });
