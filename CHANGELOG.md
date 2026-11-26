@@ -9,6 +9,7 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- **Screen readers:** Canvas tables are an ARIA grid (each cell says whether it's editable, the edit field is named "<attribute> of <item>", and the keys are described); diff marks read as "added / removed / modified"; the change and action columns have header text; the phone view switch sits in a labelled region. axe reports no issues in the example, playback, Canvas, editing, Query and phone states, apart from one false positive on the editor's scroller.
 - **Switching Canvas → Editor no longer wipes the script's comments.** Canvas edits now write into the script itself: an edited or added item is appended as a line, a delete as `delete label`, and everything you wrote (comments, directives, layout) is kept.
 - **Phone: loading an example shows the tables** instead of a blank script tab while it plays.
 - **Line numbers stay on their lines** after expanding the script (the editor re-measures when its pane resizes).

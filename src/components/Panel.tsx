@@ -42,6 +42,13 @@ const MARKER: Record<string, string> = {
   modified: "~",
   same: "",
 };
+/** The diff mark, as words for screen readers. */
+const MARKER_TEXT: Record<string, string> = {
+  added: "added",
+  removed: "removed",
+  modified: "modified",
+  same: "",
+};
 
 function unionKeys(rows: DiffRow[], index: IndexSpec): string[] {
   const seen = new Set<string>();
@@ -163,23 +170,35 @@ function GridRows({
   const lead = cols.filter((k) => isKeyAttr(k, index));
   const stick = lead[lead.length - 1];
   const stickCls = (k: string) => (k === stick ? " stick" : "");
+  // In a grid every cell is a gridcell; the ones you can't type into say so.
+  const readOnly = edit ? { role: "gridcell", "aria-readonly": true } : {};
   return (
     <div className="ptable-scroll">
       <table
         className="ptable"
         aria-label={label}
+        // Editable (Canvas): an ARIA grid, so arrow keys reach it in screen
+        // readers and every cell says whether it can be edited.
+        role={edit ? "grid" : undefined}
+        aria-describedby={edit ? "grid-keys-help" : undefined}
         onKeyDown={edit ? moveInGrid : undefined}
         onFocus={edit ? rove : undefined}
       >
         <thead>
           <tr>
-            {gutter && <th className="gutter" />}
+            {gutter && (
+              <th className="gutter">
+                <span className="sr-only">Change</span>
+              </th>
+            )}
             {cols.map((k) => (
               <th className={(isKeyAttr(k, index) ? "iskey" : "") + stickCls(k)} key={k}>
                 {k}
               </th>
             ))}
-            <th className="actions" />
+            <th className="actions">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -202,7 +221,12 @@ function GridRows({
                 onMouseEnter={() => link.onHover(it.id)}
                 onMouseLeave={() => link.onHover(null)}
               >
-                {gutter && <td className="gutter">{MARKER[r.status]}</td>}
+                {gutter && (
+                  <td className="gutter" {...readOnly}>
+                    <span aria-hidden="true">{MARKER[r.status]}</span>
+                    <span className="sr-only">{MARKER_TEXT[r.status]}</span>
+                  </td>
+                )}
                 {cols.map((k) => {
                   const val = it.attrs[k] ?? "";
                   const key = isKeyAttr(k, index);
@@ -225,6 +249,7 @@ function GridRows({
                     (key ? "iskey" : val ? "" : "blank") + (val ? " copyable" : "") + stickCls(k);
                   return (
                     <td
+                      {...readOnly}
                       className={cls}
                       key={k}
                       title={val ? `${val.length > 36 ? `${val}\n` : ""}click to copy` : undefined}
@@ -234,7 +259,7 @@ function GridRows({
                     </td>
                   );
                 })}
-                <td className="actions">
+                <td className="actions" {...readOnly}>
                   <button
                     className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
                     title="pin / follow this item"
@@ -359,9 +384,10 @@ function EditableCell({
 
   if (editing) {
     return (
-      <td className={(isKey ? "iskey" : "") + extra} ref={cell}>
+      <td className={(isKey ? "iskey" : "") + extra} ref={cell} role="gridcell">
         <input
           className="cell-input"
+          aria-label={col && itemId ? `${col} of ${itemId}` : "Cell value"}
           autoFocus
           defaultValue={value}
           onClick={(e) => e.stopPropagation()}
@@ -398,6 +424,7 @@ function EditableCell({
       ref={cell}
       className={cls}
       data-cell=""
+      role="gridcell"
       data-col={col}
       tabIndex={first ? 0 : -1}
       title={

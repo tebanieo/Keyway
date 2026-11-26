@@ -441,7 +441,7 @@ export function App() {
       />
 
       {editing && (
-        <div className="wb-switch" role="group" aria-label="Show">
+        <section className="wb-switch" aria-label="Show the script or the tables">
           <button
             aria-pressed={narrowView === "script"}
             className={narrowView === "script" ? "active" : ""}
@@ -459,7 +459,7 @@ export function App() {
           >
             Tables
           </button>
-        </div>
+        </section>
       )}
 
       <main
@@ -493,6 +493,9 @@ export function App() {
         )}
 
         <section className="wb-tables" aria-label="Tables">
+          <span id="grid-keys-help" className="sr-only">
+            Arrow keys move between cells. Enter or F2 edits a cell, Enter saves, Escape cancels.
+          </span>
           {ops.length > 0 && (
             <StepNote
               text={narration}

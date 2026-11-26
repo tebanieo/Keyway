@@ -83,6 +83,7 @@ describe("Panel", () => {
     const { view } = viewOf(TWO);
     const e = editProps();
     render(<Panel view={view} prev={view} diffOn={false} link={link()} edit={e} />);
+    expect(screen.getByRole("grid")).toBeInTheDocument();
     const cells = [...document.querySelectorAll<HTMLElement>("td[data-cell]")];
     expect(cells.filter((c) => c.tabIndex === 0)).toHaveLength(1); // PK of the first row
     cells[0].focus();
@@ -93,7 +94,7 @@ describe("Panel", () => {
     expect(document.activeElement).toHaveTextContent("Alan");
     expect((document.activeElement as HTMLElement).tabIndex).toBe(0); // the tab stop moved
     fireEvent.keyDown(document.activeElement!, { key: "Enter" });
-    const input = screen.getByDisplayValue("Alan");
+    const input = screen.getByRole("textbox", { name: "name of u2" });
     fireEvent.change(input, { target: { value: "Alan Turing" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(e.onEdit).toHaveBeenCalledWith(expect.anything(), "name", "Alan Turing");
