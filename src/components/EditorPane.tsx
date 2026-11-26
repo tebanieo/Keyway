@@ -62,7 +62,8 @@ export const EditorPane = forwardRef<
           )}
         </span>
       </button>
-      <div className="editor-body">
+      {/* inert while collapsed: a zero-height editor must not take focus */}
+      <div className="editor-body" inert={collapsed}>
         <Editor
           key={editorKey}
           ref={ref}

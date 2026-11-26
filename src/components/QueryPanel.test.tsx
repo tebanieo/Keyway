@@ -34,6 +34,8 @@ describe("QueryPanel", () => {
     const { container, rerender } = setup({ open: false });
     expect(container.querySelector(".query-panel")).not.toHaveClass("open");
     expect(container.querySelector(".query-panel")).toHaveAttribute("aria-hidden", "true");
+    // closed and off-screen: inert, so none of its fields are tab stops
+    expect(container.querySelector(".query-panel")).toHaveAttribute("inert");
     // reopen
     const parsed = parseDoc(DSL, BASE_INDEX);
     rerender(
@@ -47,6 +49,7 @@ describe("QueryPanel", () => {
       />,
     );
     expect(container.querySelector(".query-panel")).toHaveClass("open");
+    expect(container.querySelector(".query-panel")).not.toHaveAttribute("inert");
   });
 
   const field = (name: string) => screen.getByLabelText(name) as HTMLInputElement;

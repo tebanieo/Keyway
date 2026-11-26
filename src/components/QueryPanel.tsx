@@ -273,7 +273,11 @@ export function QueryPanel({
   };
 
   return (
-    <div className={open ? "query-panel drawer open" : "query-panel drawer"} aria-hidden={!open}>
+    <div
+      className={open ? "query-panel drawer open" : "query-panel drawer"}
+      aria-hidden={!open}
+      inert={!open} // closed: off-screen, so no tab stops
+    >
       <div className="query-head">
         <span className="q-title">Read</span>
         <div className="seg">

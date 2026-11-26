@@ -17,7 +17,8 @@ export function Drawer({
   children: ReactNode;
 }) {
   return (
-    <div className={open ? "drawer open" : "drawer"} aria-hidden={!open}>
+    // inert while closed: an off-screen drawer must not hold tab stops.
+    <div className={open ? "drawer open" : "drawer"} aria-hidden={!open} inert={!open}>
       <div className="drawer-head">
         <span className="drawer-title">{title}</span>
         {head}

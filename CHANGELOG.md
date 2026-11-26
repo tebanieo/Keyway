@@ -14,6 +14,9 @@ hand-curated summary. It follows
   to leave a blank line no longer inserts an `@ap` template, and Enter after
   `_type=user` no longer swallows the newline. Tab still takes the top match
   once you've typed a prefix (`item`, `@g`), and `item` now leads the menu.
+- **Closed drawers no longer hold tab stops.** Tab out of the editor used to
+  land in the hidden Query panel and drawers (35 invisible stops); they're now
+  `inert` while closed, and so is the collapsed editor.
 
 ### Changed
 

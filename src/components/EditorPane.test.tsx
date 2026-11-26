@@ -41,6 +41,8 @@ describe("EditorPane", () => {
   it("reflects the collapsed state and toggles it", () => {
     const { onToggleCollapse, container } = setup({ collapsed: true });
     expect(container.querySelector(".editor-wrap")).toHaveClass("collapsed");
+    // a zero-height editor must not take focus
+    expect(container.querySelector(".editor-body")).toHaveAttribute("inert");
     fireEvent.click(screen.getByRole("button", { name: /Editor/ }));
     expect(onToggleCollapse).toHaveBeenCalledOnce();
   });
