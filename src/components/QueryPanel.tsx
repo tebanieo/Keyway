@@ -89,8 +89,22 @@ export function QueryPanel({
   const schema = schemaOf(index);
   const types = useMemo(() => attributeTypes(state.values()), [state]);
 
+  /** The partition-key values of a real item in `ix`, typed, so a fresh
+   *  template runs as-is the first time (`{":pk": {"S": "USER#1"}}`). */
+  const sampleKey = (ix: IndexSpec): Record<string, AttributeValue> => {
+    const hash = pkAttrs(ix);
+    const item = [...state.values()].find((it) => hash.every((a) => it.attrs[a]));
+    if (!item) return {};
+    return Object.fromEntries(
+      hash.map((a, i) => {
+        const v = item.attrs[a];
+        const ref = hash.length > 1 ? `:pk${i + 1}` : ":pk";
+        return [ref, types.get(a) === "N" ? { N: v } : { S: v }];
+      }),
+    );
+  };
   const fresh = (ix: IndexSpec, sortOp: SortKeyOp | null = null) => {
-    const req = keyConditionRequest(schemaOf(ix), sortOp, types);
+    const req = keyConditionRequest(schemaOf(ix), sortOp, types, sampleKey(ix));
     return {
       key: req.expression,
       names: Object.keys(req.names).length ? pretty(req.names) : "",
@@ -124,6 +138,15 @@ export function QueryPanel({
     setGetKeyText(f.getKey);
     setSortOp(null);
   };
+
+  // Opening the panel with an untouched, empty template (it mounted before the
+  // model had data): pre-fill it from the table now.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    const untouched = valuesText === pretty(keyConditionRequest(schema, null, types).values);
+    if (open && untouched && Object.keys(sampleKey(index)).length) reset(index);
+  }
 
   // When the queried index's keys change under the panel (the document's
   // @table or @gsi was edited, or the selected GSI was removed), start over
@@ -284,6 +307,13 @@ export function QueryPanel({
   return (
     <div
       ref={panelRef}
+      // Ctrl/Cmd+Enter runs the request from any field, the JSON ones included.
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          run();
+        }
+      }}
       className={open ? "query-panel drawer open" : "query-panel drawer"}
       role="dialog"
       aria-label="Read / Query"

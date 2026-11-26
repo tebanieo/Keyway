@@ -56,6 +56,10 @@ hand-curated summary. It follows
 - **Reset can be undone.** It used to empty the model with one keypress and no
   way back; now a toast offers **Undo** for ten seconds, and the cursor lands
   in the fresh editor.
+- **The Query panel runs on the first try.** Its template is pre-filled with a
+  real partition from your table (it used to start empty and fail with
+  "`:pk` is empty"), and Ctrl/Cmd+Enter runs it from any field, the JSON ones
+  included.
 
 ### Changed
 

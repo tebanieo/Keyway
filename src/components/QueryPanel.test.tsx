@@ -70,7 +70,8 @@ describe("QueryPanel", () => {
   it("starts from a typed request template for the chosen index", () => {
     setup();
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");
-    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "" } });
+    // pre-filled from a real item, so it runs as-is the first time
+    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "U#1" } });
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "GSI1" } });
     expect(field("KeyConditionExpression").value).toBe("GSI1PK = :pk");
   });
@@ -107,8 +108,32 @@ describe("QueryPanel", () => {
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");
   });
 
-  it("asks for a value the template left empty", () => {
+  it("pre-fills on open when the panel mounted before the model had data", () => {
+    const empty = parseDoc("@table T pk=PK sk=SK", BASE_INDEX);
+    const full = parseDoc(DSL, BASE_INDEX);
+    const props = { base: full.base, gsis: full.gsis, onHighlight: vi.fn(), onClose: vi.fn() };
+    const { rerender } = render(
+      <QueryPanel {...props} open={false} state={fold(empty.ops, empty.base)} />,
+    );
+    rerender(<QueryPanel {...props} open state={fold(full.ops, full.base)} />);
+    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "U#1" } });
+  });
+
+  it("runs the pre-filled template as-is", () => {
+    const p = setup();
+    run();
+    expect(p.onHighlight.mock.calls.at(-1)![0].matched.size).toBe(1);
+  });
+
+  it("runs with Ctrl/Cmd+Enter from any field, the JSON ones included", () => {
+    const p = setup();
+    fireEvent.keyDown(field("ExpressionAttributeValues"), { key: "Enter", ctrlKey: true });
+    expect(p.onHighlight).toHaveBeenCalled();
+  });
+
+  it("asks for a value left empty", () => {
     setup();
+    type("ExpressionAttributeValues", '{":pk": {"S": ""}}');
     run();
     expect(screen.getByText(/:pk is empty/)).toBeInTheDocument();
   });
