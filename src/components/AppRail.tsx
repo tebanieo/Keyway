@@ -57,7 +57,7 @@ export function AppRail({
           ? [
               {
                 id: "patterns",
-                label: "Access Patterns",
+                label: "Access patterns",
                 icon: <Icon name="patterns" />,
                 badge: apUnserved,
                 badgeLabel: "unserved",

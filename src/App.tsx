@@ -184,12 +184,17 @@ export function App() {
     if (shared) loadModel(shared);
   }, [loadModel]);
 
-  // The script's errors and warnings, counted for the editor header.
+  // The script's errors and warnings, counted for the editor header. Not the
+  // line under the caret: a half-typed `item` isn't an error yet, and the
+  // editor's own list holds those back too, so the two agree.
+  const [caretLine, setCaretLine] = useState<number | null>(null);
   const problems = useMemo(() => {
-    const { diagnostics } = parseDoc(docText, BASE_INDEX);
+    const diagnostics = parseDoc(docText, BASE_INDEX).diagnostics.filter(
+      (d) => d.line !== caretLine,
+    );
     const errors = diagnostics.filter((d) => d.severity === "error").length;
     return { errors, warnings: diagnostics.length - errors };
-  }, [docText]);
+  }, [docText, caretLine]);
 
   const enterEditor = () => {
     setMode("editor");
@@ -215,7 +220,7 @@ export function App() {
   const [undoReset, setUndoReset] = useState<string | null>(null);
   useEffect(() => {
     if (undoReset === null) return;
-    const t = window.setTimeout(() => setUndoReset(null), 10_000);
+    const t = window.setTimeout(() => setUndoReset(null), 30_000);
     return () => window.clearTimeout(t);
   }, [undoReset]);
   const reset = () => {
@@ -262,6 +267,7 @@ export function App() {
     return !w ? null : w.kind === "put" ? w.item.id : w.id;
   };
   const onCaretLine = (line: number | null) => {
+    setCaretLine(line);
     const i = line == null ? -1 : opLines.indexOf(line);
     const id = i < 0 ? null : opIdAt(i);
     link.onHover(id);
@@ -403,6 +409,18 @@ export function App() {
     },
     { id: "share", label: "Share a link to this model", run: () => openShare(currentDoc()) },
     ...(dirty ? [{ id: "reset", label: "Reset to an empty model", run: reset }] : []),
+    ...(undoReset !== null
+      ? [
+          {
+            id: "undo-reset",
+            label: "Undo reset",
+            run: () => {
+              loadModel(undoReset);
+              setUndoReset(null);
+            },
+          },
+        ]
+      : []),
     {
       id: "single-keys",
       label: keysOn ? "Turn off single-key shortcuts" : "Turn on single-key shortcuts",

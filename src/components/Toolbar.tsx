@@ -54,8 +54,8 @@ export function Toolbar({
       <button
         className="icon-btn"
         onClick={onToggleTheme}
-        title={theme === "paper" ? "switch to dark" : "switch to paper"}
-        aria-label="toggle theme"
+        title={theme === "paper" ? "Switch to dark theme" : "Switch to light theme"}
+        aria-label={theme === "paper" ? "Switch to dark theme" : "Switch to light theme"}
       >
         <Icon name="theme" />
       </button>

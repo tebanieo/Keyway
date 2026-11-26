@@ -34,7 +34,7 @@ describe("Toolbar", () => {
   it("wires mode, theme, and share", () => {
     const p = setup();
     fireEvent.click(screen.getByRole("button", { name: "Editor" }));
-    fireEvent.click(screen.getByRole("button", { name: "toggle theme" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
     expect(p.onMode).toHaveBeenCalledWith("editor");
     expect(p.onToggleTheme).toHaveBeenCalledOnce();

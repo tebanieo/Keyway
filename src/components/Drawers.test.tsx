@@ -23,6 +23,20 @@ describe("ExamplesDrawer", () => {
   });
 });
 
+describe("drawer lists", () => {
+  it("move with the arrow keys, Home and End", () => {
+    const { container } = render(<ExamplesDrawer open onLoad={vi.fn()} onClose={vi.fn()} />);
+    const items = [...container.querySelectorAll<HTMLElement>(".ex-item")];
+    items[0].focus();
+    fireEvent.keyDown(items[0], { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+    fireEvent.keyDown(items[1], { key: "End" });
+    expect(document.activeElement).toBe(items.at(-1));
+    fireEvent.keyDown(items.at(-1)!, { key: "Home" });
+    expect(document.activeElement).toBe(items[0]);
+  });
+});
+
 describe("LearnDrawer", () => {
   it("lists every tour and plays one (then closes) on click", () => {
     const onPlay = vi.fn();

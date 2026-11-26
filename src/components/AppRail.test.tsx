@@ -27,13 +27,13 @@ describe("AppRail", () => {
     expect(screen.getByRole("button", { name: /Learn/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Docs/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Query/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Access Patterns/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Access patterns/ })).toBeNull();
   });
 
   it("reveals Query once there's data and Patterns (with a badge) once declared", () => {
     setup({ hasData: true, apCount: 3, apUnserved: 2 });
     expect(screen.getByRole("button", { name: /Query/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Access Patterns/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Access patterns/ })).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument(); // unserved badge
   });
 

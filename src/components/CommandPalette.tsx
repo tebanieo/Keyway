@@ -136,8 +136,10 @@ function PaletteBody({ commands, onClose }: { commands: Command[]; onClose: () =
             {c.keys && <kbd>{c.keys}</kbd>}
           </li>
         ))}
-        {shown.length === 0 && <li className="palette-none">No matching command</li>}
       </ul>
+      <p className="palette-none" role="status">
+        {shown.length === 0 ? "No matching command" : ""}
+      </p>
     </div>
   );
 }

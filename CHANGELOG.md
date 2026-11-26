@@ -70,6 +70,15 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **Polish from the second review:**
+  - **Reset:** "Undo" stays for 30 s and is in the command palette ("Undo reset"). Toasts sit above the status bar.
+  - **Error count:** the editor's count no longer flashes "1 error" for the line you're still typing, and it matches the problems list.
+  - **Wording:** one name per feature, in sentence case ("Read / Query", "Access patterns", "Strongly consistent", "Run"). The theme button says which theme it switches to.
+  - **Lists:** Examples and Learn lists move with the arrow keys and Home/End.
+  - **Headings:** panel titles are headings.
+  - **Column headers:** table column headers are 11px.
+  - **Splitter:** it has a 24px hit area.
+  - **Command palette:** "No matching command" is announced.
 - **More room for the tables.** A docked panel has a fixed 360px reading width and the script gives up a share, so the tables keep the most space. Below 1100px a panel sits under the tables (at most 40% of the height) instead of covering them, so matched rows stay visible while you query. Clicking elsewhere no longer closes a panel; use its ×, Escape or its rail button.
 - **Wide tables show there's more to the right** (a shade at the edge that goes away at the end), and long values end in an ellipsis (hover for the whole value, click to copy it).
 - **High zoom works:** in a short window (400% zoom, or under 520px tall) the page scrolls instead of squeezing the tables to nothing.

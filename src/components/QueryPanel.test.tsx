@@ -55,7 +55,7 @@ describe("QueryPanel", () => {
   const field = (name: string) => screen.getByLabelText(name) as HTMLInputElement;
   const type = (name: string, value: string) =>
     fireEvent.change(field(name), { target: { value } });
-  const run = () => fireEvent.click(screen.getByRole("button", { name: "run" }));
+  const run = () => fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
   it("runs a scan over the whole table and reports + highlights the reads", () => {
     const p = setup();
@@ -270,7 +270,7 @@ describe("QueryPanel", () => {
     const p = setup();
     fireEvent.click(screen.getByRole("button", { name: "Scan" }));
     run();
-    fireEvent.click(screen.getByRole("button", { name: "clear" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(document.querySelector(".query-result")).toBeNull();
     expect(p.onHighlight.mock.calls.at(-1)![0].matched.size).toBe(0);
   });

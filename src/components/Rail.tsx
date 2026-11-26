@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useDrawerFocus } from "../hooks/useDrawerFocus";
 
 /** A right-side glass drawer shell (header + close). Content is passed in, so
@@ -31,9 +31,10 @@ export function Drawer({
       aria-label={title}
       aria-hidden={!open}
       inert={!open}
+      onKeyDown={moveInList}
     >
       <div className="drawer-head">
-        <span className="drawer-title">{title}</span>
+        <h2 className="drawer-title">{title}</h2>
         {head}
         <div className="spacer" />
         <button className="q-close" onClick={onClose} title="close" aria-label={`Close ${title}`}>
@@ -43,6 +44,22 @@ export function Drawer({
       {children}
     </div>
   );
+}
+
+/** Arrow keys (and Home/End) move between a drawer's list entries. */
+function moveInList(e: KeyboardEvent<HTMLDivElement>) {
+  const items = [...e.currentTarget.querySelectorAll<HTMLElement>(".ex-item")];
+  const at = items.indexOf(e.target as HTMLElement);
+  if (at < 0) return;
+  const to: Record<string, number> = {
+    ArrowDown: Math.min(items.length - 1, at + 1),
+    ArrowUp: Math.max(0, at - 1),
+    Home: 0,
+    End: items.length - 1,
+  };
+  if (!(e.key in to)) return;
+  e.preventDefault();
+  items[to[e.key]].focus();
 }
 
 /** One entry in the right activity rail. */

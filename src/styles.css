@@ -2856,3 +2856,41 @@ input[type="checkbox"]:focus-visible {
     min-height: 320px;
   }
 }
+
+/* Toasts sit above the status bar, never on it. */
+.app.wb ~ .copied-toast,
+.app.wb .copied-toast {
+  bottom: 96px;
+}
+/* Headings that look like the labels they replace. */
+h2.drawer-title,
+h2.q-title {
+  margin: 0;
+  line-height: inherit;
+}
+/* Column headers and units: 11px, the smallest size in use. */
+.ptable th,
+.statusbar .unit {
+  font-size: 11px;
+}
+/* The splitter's hit area is 24px wide; the visible bar stays slim. */
+.wb-split {
+  width: 24px;
+  right: -19px;
+  background-clip: content-box;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.palette-card p.palette-none {
+  margin: 0;
+  padding: 0 16px;
+}
+.palette-card p.palette-none:not(:empty) {
+  padding: 4px 16px 14px;
+}
+.wb-split,
+.wb-split:hover,
+.wb-split:focus-visible,
+.wb-split.dragging {
+  background-clip: content-box;
+}

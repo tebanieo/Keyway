@@ -367,7 +367,7 @@ export function QueryPanel({
       inert={!open} // closed: off-screen, so no tab stops
     >
       <div className="query-head">
-        <span className="q-title">Read</span>
+        <h2 className="q-title">Read / Query</h2>
         <div className="seg">
           {(["get", "query", "scan"] as const).map((o) => {
             const disabled = o === "get" && !isBase;
@@ -411,14 +411,14 @@ export function QueryPanel({
             checked={consistent}
             onChange={(e) => setConsistent(e.target.checked)}
           />
-          strong
+          Strongly consistent
         </label>
         <div className="spacer" />
-        <button className="q-run" onClick={run}>
-          run
+        <button className="q-run" onClick={run} title="Run (Ctrl/⌘ Enter)">
+          Run
         </button>
         <button className="q-clear" onClick={clear}>
-          clear
+          Clear
         </button>
         <button className="q-close" onClick={onClose} title="close" aria-label="Close Read / Query">
           &times;
@@ -571,7 +571,7 @@ export function QueryPanel({
         <div className="q-cli-head">
           <span className="q-pname">AWS CLI</span>
           <button className="q-clear" onClick={copy}>
-            {copied ? "copied" : "copy"}
+            {copied ? "Copied" : "Copy"}
           </button>
         </div>
         <pre aria-label="AWS CLI command">{cli}</pre>

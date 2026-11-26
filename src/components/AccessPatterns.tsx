@@ -44,7 +44,7 @@ export function AccessPatterns({
   return (
     <Drawer
       open={open}
-      title="Access Patterns"
+      title="Access patterns"
       onClose={onClose}
       head={
         <span role="status" className="ap-status">
