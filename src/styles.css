@@ -1443,7 +1443,8 @@ body {
   gap: 14px;
 }
 
-.panel .partition {
+/* Only the rows scroll sideways; the partition header stays in place. */
+.ptable-scroll {
   overflow-x: auto;
 }
 
@@ -2002,7 +2003,7 @@ body {
 
 .ptable th.actions,
 .ptable td.actions {
-  width: 24px;
+  width: 52px;
   padding: 0 6px;
   text-align: center;
 }
@@ -2020,22 +2021,39 @@ body {
 }
 
 /* Pin toggle: a hollow dot on row hover, filled accent when pinned. */
+/* A 24px target around an 11px dot. */
 .pin-btn {
-  width: 11px;
-  height: 11px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border: 1px solid var(--muted);
+  border: 0;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.3;
   vertical-align: middle;
+  display: inline-grid;
+  place-items: center;
 }
-.ptable tbody tr:hover .pin-btn {
-  opacity: 0.55;
+.pin-btn::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.ptable tbody tr:hover .pin-btn,
+.ptable tbody tr:focus-within .pin-btn {
+  opacity: 0.8;
+}
+.pin-btn:hover {
+  background: var(--panel-2);
 }
 .pin-btn.on {
   opacity: 1;
+}
+.pin-btn.on::after {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -2078,16 +2096,25 @@ body {
 }
 
 .del-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
   background: transparent;
-  color: var(--line);
+  color: var(--muted);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  margin-left: 6px;
+  margin-left: 2px;
+  vertical-align: middle;
 }
-.ptable tr:hover .del-btn {
+.del-btn:focus-visible {
+  opacity: 1;
+}
+.ptable tr:hover .del-btn,
+.ptable tr:focus-within .del-btn {
   opacity: 1;
   color: var(--muted);
 }
@@ -2374,4 +2401,56 @@ body {
   .wb-dock .drawer {
     box-shadow: var(--shadow-2);
   }
+}
+
+/* Wide items scroll sideways; the gutter and the sort-key column stay put.
+   Their fill must be opaque, so the diff tints are layered over the panel colour
+   (the hover/pin/query tints are inset shadows and layer on top as usual). */
+.ptable th.gutter,
+.ptable td.gutter,
+.ptable th.stick,
+.ptable td.stick {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
+}
+.ptable:has(th.gutter) .stick {
+  left: 20px;
+}
+.ptable td.stick {
+  box-shadow: 1px 0 0 var(--glass-line);
+}
+.ptable td.gutter {
+  min-width: 20px;
+}
+.ptable tr.row-added td.stick,
+.ptable tr.row-added td.gutter {
+  background: linear-gradient(rgba(55, 214, 122, 0.12), rgba(55, 214, 122, 0.12)), var(--panel);
+}
+.ptable tr.row-removed td.stick,
+.ptable tr.row-removed td.gutter {
+  background: linear-gradient(rgba(255, 122, 122, 0.1), rgba(255, 122, 122, 0.1)), var(--panel);
+}
+.ptable tr.row-modified td.stick,
+.ptable tr.row-modified td.gutter {
+  background: linear-gradient(rgba(255, 176, 32, 0.08), rgba(255, 176, 32, 0.08)), var(--panel);
+}
+[data-theme="paper"] .ptable tr.row-added td.stick,
+[data-theme="paper"] .ptable tr.row-added td.gutter {
+  background: linear-gradient(rgba(22, 163, 74, 0.11), rgba(22, 163, 74, 0.11)), var(--panel);
+}
+[data-theme="paper"] .ptable tr.row-removed td.stick,
+[data-theme="paper"] .ptable tr.row-removed td.gutter {
+  background: linear-gradient(rgba(229, 53, 43, 0.09), rgba(229, 53, 43, 0.09)), var(--panel);
+}
+
+/* Each pane's title stays visible while its rows scroll by. */
+.wb-tables .panel-title {
+  position: sticky;
+  top: -2px;
+  z-index: 2;
+  margin-bottom: 8px;
+  padding: 6px 2px;
+  background: var(--bg);
 }

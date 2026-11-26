@@ -157,116 +157,127 @@ function GridRows({
   focusId?: string | null;
 }) {
   const cols = unionKeys(rows, index);
+  // The last key column (the sort key, else the partition key) stays put
+  // while a wide item scrolls sideways, so each row keeps its name.
+  const lead = cols.filter((k) => isKeyAttr(k, index));
+  const stick = lead[lead.length - 1];
+  const stickCls = (k: string) => (k === stick ? " stick" : "");
   return (
-    <table className="ptable" aria-label={label}>
-      <thead>
-        <tr>
-          {gutter && <th className="gutter" />}
-          {cols.map((k) => (
-            <th className={isKeyAttr(k, index) ? "iskey" : ""} key={k}>
-              {k}
-            </th>
-          ))}
-          <th className="actions" />
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => {
-          const it: Item = r.item;
-          const pinned = it.id === link.pinnedId ? " pinned" : "";
-          const hovered = it.id === link.hoveredId ? " hovered" : "";
-          const q = query?.matched.has(it.id)
-            ? " q-matched"
-            : query?.scanned.has(it.id)
-              ? " q-read"
-              : "";
-          const dim = focusId && it.id !== focusId ? " dimmed" : "";
-          const removed = r.status === "removed";
-          return (
-            <tr
-              key={`${removed ? "x" : ""}${it.id}`}
-              className={`row-${r.status}${pinned}${hovered}${q}${dim}`}
-              onMouseEnter={() => link.onHover(it.id)}
-              onMouseLeave={() => link.onHover(null)}
-            >
-              {gutter && <td className="gutter">{MARKER[r.status]}</td>}
-              {cols.map((k) => {
-                const val = it.attrs[k] ?? "";
-                const key = isKeyAttr(k, index);
-                if (edit && !removed) {
+    <div className="ptable-scroll">
+      <table className="ptable" aria-label={label}>
+        <thead>
+          <tr>
+            {gutter && <th className="gutter" />}
+            {cols.map((k) => (
+              <th className={(isKeyAttr(k, index) ? "iskey" : "") + stickCls(k)} key={k}>
+                {k}
+              </th>
+            ))}
+            <th className="actions" />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const it: Item = r.item;
+            const pinned = it.id === link.pinnedId ? " pinned" : "";
+            const hovered = it.id === link.hoveredId ? " hovered" : "";
+            const q = query?.matched.has(it.id)
+              ? " q-matched"
+              : query?.scanned.has(it.id)
+                ? " q-read"
+                : "";
+            const dim = focusId && it.id !== focusId ? " dimmed" : "";
+            const removed = r.status === "removed";
+            return (
+              <tr
+                key={`${removed ? "x" : ""}${it.id}`}
+                className={`row-${r.status}${pinned}${hovered}${q}${dim}`}
+                onMouseEnter={() => link.onHover(it.id)}
+                onMouseLeave={() => link.onHover(null)}
+              >
+                {gutter && <td className="gutter">{MARKER[r.status]}</td>}
+                {cols.map((k) => {
+                  const val = it.attrs[k] ?? "";
+                  const key = isKeyAttr(k, index);
+                  if (edit && !removed) {
+                    return (
+                      <EditableCell
+                        key={k}
+                        value={val}
+                        isKey={key}
+                        extra={stickCls(k)}
+                        onCommit={(v) => edit.onEdit(it, k, v)}
+                        onCopy={link.onCopy}
+                      />
+                    );
+                  }
+                  const cls =
+                    (key ? "iskey" : val ? "" : "blank") + (val ? " copyable" : "") + stickCls(k);
                   return (
-                    <EditableCell
+                    <td
+                      className={cls}
                       key={k}
-                      value={val}
-                      isKey={key}
-                      onCommit={(v) => edit.onEdit(it, k, v)}
-                      onCopy={link.onCopy}
-                    />
+                      title={val ? "click to copy" : undefined}
+                      onClick={() => val && link.onCopy(val)}
+                    >
+                      {val}
+                    </td>
                   );
-                }
-                const cls = (key ? "iskey" : val ? "" : "blank") + (val ? " copyable" : "");
-                return (
-                  <td
-                    className={cls}
-                    key={k}
-                    title={val ? "click to copy" : undefined}
-                    onClick={() => val && link.onCopy(val)}
-                  >
-                    {val}
-                  </td>
-                );
-              })}
-              <td className="actions">
-                <button
-                  className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
-                  title="pin / follow this item"
-                  aria-label={`${link.pinnedId === it.id ? "Unpin" : "Pin"} ${it.id}`}
-                  aria-pressed={link.pinnedId === it.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    link.onPin(it.id);
-                  }}
-                />
-                {edit && !removed && (
+                })}
+                <td className="actions">
                   <button
-                    className="del-btn"
-                    title="delete item"
-                    aria-label={`Delete ${it.id}`}
+                    className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
+                    title="pin / follow this item"
+                    aria-label={`${link.pinnedId === it.id ? "Unpin" : "Pin"} ${it.id}`}
+                    aria-pressed={link.pinnedId === it.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      edit.onDelete(it.id);
+                      link.onPin(it.id);
                     }}
-                  >
-                    &times;
-                  </button>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                  />
+                  {edit && !removed && (
+                    <button
+                      className="del-btn"
+                      title="delete item"
+                      aria-label={`Delete ${it.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        edit.onDelete(it.id);
+                      }}
+                    >
+                      &times;
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 function EditableCell({
   value,
   isKey,
+  extra = "",
   onCommit,
   onCopy,
 }: {
   value: string;
   isKey: boolean;
+  extra?: string;
   onCommit: (v: string) => void;
   onCopy: (v: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const base = isKey ? "iskey editable" : value ? "editable" : "blank editable";
-  const cls = value ? `${base} copyable` : base;
+  const cls = (value ? `${base} copyable` : base) + extra;
 
   if (editing) {
     return (
-      <td className={isKey ? "iskey" : ""}>
+      <td className={(isKey ? "iskey" : "") + extra}>
         <input
           className="cell-input"
           autoFocus

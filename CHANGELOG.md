@@ -63,6 +63,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- Tables: the sort-key column and diff gutter stay in place while a wide item scrolls sideways (the partition header no longer scrolls away), pane titles stay visible while scrolling, and the pin/delete buttons are larger, faintly visible at rest, and shown on keyboard focus.
 - Panels (Query, Examples, Learn, Access Patterns) dock beside the tables on wide screens instead of covering them, and stay open while you click around; the rail is a fixed column. On narrower screens a panel opens as a bottom sheet.
 - **A workbench layout: the script and the tables side by side.** The page is a
   fixed-height frame with no page scroll; the script sits on the left and the
