@@ -13,7 +13,7 @@ export function ExamplesDrawer({
   onLoad: (dsl: string) => void;
 }) {
   return (
-    <Drawer open={open} title="Examples" onClose={onClose}>
+    <Drawer open={open} title="Examples" onClose={onClose} initialFocus=".ex-item">
       <div className="ex-list">
         {EXAMPLES.map((ex) => (
           <button

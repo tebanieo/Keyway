@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { ExamplesDrawer } from "./ExamplesDrawer";
 import { LearnDrawer } from "./LearnDrawer";
 import { EXAMPLES } from "../model/examples";
@@ -35,5 +35,32 @@ describe("LearnDrawer", () => {
     fireEvent.click(screen.getByText(TOURS[0].name));
     expect(onPlay).toHaveBeenCalledWith(TOURS[0]);
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("drawer keyboard behaviour", () => {
+  const frame = () => act(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+
+  it("opening focuses the first entry; Escape closes and gives focus back", async () => {
+    const onClose = vi.fn();
+    const invoker = document.createElement("button");
+    document.body.append(invoker);
+    invoker.focus();
+    const { rerender } = render(<ExamplesDrawer open={false} onLoad={vi.fn()} onClose={onClose} />);
+    rerender(<ExamplesDrawer open onLoad={vi.fn()} onClose={onClose} />);
+    await frame();
+    expect(document.activeElement).toHaveTextContent(EXAMPLES[0].name);
+
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledOnce();
+    rerender(<ExamplesDrawer open={false} onLoad={vi.fn()} onClose={onClose} />);
+    expect(document.activeElement).toBe(invoker);
+    invoker.remove();
+  });
+
+  it("is a named dialog, and inert while closed", () => {
+    const { container } = render(<LearnDrawer open={false} onPlay={vi.fn()} onClose={vi.fn()} />);
+    const dialog = container.querySelector('[role="dialog"][aria-label="Learn"]');
+    expect(dialog).toHaveAttribute("inert");
   });
 });

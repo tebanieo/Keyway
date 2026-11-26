@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useDrawerFocus } from "../hooks/useDrawerFocus";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
 import { compileExpression } from "../engine/expression";
@@ -72,6 +73,14 @@ export function QueryPanel({
   onHighlight: (h: QueryHighlight) => void;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Opening focuses the request's first field; Escape closes; focus goes back.
+  useDrawerFocus(
+    open,
+    panelRef,
+    onClose,
+    'textarea[aria-label="Key"], input[aria-label="KeyConditionExpression"], input[aria-label="FilterExpression"]',
+  );
   const indexes = [base, ...gsis];
   const [op, setOp] = useState<"get" | "query" | "scan">("query");
   const [indexName, setIndexName] = useState(base.name);
@@ -274,7 +283,10 @@ export function QueryPanel({
 
   return (
     <div
+      ref={panelRef}
       className={open ? "query-panel drawer open" : "query-panel drawer"}
+      role="dialog"
+      aria-label="Read / Query"
       aria-hidden={!open}
       inert={!open} // closed: off-screen, so no tab stops
     >
@@ -331,7 +343,7 @@ export function QueryPanel({
         <button className="q-clear" onClick={clear}>
           clear
         </button>
-        <button className="q-close" onClick={onClose} title="close">
+        <button className="q-close" onClick={onClose} title="close" aria-label="Close Read / Query">
           &times;
         </button>
       </div>

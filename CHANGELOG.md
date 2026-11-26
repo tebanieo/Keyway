@@ -36,6 +36,10 @@ hand-curated summary. It follows
   type. Escape closes the menu, then ends the snippet, then lets you out: the
   next Tab moves on, Shift+Tab goes back, shown by a hint on the editor. It used
   to drop focus onto nothing.
+- **Drawers work from the keyboard.** Opening one moves focus inside (the Query
+  panel's first field, the first example or tour), Escape closes it, and focus
+  returns to where you came from. The tucked rail shows itself when it has
+  keyboard focus, and the green ✓ marks only the button whose badge cleared.
 
 ### Changed
 

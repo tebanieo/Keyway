@@ -692,6 +692,7 @@ body {
   transition: transform 0.3s var(--ease);
 }
 .rail:hover,
+.rail:focus-within,
 .rail.revealed {
   transform: translate(0, -50%);
 }
@@ -710,6 +711,7 @@ body {
   transition: opacity var(--tf);
 }
 .rail:hover::before,
+.rail:focus-within::before,
 .rail.revealed::before {
   opacity: 0;
 }
@@ -809,7 +811,8 @@ body {
   pointer-events: none;
   transition: opacity var(--tf);
 }
-.rail-btn:hover .rail-label {
+.rail-btn:hover .rail-label,
+.rail-btn:focus-visible .rail-label {
   opacity: 1;
 }
 
