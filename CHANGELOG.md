@@ -17,6 +17,9 @@ hand-curated summary. It follows
 - **Closed drawers no longer hold tab stops.** Tab out of the editor used to
   land in the hidden Query panel and drawers (35 invisible stops); they're now
   `inert` while closed, and so is the collapsed editor.
+- **Buttons and fields use the app's fonts** (they rendered in Arial, and the
+  editor's line numbers in a generic monospace), and native controls and
+  scrollbars follow the light or dark theme.
 
 ### Changed
 

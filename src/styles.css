@@ -1,4 +1,6 @@
 :root {
+  /* native controls and scrollbars follow the theme */
+  color-scheme: dark;
   /* palette: lifted off pure-black, faint cool tint (data-instrument) */
   --bg: #0f1217;
   --panel: #161a21;
@@ -86,6 +88,7 @@
 /* Paper theme: flat, printed-page minimal. No gloss: glass goes opaque and
    blur turns off; overlays flip dark; semantic colors darken for white. */
 [data-theme="paper"] {
+  color-scheme: light;
   --bg: #fcfdfe;
   --panel: #ffffff;
   --panel-2: #eef1f6;
@@ -153,6 +156,20 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Form controls don't inherit the page font by default (they'd render in the
+   UA font, e.g. Arial); components still set mono where they want it. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+/* ...but keep the size buttons had under the UA default, so labels and icons
+   that rely on it don't grow. */
+button {
+  font-size: 13.333px;
 }
 
 body {

@@ -134,6 +134,7 @@ const theme = EditorView.theme(
       caretColor: "var(--accent)",
     },
     ".cm-gutters": {
+      fontFamily: "var(--font-mono)",
       backgroundColor: "var(--editor-bg)",
       color: "var(--editor-gutter)",
       border: "none",
