@@ -92,8 +92,10 @@ describe("useModel", () => {
     act(() => result.current.commit([put]));
 
     expect(result.current.ops).toHaveLength(2);
-    expect(result.current.ops[1]).toEqual(put);
+    expect(result.current.ops[1].kind).toBe("put");
     expect(result.current.curStep).toBe(2);
+    // the dropped future's line is gone from the script too
+    expect(result.current.docText).toContain("USER#9");
   });
 
   it("commit ignores an empty op list", () => {
@@ -125,11 +127,15 @@ describe("useModel", () => {
     expect(text).toContain("AppTable");
   });
 
-  it("syncDoc reflects the current ops as editor text", () => {
+  it("commit writes into the script, keeping its comments", () => {
     const { result } = renderHook(() => useModel());
-    act(() => result.current.load(MODEL));
-    act(() => result.current.syncDoc());
-    expect(result.current.docText).toContain("@gsi GSI1");
+    act(() => result.current.load(`# my notes\n@table T pk=PK sk=SK\nu1: PK=U#1  SK=A\n# more\n`));
+    const put: Op = { kind: "put", item: { id: "u1", attrs: { PK: "U#1", SK: "A", n: "1" } } };
+    act(() => result.current.commit([put]));
+    expect(result.current.docText).toContain("# my notes");
+    expect(result.current.docText).toContain("# more");
+    expect(result.current.docText.trimEnd().split("\n").at(-1)).toBe("u1: PK=U#1  SK=A  n=1");
+    expect(result.current.ops).toHaveLength(2);
   });
 
   it("counts unserved access patterns for the rail badge", () => {

@@ -9,6 +9,7 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- **Switching Canvas → Editor no longer wipes the script's comments.** Canvas edits now write into the script itself: an edited or added item is appended as a line, a delete as `delete label`, and everything you wrote (comments, directives, layout) is kept.
 - **Phone: loading an example shows the tables** instead of a blank script tab while it plays.
 - **Line numbers stay on their lines** after expanding the script (the editor re-measures when its pane resizes).
 - **Canvas keyboard grid** arrows past removed rows instead of stopping, keeps a focused cell clear of the sticky key column, and keeps focus in the pane after a delete or a key edit that moves the row. Stepping onto the last step hands focus to Play.

@@ -64,8 +64,6 @@ export function App() {
     onDoc,
     load,
     reset: resetModel,
-    serialize,
-    syncDoc,
     addItem,
     state,
     fullState,
@@ -194,7 +192,6 @@ export function App() {
   }, [docText]);
 
   const enterEditor = () => {
-    syncDoc(); // one source: reflect current state as text
     setMode("editor");
   };
 
@@ -229,8 +226,8 @@ export function App() {
     setMode("editor");
   };
 
-  // The model as text, whichever mode we're in (canvas serializes ops back).
-  const currentDoc = () => (editing ? docText : serialize(ops));
+  // The model as text: the script is the one source in both modes.
+  const currentDoc = () => docText;
 
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
