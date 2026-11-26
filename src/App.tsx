@@ -33,7 +33,7 @@ import { totalWrites } from "./engine/cost";
 import { PanesBar } from "./components/PanesBar";
 import { PanesGrid } from "./components/PanesGrid";
 import type { ShownPane } from "./components/PanesGrid";
-import { AppHint, AppFooter, CopiedToast, ResetToast } from "./components/AppChrome";
+import { AppHint, AppFooter, CopiedToast, ResetToast, StepNote } from "./components/AppChrome";
 import { CommandPalette } from "./components/CommandPalette";
 import type { Command } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
@@ -482,6 +482,7 @@ export function App() {
         )}
 
         <section className="wb-tables" aria-label="Tables">
+          <StepNote text={narration} step={curStep} />
           {showBackfill && backfill && (
             <BackfillBanner
               backfill={backfill}
@@ -556,7 +557,6 @@ export function App() {
         curStep={curStep}
         opsLength={ops.length}
         op={op}
-        narration={narration}
         playing={playing}
         onTogglePlay={togglePlay}
         onPrev={() => step1(-1)}

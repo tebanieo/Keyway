@@ -63,6 +63,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **Step narration sits above the tables, in full.** It was cut off with an ellipsis in the status bar; now it wraps at the top of the tables, where you're looking, on every screen size including phones.
 - **Phone layout.** Below 700px wide the script and the tables take turns behind a Script | Tables switch, the rail is a row of buttons, panels open as bottom sheets, and the status bar keeps playback, the step and its cost.
 - Tables: the sort-key column and diff gutter stay in place while a wide item scrolls sideways (the partition header no longer scrolls away), pane titles stay visible while scrolling, and the pin/delete buttons are larger, faintly visible at rest, and shown on keyboard focus.
 - Panels (Query, Examples, Learn, Access Patterns) dock beside the tables on wide screens instead of covering them, and stay open while you click around; the rail is a fixed column. On narrower screens a panel opens as a bottom sheet.

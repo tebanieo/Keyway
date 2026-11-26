@@ -2325,13 +2325,6 @@ body {
   min-width: 160px;
   max-width: 34%;
 }
-.sb-narration {
-  overflow: hidden;
-  font-size: var(--fs-sm);
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .sb-step.rejected .op-label b {
   color: var(--danger);
 }
@@ -2581,7 +2574,6 @@ body {
   .statusbar .sb-total {
     margin-left: auto;
   }
-  .statusbar .sb-narration,
   .statusbar .seg-cost,
   .statusbar .item-bytes,
   .statusbar .reject-note,
@@ -2750,4 +2742,28 @@ body {
   .wb-split {
     display: none;
   }
+}
+
+/* The step's narration, in full, at the top of the tables. */
+.step-note {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.step-note-n {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }

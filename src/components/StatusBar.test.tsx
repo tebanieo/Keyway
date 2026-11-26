@@ -34,9 +34,8 @@ function setup(over: Partial<Parameters<typeof StatusBar>[0]> = {}) {
 
 describe("StatusBar", () => {
   it("always shows the step, its cost and the running total", () => {
-    setup({ narration: "Ada signs up" });
+    setup();
     expect(screen.getByText(/step 1\/3/)).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Ada signs up");
     expect(screen.getByText("7")).toBeInTheDocument(); // Σ so far
     expect(screen.getAllByText("WCU").length).toBeGreaterThan(0);
   });

@@ -2,6 +2,20 @@
 // footer, and the transient "copied <value>" toast. Grouped here so App reads
 // as a composition rather than carrying leaf markup.
 
+/**
+ * The current step's narration, in full, above the tables: it's what the step
+ * is teaching, so it sits where you're looking and wraps instead of being cut.
+ */
+export function StepNote({ text, step }: { text?: string; step: number }) {
+  if (!text) return null;
+  return (
+    <p className="step-note" role="status">
+      <span className="step-note-n">Step {step}</span>
+      {text}
+    </p>
+  );
+}
+
 export function AppHint({ editing }: { editing: boolean }) {
   return (
     <p className="hint">

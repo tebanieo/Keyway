@@ -3,16 +3,14 @@ import { Icon } from "./icons";
 import type { OpCost } from "../engine/cost";
 
 /**
- * The bottom status strip, always visible: playback, the current step and its
- * narration, what that step cost, and the running total so far. It replaces
- * the floating narration pill and the cost pop-up that vanished after a beat,
- * so cost has a permanent home and nothing covers the tables.
+ * The bottom status strip, always visible: playback, the current step, what
+ * that step cost, and the running total so far. (The step's narration is read
+ * in full above the tables, where the eye is: see StepNote.)
  */
 export function StatusBar({
   curStep,
   opsLength,
   op,
-  narration,
   playing,
   onTogglePlay,
   onPrev,
@@ -26,7 +24,6 @@ export function StatusBar({
   curStep: number;
   opsLength: number;
   op: { verb: string; detail: string };
-  narration?: string;
   playing: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
@@ -73,11 +70,6 @@ export function StatusBar({
         <div className="op-label">
           step {curStep}/{opsLength} &middot; <b>{op.verb}</b> {op.detail}
         </div>
-        {narration && (
-          <div className="sb-narration" role="status">
-            {narration}
-          </div>
-        )}
       </div>
 
       <CostBar cost={cost} bytes={opBytes} />
