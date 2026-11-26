@@ -63,9 +63,12 @@ describe("RightRail", () => {
   });
 
   it("shows a badge and warn state for an item with a count", () => {
-    render(<RightRail items={[item({ badge: 3 })]} />);
+    render(<RightRail items={[item({ badge: 3, badgeLabel: "unserved", drawer: true })]} />);
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Examples" })).toHaveClass("warn");
+    // the visible count is part of the name (WCAG 2.5.3), and its state is exposed
+    const btn = screen.getByRole("button", { name: "Examples, 3 unserved" });
+    expect(btn).toHaveClass("warn");
+    expect(btn).toHaveAttribute("aria-expanded", "false");
   });
 
   it("marks the active item and reveals the rail on the hint flag", () => {

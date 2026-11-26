@@ -137,4 +137,18 @@ describe("Panel", () => {
     // both new rows are marked added
     expect(within(table).getAllByText("+").length).toBe(2);
   });
+
+  it("arrows past a removed row (nothing to edit there) to the next one", () => {
+    const THREE = TWO + "\nu3: PK=U#1  SK=C  name=Grace";
+    const before = viewOf(THREE).view;
+    const after = viewOf(THREE + "\ndelete u2").view;
+    render(<Panel view={after} prev={before} diffOn={true} link={link()} edit={editProps()} />);
+    expect(document.querySelector("tr.row-removed")).not.toBeNull();
+    const ada = screen.getByText("Ada");
+    ada.focus();
+    fireEvent.keyDown(ada, { key: "ArrowDown" });
+    expect(document.activeElement).toHaveTextContent("Grace");
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement).toHaveTextContent("Ada");
+  });
 });

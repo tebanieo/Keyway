@@ -386,7 +386,10 @@ export const Editor = forwardRef<
           themeSlot.of(themeFor(isDark())),
           stepLineField,
           EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ "aria-label": "Model script" }),
+          EditorView.contentAttributes.of({
+            "aria-label": "Model script",
+            "aria-describedby": "editor-keys-help",
+          }),
           EditorView.domEventHandlers({
             focus: (_e, v) => {
               lastLine = v.state.doc.lineAt(v.state.selection.main.head).number;
@@ -420,6 +423,14 @@ export const Editor = forwardRef<
       }),
     });
     viewRef.current = view;
+    // Re-measure when the pane's size changes (expanding from the collapsed
+    // strip, the splitter, the window): line heights depend on the width, and
+    // stale ones leave the line numbers out of step with their lines.
+    const resize =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => view.requestMeasure());
+    resize?.observe(host.current);
     if (autoFocus) {
       // Ready to type: caret at the end of the model. preventScroll, so landing
       // in the editor never scrolls the page.
@@ -432,6 +443,7 @@ export const Editor = forwardRef<
     );
     observer.observe(document.documentElement, { attributeFilter: ["data-theme"] });
     return () => {
+      resize?.disconnect();
       observer.disconnect();
       view.destroy();
       viewRef.current = null;
@@ -455,5 +467,13 @@ export const Editor = forwardRef<
     }
   }, [activeLine]);
 
-  return <div className="editor" ref={host} />;
+  return (
+    <>
+      <div className="editor" ref={host} />
+      <span id="editor-keys-help" className="sr-only">
+        Tab accepts a suggestion or moves to the next value. To leave the script, press Escape, then
+        Tab. Control Enter on an access pattern line runs it.
+      </span>
+    </>
+  );
 });

@@ -147,6 +147,7 @@ export function App() {
       // "editor" tours are about the tool: keep the script visible. The rest
       // collapse so the panes lead while the story plays.
       setEditorCollapsed(tour.focus !== "editor");
+      setNarrowView(tour.focus === "editor" ? "script" : "tables");
       setPlaying(true);
       setDrawer(null);
     },
@@ -161,6 +162,7 @@ export function App() {
       loadModel(dsl);
       setStep(0);
       setEditorCollapsed(true);
+      setNarrowView("tables"); // on a phone: show what's playing
       setPlaying(true);
     },
     [loadModel, setStep, setPlaying],

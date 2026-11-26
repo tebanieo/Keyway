@@ -30,7 +30,11 @@ describe("EditorPane", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText(/items/)).toBeInTheDocument();
     expect(screen.getByText(/index/)).toBeInTheDocument();
-    expect(screen.getByText(/pattern/)).toBeInTheDocument();
+    expect(screen.getByText(/pattern/, { ignore: ".sr-only" })).toBeInTheDocument();
+    // how to leave the script is part of its description, for screen readers
+    expect(screen.getByRole("textbox", { name: "Model script" })).toHaveAccessibleDescription(
+      /press Escape, then Tab/,
+    );
   });
 
   it("shows the empty hint when there are no items", () => {

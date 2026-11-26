@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { CostBar } from "./CostBar";
 import { Icon } from "./icons";
 import type { OpCost } from "../engine/cost";
@@ -34,6 +35,17 @@ export function StatusBar({
   opBytes: number;
   totalWcu: number;
 }) {
+  const playRef = useRef<HTMLButtonElement>(null);
+  // Stepping onto the last step disables Step forward under the keyboard:
+  // hand focus to Play rather than dropping it on the page.
+  const next = () => {
+    onNext();
+    if (curStep + 1 < opsLength) return;
+    requestAnimationFrame(() => {
+      if (!document.activeElement || document.activeElement === document.body)
+        playRef.current?.focus();
+    });
+  };
   return (
     <section className="statusbar" aria-label="Playback and cost">
       <div className="stepper" role="group" aria-label="Playback">
@@ -42,6 +54,7 @@ export function StatusBar({
         </button>
         <button
           className="play"
+          ref={playRef}
           onClick={onTogglePlay}
           title="auto-play"
           aria-label={playing ? "Pause" : "Play"}
@@ -50,7 +63,7 @@ export function StatusBar({
         </button>
         <button
           disabled={curStep === opsLength}
-          onClick={onNext}
+          onClick={next}
           title="step forward"
           aria-label="Step forward"
         >

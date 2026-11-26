@@ -9,6 +9,10 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- **Phone: loading an example shows the tables** instead of a blank script tab while it plays.
+- **Line numbers stay on their lines** after expanding the script (the editor re-measures when its pane resizes).
+- **Canvas keyboard grid** arrows past removed rows instead of stopping, keeps a focused cell clear of the sticky key column, and keeps focus in the pane after a delete or a key edit that moves the row. Stepping onto the last step hands focus to Play.
+- **Accessibility:** rows dimmed during playback keep 4.5:1 contrast; Query field borders, the resting pin button, the splitter and checkbox focus reach 3:1; the phone Script/Tables switch and the footer pass contrast; rail buttons expose expanded/collapsed and include the unserved count in their name; the script tells screen readers how to leave it (Escape, then Tab).
 - **"+ item" in Canvas no longer blanks the app.** Pinning the new item tried to reveal a script line that didn't exist yet.
 - **Enter is always a newline in the editor.** The suggestion menu that opens on
   a blank line no longer preselects its first option, so pressing Enter twice

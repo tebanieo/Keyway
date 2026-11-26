@@ -52,6 +52,10 @@ export interface RailItem {
   icon: ReactNode;
   /** A count worth reacting to (e.g. uncovered patterns) → badge + attention. */
   badge?: number;
+  /** What the badge counts, for the accessible name ("1 unserved"). */
+  badgeLabel?: string;
+  /** Opens a drawer (so it exposes expanded/collapsed); false for links. */
+  drawer?: boolean;
   active: boolean;
   onClick: () => void;
 }
@@ -100,7 +104,10 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
             className={`rail-btn${it.active ? " active" : ""}${badge > 0 ? " warn" : ""}${resolved && cleared.has(it.id) ? " ok" : ""}`}
             onClick={it.onClick}
             title={it.label}
-            aria-label={it.label}
+            aria-label={
+              badge > 0 ? `${it.label}, ${badge} ${it.badgeLabel ?? ""}`.trim() : it.label
+            }
+            aria-expanded={it.drawer ? it.active : undefined}
           >
             {it.icon}
             {badge > 0 && <span className="rail-badge">{badge}</span>}

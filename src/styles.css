@@ -6,6 +6,8 @@
   --panel: #161a21;
   --panel-2: #1d222b;
   --line: #2b313d;
+  /* form-field borders: 3:1 against the panels (WCAG 1.4.11) */
+  --field-line: #646d7f;
   --hairline: #232935;
   --text: #e6e9ef;
   --muted: #8b93a7;
@@ -93,6 +95,7 @@
   --panel: #ffffff;
   --panel-2: #eef1f6;
   --line: #d5dbe4;
+  --field-line: #858e9e;
   --hairline: #e4e8ee;
   --text: #11141a;
   --muted: #5b6474;
@@ -426,9 +429,11 @@ body {
   transform: scale(0.94);
 }
 
-/* Focus mode: dim everything except the item the current step touches. */
-.ptable tr.dimmed td {
-  opacity: 0.28;
+/* Rows the step didn't touch recede to the muted text colour (still 4.5:1 in
+   both themes, unlike fading them out), so the touched row leads. */
+.ptable tr.dimmed td,
+.ptable tr.dimmed td.iskey {
+  color: var(--muted);
   transition: opacity 0.2s ease;
 }
 
@@ -839,7 +844,7 @@ body {
 .query-panel input,
 .query-panel select {
   padding: 6px 9px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--field-line);
   border-radius: var(--r-sm);
   background: var(--input-bg);
   color: var(--text);
@@ -955,7 +960,7 @@ body {
 }
 .query-panel textarea {
   padding: 6px 9px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--field-line);
   border-radius: var(--r-sm);
   background: var(--input-bg);
   color: var(--text);
@@ -1587,7 +1592,6 @@ body {
   margin: 20px 0 8px;
   font-size: 11px;
   color: var(--muted);
-  opacity: 0.8;
 }
 .app-footer .disclaimer {
   grid-column: 2;
@@ -2066,7 +2070,7 @@ body {
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  opacity: 0.3;
+  opacity: 0.75;
   vertical-align: middle;
   display: inline-grid;
   place-items: center;
@@ -2536,7 +2540,7 @@ body {
   }
   .wb-switch button.active {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .wb-main,
   .app.no-script .wb-main,
@@ -2735,6 +2739,9 @@ body {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
   outline: none;
 }
+.wb-split:focus-visible {
+  background: var(--accent);
+}
 .app.script-collapsed .wb-split {
   display: none;
 }
@@ -2766,4 +2773,26 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+}
+
+/* Focus that reads at 3:1: the "strong" checkbox and other bare checkboxes. */
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A focused Canvas cell is never hidden under the sticky key column. */
+.ptable-scroll {
+  scroll-padding-left: 180px;
+}
+/* Screen-reader-only text. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

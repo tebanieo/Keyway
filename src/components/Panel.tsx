@@ -214,6 +214,8 @@ function GridRows({
                         isKey={key}
                         extra={stickCls(k)}
                         first={r === rows[0] && k === cols[0]}
+                        itemId={it.id}
+                        col={k}
                         onCommit={(v) => edit.onEdit(it, k, v)}
                         onCopy={link.onCopy}
                       />
@@ -250,7 +252,10 @@ function GridRows({
                       aria-label={`Delete ${it.id}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        const pane = e.currentTarget.closest(".panel");
                         edit.onDelete(it.id);
+                        // The button goes with the row: keep the keyboard in the pane.
+                        afterRender(() => pane?.querySelector<HTMLElement>(CELL));
                       }}
                     >
                       &times;
@@ -264,6 +269,14 @@ function GridRows({
       </table>
     </div>
   );
+}
+
+/** After React re-renders: if focus fell to the page, put it on `target()`. */
+function afterRender(target: () => HTMLElement | null | undefined) {
+  requestAnimationFrame(() => {
+    if (document.activeElement && document.activeElement !== document.body) return;
+    target()?.focus();
+  });
 }
 
 // Keyboard grid for editable (Canvas) tables: one tab stop per table, the
@@ -289,10 +302,17 @@ function moveInGrid(e: KeyboardEvent<HTMLTableElement>) {
     const target = rows[ri]?.cells[ci];
     return target?.matches(CELL) ? (target as HTMLElement) : null;
   };
+  // Up/down skip rows with nothing to edit (a removed row in the diff).
+  const vertical = (dir: 1 | -1) => {
+    for (let ri = r + dir; ri >= 0 && ri < rows.length; ri += dir) {
+      if (rows[ri].querySelector(CELL)) return at(ri, c);
+    }
+    return null;
+  };
   const cells = [...row.querySelectorAll<HTMLElement>(CELL)];
   const next: Record<string, () => HTMLElement | null> = {
-    ArrowUp: () => at(r - 1, c),
-    ArrowDown: () => at(r + 1, c),
+    ArrowUp: () => vertical(-1),
+    ArrowDown: () => vertical(1),
     ArrowLeft: () => at(r, c - 1),
     ArrowRight: () => at(r, c + 1),
     Home: () => cells[0] ?? null,
@@ -309,6 +329,8 @@ function EditableCell({
   isKey,
   extra = "",
   first = false,
+  itemId,
+  col,
   onCommit,
   onCopy,
 }: {
@@ -317,6 +339,8 @@ function EditableCell({
   extra?: string;
   /** The table's first cell: its tab stop until another cell takes focus. */
   first?: boolean;
+  itemId?: string;
+  col?: string;
   onCommit: (v: string) => void;
   onCopy: (v: string) => void;
 }) {
@@ -346,6 +370,14 @@ function EditableCell({
               refocus.current = true;
               onCommit(e.currentTarget.value);
               setEditing(false);
+              // A key edit moves the row (another partition): follow it there.
+              if (itemId && col) {
+                afterRender(() =>
+                  document.querySelector<HTMLElement>(
+                    `.wb-tables tr[data-item="${CSS.escape(itemId)}"] td[data-col="${CSS.escape(col)}"]`,
+                  ),
+                );
+              }
             } else if (e.key === "Escape") {
               e.stopPropagation();
               refocus.current = true;
@@ -366,6 +398,7 @@ function EditableCell({
       ref={cell}
       className={cls}
       data-cell=""
+      data-col={col}
       tabIndex={first ? 0 : -1}
       title={
         value ? "click to copy · double-click or Enter to edit" : "double-click or Enter to edit"
