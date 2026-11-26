@@ -30,7 +30,7 @@ import { PlaybackHud } from "./components/PlaybackHud";
 import { PanesBar } from "./components/PanesBar";
 import { PanesGrid } from "./components/PanesGrid";
 import type { ShownPane } from "./components/PanesGrid";
-import { AppHint, AppFooter, CopiedToast } from "./components/AppChrome";
+import { AppHint, AppFooter, CopiedToast, ResetToast } from "./components/AppChrome";
 
 export function App() {
   // The data model (op log + DSL structure + projections) lives in one hook;
@@ -184,10 +184,20 @@ export function App() {
     },
   };
 
+  // Reset is one keypress and the model lives nowhere else, so keep the text
+  // and offer it back for a while. The editor remounts focused, ready to type.
+  const [undoReset, setUndoReset] = useState<string | null>(null);
+  useEffect(() => {
+    if (undoReset === null) return;
+    const t = window.setTimeout(() => setUndoReset(null), 10_000);
+    return () => window.clearTimeout(t);
+  }, [undoReset]);
   const reset = () => {
+    setUndoReset(currentDoc());
     resetModel();
     setPinnedId(null);
     setPlaying(false);
+    setMode("editor");
   };
 
   // The model as text, whichever mode we're in (canvas serializes ops back).
@@ -388,6 +398,17 @@ export function App() {
       />
 
       <CopiedToast value={copied} />
+
+      <ResetToast
+        onUndo={
+          undoReset === null
+            ? null
+            : () => {
+                loadModel(undoReset);
+                setUndoReset(null);
+              }
+        }
+      />
     </div>
   );
 }

@@ -45,3 +45,16 @@ export function CopiedToast({ value }: { value: string | null }) {
     </div>
   );
 }
+
+/** After Reset: the model is gone, so offer it back for a while. */
+export function ResetToast({ onUndo }: { onUndo: (() => void) | null }) {
+  if (!onUndo) return null;
+  return (
+    <div className="copied-toast reset-toast" role="status">
+      Model reset.
+      <button className="reset-undo" onClick={onUndo}>
+        Undo
+      </button>
+    </div>
+  );
+}

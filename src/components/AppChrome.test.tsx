@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { AppHint, AppFooter, CopiedToast } from "./AppChrome";
+import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { AppHint, AppFooter, CopiedToast, ResetToast } from "./AppChrome";
 
 describe("AppHint", () => {
   it("shows editor guidance in editing mode", () => {
@@ -37,5 +37,20 @@ describe("CopiedToast", () => {
     render(<CopiedToast value="USER#1" />);
     expect(screen.getByText("USER#1")).toBeInTheDocument();
     expect(screen.getByText(/copied/)).toBeInTheDocument();
+  });
+});
+
+describe("ResetToast", () => {
+  it("offers the model back after a reset, announced as a status", () => {
+    const onUndo = vi.fn();
+    render(<ResetToast onUndo={onUndo} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Model reset.");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(onUndo).toHaveBeenCalledOnce();
+  });
+
+  it("renders nothing when there's nothing to undo", () => {
+    const { container } = render(<ResetToast onUndo={null} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

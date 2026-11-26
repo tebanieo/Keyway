@@ -53,6 +53,9 @@ hand-curated summary. It follows
   next). A problem you jump to now shows its message (the editor only stays
   quiet on a line you're in the middle of typing), and an `@ap` naming an index
   that doesn't exist gets a warning on its line.
+- **Reset can be undone.** It used to empty the model with one keypress and no
+  way back; now a toast offers **Undo** for ten seconds, and the cursor lands
+  in the fresh editor.
 
 ### Changed
 
