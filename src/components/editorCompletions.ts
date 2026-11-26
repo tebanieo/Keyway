@@ -69,7 +69,7 @@ const DIRECTIVES = [
     type: "keyword",
   }),
   snippetCompletion(
-    `@ap ${ph("description")} -> ${ph("Index")} ${ph("PK")} = :v  :v=${ph("value")}`,
+    `@ap ${ph("description")} -> ${ph("Index")} ${ph("PK")} = :v  values={":v": {"S": "${ph("value")}"}}`,
     {
       label: "@ap",
       detail: "access pattern (auto-numbered)",

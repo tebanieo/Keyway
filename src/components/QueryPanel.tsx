@@ -1,10 +1,48 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
-import { keyConditionTemplate, parseExpression } from "../engine/expression";
-import type { IndexSpec, Item } from "../engine/types";
+import { compileExpression } from "../engine/expression";
+import type { AttributeValue } from "../engine/extenddb";
+import {
+  SORT_KEY_OPS,
+  SORT_KEY_OP_HELP,
+  attributeTypes,
+  getKeyTemplate,
+  keyConditionRequest,
+  typeMismatches,
+} from "../engine/keyhelp";
+import type { SortKeyOp } from "../engine/keyhelp";
+import type { Expression, IndexSpec, Item } from "../engine/types";
+import { parseGetKey } from "../model/dsl";
+import { cliCommand, pick, refsIn, unusedAcross } from "../model/request";
 
 const schemaOf = (index: IndexSpec) => ({ hash: pkAttrs(index), range: skAttrs(index) });
+/** A JSON object with one entry per line, each value compact:
+ *  `{\n  ":pk": {"S": "U#1"},\n  ":sk": {"S": ""}\n}`, as people write them. */
+const compact = (val: unknown): string =>
+  typeof val === "object" && val !== null && !Array.isArray(val)
+    ? `{${Object.entries(val)
+        .map(([k, x]) => `${JSON.stringify(k)}: ${JSON.stringify(x)}`)
+        .join(", ")}}`
+    : JSON.stringify(val);
+const pretty = (v: Record<string, unknown>) => {
+  const lines = Object.entries(v).map(([k, val]) => `  ${JSON.stringify(k)}: ${compact(val)}`);
+  return lines.length ? `{\n${lines.join(",\n")}\n}` : "{}";
+};
+
+/** Parse a JSON field; empty means `{}`. */
+function readJson(label: string, text: string): Record<string, unknown> | string {
+  if (text.trim() === "") return {};
+  try {
+    const v: unknown = JSON.parse(text);
+    if (typeof v === "object" && v !== null && !Array.isArray(v)) {
+      return v as Record<string, unknown>;
+    }
+    return `${label} must be a JSON object`;
+  } catch (e) {
+    return `${label} isn't valid JSON: ${e instanceof Error ? e.message : String(e)}`;
+  }
+}
 
 export interface QueryHighlight {
   matched: Set<string>; // returned items
@@ -12,12 +50,12 @@ export interface QueryHighlight {
 }
 
 /**
- * A read against the current model: GetItem / Query / Scan. GetItem takes the
- * Key (a value per key attribute); Query takes a real KeyConditionExpression,
- * pre-filled for the chosen index and checked by ExtendDB against its keys.
- * Reports read cost and highlights results.
- *
- * NOTE: first-cut UX, functional, not yet styled to the "professional" bar.
+ * A read against the current model, written as the real API request: GetItem
+ * takes a typed `Key`; Query takes a KeyConditionExpression; Query and Scan
+ * take a FilterExpression; both expressions share ExpressionAttributeNames and
+ * ExpressionAttributeValues, as in the API. ExtendDB validates everything. The
+ * sort-key buttons write a KeyConditionExpression for each operator, typed
+ * from what the table holds, and the matching AWS CLI command is shown live.
  */
 export function QueryPanel({
   open,
@@ -39,23 +77,27 @@ export function QueryPanel({
   const [indexName, setIndexName] = useState(base.name);
   const index = indexes.find((i) => i.name === indexName) ?? base;
   const isBase = index.name === base.name;
-  const pks = pkAttrs(index);
-  const sks = skAttrs(index);
+  const schema = schemaOf(index);
+  const types = useMemo(() => attributeTypes(state.values()), [state]);
 
-  // GetItem: a value per key attribute. Query: the KeyConditionExpression text.
-  const [keyVals, setKeyVals] = useState<Record<string, string>>({});
-  const [keyText, setKeyText] = useState(() => keyConditionTemplate(schemaOf(base)));
-  // When the queried index's keys change under the panel (the document's @table
-  // or @gsi was edited, or the selected GSI was removed), start over from a
-  // fresh template rather than keep one written for the old keys.
-  const schemaSig = JSON.stringify([index.name, pks, sks]);
-  const [templateSig, setTemplateSig] = useState(schemaSig);
-  if (templateSig !== schemaSig) {
-    setTemplateSig(schemaSig);
-    setKeyText(keyConditionTemplate(schemaOf(index)));
-  }
+  const fresh = (ix: IndexSpec, sortOp: SortKeyOp | null = null) => {
+    const req = keyConditionRequest(schemaOf(ix), sortOp, types);
+    return {
+      key: req.expression,
+      names: Object.keys(req.names).length ? pretty(req.names) : "",
+      values: pretty(req.values),
+      getKey: pretty(getKeyTemplate(schemaOf(ix), types)),
+    };
+  };
+  const [initial] = useState(() => fresh(base));
+  const [keyText, setKeyText] = useState(initial.key);
+  const [namesText, setNamesText] = useState(initial.names);
+  const [valuesText, setValuesText] = useState(initial.values);
+  const [getKeyText, setGetKeyText] = useState(initial.getKey);
   const [filterText, setFilterText] = useState("");
+  const [sortOp, setSortOp] = useState<SortKeyOp | null>(null);
   const [consistent, setConsistent] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<{
     scanned: number;
     bytes: number;
@@ -65,45 +107,127 @@ export function QueryPanel({
     warnings?: string[];
   } | null>(null);
 
-  const setKeyVal = (a: string, v: string) => setKeyVals((p) => ({ ...p, [a]: v }));
+  const reset = (ix: IndexSpec) => {
+    const f = fresh(ix);
+    setKeyText(f.key);
+    setNamesText(f.names);
+    setValuesText(f.values);
+    setGetKeyText(f.getKey);
+    setSortOp(null);
+  };
+
+  // When the queried index's keys change under the panel (the document's
+  // @table or @gsi was edited, or the selected GSI was removed), start over
+  // from a fresh template rather than keep one written for the old keys.
+  const schemaSig = JSON.stringify([index.name, schema]);
+  const [templateSig, setTemplateSig] = useState(schemaSig);
+  if (templateSig !== schemaSig) {
+    setTemplateSig(schemaSig);
+    reset(index);
+  }
+
+  /** A sort-key button: rewrite the key condition for `sortOp`, keeping the
+   *  values already typed and anything the filter uses. */
+  const applySortOp = (next: SortKeyOp | null) => {
+    const names = readJson("ExpressionAttributeNames", namesText);
+    const values = readJson("ExpressionAttributeValues", valuesText);
+    const oldValues = typeof values === "string" ? {} : (values as Record<string, AttributeValue>);
+    const req = keyConditionRequest(schema, next, types, oldValues);
+    const isKeyRef = (k: string) => /^[#:](pk|sk)\d*$/.test(k);
+    const keepNames = typeof names === "string" ? {} : names;
+    const mergedNames = {
+      ...Object.fromEntries(Object.entries(keepNames).filter(([k]) => !isKeyRef(k))),
+      ...req.names,
+    };
+    const mergedValues = {
+      ...Object.fromEntries(Object.entries(oldValues).filter(([k]) => !isKeyRef(k))),
+      ...req.values,
+    };
+    setSortOp(next);
+    setKeyText(req.expression);
+    setNamesText(Object.keys(mergedNames).length ? pretty(mergedNames) : "");
+    setValuesText(pretty(mergedValues));
+  };
+
   const fail = (error: string) => {
     setResult({ scanned: 0, bytes: 0, returned: 0, rcu: 0, error });
     onHighlight({ matched: new Set(), scanned: new Set() });
   };
 
   const run = () => {
-    let key = null;
-    if (op === "query") {
-      const parsedKey = parseExpression(keyText, "key", schemaOf(index));
-      if (!parsedKey.expression) return fail(`key: ${parsedKey.error}`);
-      key = parsedKey.expression;
+    const filterOn = op !== "get" && filterText.trim() !== "";
+    let getKey = null;
+    let key: Expression | null = null;
+    let filter: Expression | null = null;
+    const warnings: string[] = [];
+
+    if (op === "get") {
+      const k = parseGetKey(`key=${getKeyText}`);
+      if (typeof k === "string") return fail(`Key: ${k}`);
+      getKey = k;
+    } else {
+      const allNames = readJson("ExpressionAttributeNames", namesText);
+      if (typeof allNames === "string") return fail(allNames);
+      const allValues = readJson("ExpressionAttributeValues", valuesText);
+      if (typeof allValues === "string") return fail(allValues);
+      // A Scan sends no KeyConditionExpression, so it leaves out the entries
+      // only the key condition uses (still in the shared fields from Query).
+      const keyOnly = op === "query" ? null : refsIn(keyText);
+      const filterRefs = refsIn(filterOn ? filterText : "");
+      const drop = (k: string) =>
+        !!keyOnly &&
+        (keyOnly.names.has(k) || keyOnly.values.has(k)) &&
+        !filterRefs.names.has(k) &&
+        !filterRefs.values.has(k);
+      const names = Object.fromEntries(Object.entries(allNames).filter(([k]) => !drop(k)));
+      const values = Object.fromEntries(Object.entries(allValues).filter(([k]) => !drop(k)));
+      // Each expression is validated with the entries it uses; the request as
+      // a whole must use every entry, as the API requires.
+      const part = (expression: string) => {
+        const refs = refsIn(expression);
+        return {
+          expression,
+          names: pick(names, refs.names),
+          values: pick(values, refs.values),
+        };
+      };
+      if (op === "query") {
+        const parsed = compileExpression(part(keyText), "key", schema);
+        if (!parsed.expression) return fail(`KeyConditionExpression: ${parsed.error}`);
+        key = parsed.expression;
+        warnings.push(...parsed.warnings, ...typeMismatches(key, types));
+      }
+      if (filterOn) {
+        const parsed = compileExpression(part(filterText), "filter");
+        if (!parsed.expression) return fail(`FilterExpression: ${parsed.error}`);
+        filter = parsed.expression;
+        warnings.push(...parsed.warnings, ...typeMismatches(filter, types));
+      }
+      const used = [op === "query" ? keyText : "", filterOn ? filterText : ""];
+      const unused = unusedAcross(
+        used,
+        names as Record<string, string>,
+        values as Record<string, AttributeValue>,
+      );
+      if (unused) return fail(unused);
     }
-    const common = {
-      op,
-      pk: pks.map((a) => keyVals[a] ?? ""),
-      sk: sks.map((a) => keyVals[a] ?? ""),
-      key,
-      consistent,
-    };
-    // An empty filter box means no FilterExpression at all (and GetItem has none).
-    const parsed = op !== "get" && filterText.trim() ? parseExpression(filterText, "filter") : null;
-    if (parsed?.error) return fail(`filter: ${parsed.error}`);
-    const filter = parsed?.expression ?? null;
-    const r = runQuery(state, index, { ...common, filter }, base);
+
+    const spec = { op, getKey, key, consistent };
+    const r = runQuery(state, index, { ...spec, filter }, base);
     setResult({
       scanned: r.scanned,
       bytes: r.bytes,
       returned: r.items.length,
       rcu: r.rcu,
       error: r.error,
-      warnings: parsed?.warnings,
+      warnings,
     });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
       return;
     }
     // the "read" set (before filter) drives the faint "you paid for this" highlight
-    const read = runQuery(state, index, { ...common, filter: null }, base);
+    const read = runQuery(state, index, { ...spec, filter: null }, base);
     onHighlight({
       matched: new Set(r.items.map((i) => i.id)),
       scanned: new Set(read.items.map((i) => i.id)),
@@ -113,6 +237,39 @@ export function QueryPanel({
   const clear = () => {
     setResult(null);
     onHighlight({ matched: new Set(), scanned: new Set() });
+  };
+
+  // The CLI command, best effort while the JSON is half-typed.
+  const loose = (text: string) => {
+    const v = readJson("", text);
+    return typeof v === "string" ? undefined : v;
+  };
+  // The CLI sends the entries its expressions use (a Scan has no key condition).
+  const sent = refsIn([op === "query" ? keyText : "", filterText].join(" "));
+  const sentNames = loose(namesText) as Record<string, string> | undefined;
+  const sentValues = loose(valuesText) as Record<string, AttributeValue> | undefined;
+  const cli = cliCommand({
+    op,
+    tableName: base.name,
+    indexName: isBase ? undefined : index.name,
+    key: loose(getKeyText) as Record<string, AttributeValue> | undefined,
+    keyConditionExpression: keyText,
+    filterExpression: filterText.trim() || undefined,
+    names: sentNames && pick(sentNames, sent.names),
+    values: sentValues && pick(sentValues, sent.values),
+    consistentRead: consistent,
+  });
+  const copy = () => {
+    void navigator.clipboard?.writeText(cli).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      },
+      () => {},
+    );
+  };
+  const enterRuns = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey && e.currentTarget.tagName === "INPUT") run();
   };
 
   return (
@@ -175,64 +332,103 @@ export function QueryPanel({
         </button>
       </div>
 
-      {op === "get" && (
-        <div className="query-keys">
-          {[...pks, ...sks].map((a) => (
-            <label key={a} className="q-field">
-              <span className="q-key">{a}</span>
-              <span className="q-eq">=</span>
+      <div className="q-request">
+        {op === "get" && (
+          <label className="q-param">
+            <span className="q-pname">Key</span>
+            <textarea
+              aria-label="Key"
+              rows={4}
+              value={getKeyText}
+              onChange={(e) => setGetKeyText(e.target.value)}
+              spellCheck={false}
+            />
+            <span className="q-hint">
+              every key attribute of {index.name}, typed: {'{"S": "…"}'} for a String,{" "}
+              {'{"N": "…"}'} for a Number
+            </span>
+          </label>
+        )}
+
+        {op === "query" && (
+          <>
+            <label className="q-param">
+              <span className="q-pname">KeyConditionExpression</span>
               <input
-                value={keyVals[a] ?? ""}
-                placeholder="value"
-                onChange={(e) => setKeyVal(a, e.target.value)}
+                aria-label="KeyConditionExpression"
+                value={keyText}
+                onChange={(e) => setKeyText(e.target.value)}
+                onKeyDown={enterRuns}
+                spellCheck={false}
               />
             </label>
-          ))}
-        </div>
-      )}
+            <div className="q-ops" role="group" aria-label="sort key condition">
+              <span className="q-hint">
+                {schema.range.length ? `sort key ${schema.range[0]}:` : "no sort key"}
+              </span>
+              <button
+                className={sortOp === null ? "active" : ""}
+                title="partition key only: read the whole partition"
+                onClick={() => applySortOp(null)}
+              >
+                none
+              </button>
+              {schema.range.length > 0 &&
+                SORT_KEY_OPS.map((o) => (
+                  <button
+                    key={o}
+                    className={sortOp === o ? "active" : ""}
+                    title={SORT_KEY_OP_HELP[o]}
+                    onClick={() => applySortOp(o)}
+                  >
+                    {o}
+                  </button>
+                ))}
+            </div>
+          </>
+        )}
 
-      {op === "query" && (
-        <div className="query-filter">
-          <span className="q-flabel">key</span>
-          <input
-            className="q-filter-input q-key-input"
-            aria-label="KeyConditionExpression"
-            value={keyText}
-            onChange={(e) => setKeyText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") run();
-            }}
-            spellCheck={false}
-          />
-          <span className="q-hint">
-            a real KeyConditionExpression for {index.name}: partition key{pks.length > 1 ? "s" : ""}{" "}
-            {pks.join(", ")} with =
-            {sks.length > 0 &&
-              `, optionally sort key ${sks.join(", ")} with = < <= > >= BETWEEN begins_with`}
-            , then its :value=literal pairs.
-          </span>
-        </div>
-      )}
-
-      {op !== "get" && (
-        <div className="query-filter">
-          <span className="q-flabel">filter</span>
-          <input
-            className="q-filter-input"
-            value={filterText}
-            placeholder="e.g.  #s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5"
-            onChange={(e) => setFilterText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") run();
-            }}
-            spellCheck={false}
-          />
-          <span className="q-hint">
-            a real DynamoDB FilterExpression, checked by ExtendDB, then its #name=attr and
-            :value=literal placeholders. Applied after the read: trims results, not cost.
-          </span>
-        </div>
-      )}
+        {op !== "get" && (
+          <>
+            <label className="q-param">
+              <span className="q-pname">FilterExpression</span>
+              <input
+                aria-label="FilterExpression"
+                value={filterText}
+                placeholder="optional, e.g.  #s = :p"
+                onChange={(e) => setFilterText(e.target.value)}
+                onKeyDown={enterRuns}
+                spellCheck={false}
+              />
+              <span className="q-hint">applied after the read: trims results, not cost</span>
+            </label>
+            <label className="q-param">
+              <span className="q-pname">ExpressionAttributeNames</span>
+              <textarea
+                aria-label="ExpressionAttributeNames"
+                rows={2}
+                value={namesText}
+                placeholder='optional, e.g. {"#s": "status"}'
+                onChange={(e) => setNamesText(e.target.value)}
+                spellCheck={false}
+              />
+            </label>
+            <label className="q-param">
+              <span className="q-pname">ExpressionAttributeValues</span>
+              <textarea
+                aria-label="ExpressionAttributeValues"
+                rows={4}
+                value={valuesText}
+                onChange={(e) => setValuesText(e.target.value)}
+                spellCheck={false}
+              />
+              <span className="q-hint">
+                typed as in the API; the buttons above type them from what {base.name} holds
+              </span>
+            </label>
+          </>
+        )}
+      </div>
 
       {result && (
         <div className={result.error ? "query-result err" : "query-result"}>
@@ -267,6 +463,16 @@ export function QueryPanel({
           )}
         </div>
       )}
+
+      <div className="q-cli">
+        <div className="q-cli-head">
+          <span className="q-pname">AWS CLI</span>
+          <button className="q-clear" onClick={copy}>
+            {copied ? "copied" : "copy"}
+          </button>
+        </div>
+        <pre aria-label="AWS CLI command">{cli}</pre>
+      </div>
     </div>
   );
 }

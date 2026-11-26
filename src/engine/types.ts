@@ -47,9 +47,9 @@ export interface IndexSpec {
 }
 
 /**
- * A real DynamoDB expression with its ExpressionAttributeNames/Values, parsed
- * from Keyway's `expr  #n=attr  :v=value` form (see `parseExpression`). `text`
- * is what was written, kept so the DSL round-trips.
+ * A real DynamoDB expression with its ExpressionAttributeNames/Values, written
+ * as the API takes them (see `parseExpression`). `text` is the one-line form,
+ * kept so the DSL round-trips.
  */
 export interface Expression {
   expression: string;

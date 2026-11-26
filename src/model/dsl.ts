@@ -1,5 +1,6 @@
 import { keyOf } from "../engine/engine";
-import { parseExpression } from "../engine/expression";
+import { parseExpression, splitClauses } from "../engine/expression";
+import type { AttributeValue } from "../engine/extenddb";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
 
 /**
@@ -59,23 +60,32 @@ function parseApTail(tail: string): {
   };
 }
 
-/** A GetItem Key written as `attr=value` pairs (values may not contain spaces). */
-export function parseGetKey(text: string): Record<string, string> {
-  return Object.fromEntries(
-    text
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((pair) => {
-        const eq = pair.indexOf("=");
-        return eq > 0 ? [pair.slice(0, eq), pair.slice(eq + 1)] : [pair, ""];
-      }),
-  );
+/**
+ * A GetItem `Key` as the API writes it: `key={"PK": {"S": "ORDER#1"}, …}`.
+ * Returns the typed key, or DynamoDB-style help when it isn't one.
+ */
+export function parseGetKey(text: string): Record<string, AttributeValue> | string {
+  const split = splitClauses(text, ["key"]);
+  if ("error" in split) return split.error;
+  const key = split.clauses.key;
+  if (split.expression !== "" || key === undefined) {
+    return 'a GetItem takes its Key as key={"PK": {"S": "…"}, "SK": {"S": "…"}}';
+  }
+  if (typeof key !== "object" || key === null || Array.isArray(key)) {
+    return "key= must be an object of key attributes to typed values";
+  }
+  for (const [attr, av] of Object.entries(key)) {
+    const types = av && typeof av === "object" ? Object.keys(av) : [];
+    if (types.length !== 1 || !["S", "N", "B"].includes(types[0])) {
+      return `key: "${attr}" must be a typed key value, e.g. {"S": "ORDER#1"} or {"N": "42"}`;
+    }
+  }
+  return key as Record<string, AttributeValue>;
 }
 
-// The pre-ExtendDB @ap form, e.g. `PK=USER#1 SK begins_with ORDER#`: no
-// placeholders, and a bare attr=value. A real KeyConditionExpression always
-// has a `:value`, so this is a safe tell.
-const OLD_AP_KEY = /^\w+=[^:\s]/;
+// Pre-API forms of an @ap key: compact `PK=USER#1 SK begins_with ORDER#`, or
+// trailing `:u=USER#1` pairs. Both mean values written outside values={…}.
+const OLD_AP_KEY = /(^|\s)(\w+=[^:\s{]|[#:]\w+=)/;
 
 export interface ParseResult {
   ops: Op[];
@@ -289,11 +299,13 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         index = t.index;
         readOp = t.readOp;
         keyText = t.keyText;
-        if (readOp === "query" && keyText && OLD_AP_KEY.test(keyText) && !keyText.includes(":")) {
+        if (keyText && OLD_AP_KEY.test(keyText.replace(/\b(names|values|key)=\s*\{.*$/s, ""))) {
           diagnostics.push({
             line,
             message:
-              "@ap: a query's key is a real KeyConditionExpression now, e.g. `PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#`",
+              readOp === "get"
+                ? '@ap: a GetItem key is written as the API takes it: get key={"PK": {"S": "USER#1"}, "SK": {"S": "PROFILE"}}'
+                : '@ap: write the query as the API takes it: PK = :u AND begins_with(SK, :o)  values={":u": {"S": "USER#1"}, ":o": {"S": "ORDER#"}}',
             severity: "warning",
           });
         }
@@ -331,7 +343,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       return;
     }
 
-    // A trailing `@if <expr> #n=.. :v=..` guards the write (put or delete) with
+    // A trailing `@if <expr> names={..} values={..}` guards the write (put or delete) with
     // a real DynamoDB ConditionExpression. It must be the LAST clause on the
     // line: everything after `@if` is the condition and its placeholders, so
     // their spaces and `=` never collide with the item's own key=value pairs.

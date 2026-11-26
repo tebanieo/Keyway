@@ -9,7 +9,7 @@ import { BASE_INDEX } from "../model/seed";
 // One served pattern (an item matches its GSI query) and one dangling one.
 const DSL = `@table T pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK
-@ap Find a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#a
+@ap Find a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#a"}}
 @ap A dangling pattern
 u1: PK=USER#1  SK=PROFILE  GSI1PK=EMAIL#a  GSI1SK=USER#1`;
 

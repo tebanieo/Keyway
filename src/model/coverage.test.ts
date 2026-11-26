@@ -23,35 +23,57 @@ const MODEL = [
 
 describe("apCoverage (v2: runs the declared query)", () => {
   it("served: a valid query that returns data", () => {
-    const c = grade(MODEL + "\n@ap A user's items -> AppTable PK = :u  :u=USER#1");
+    const c = grade(
+      MODEL + `\n@ap A user's items -> AppTable PK = :u  values={":u": {"S": "USER#1"}}`,
+    );
     expect(c.status).toBe("served");
     expect(c.returned).toBe(3); // profile + order 1 + order 2
   });
 
   it("served: a GSI query with a sort-key range", () => {
-    const c = grade(MODEL + "\n@ap Orders by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada");
+    const c = grade(
+      MODEL + '\n@ap Orders by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada"}}',
+    );
     expect(c.status).toBe("served");
     expect(c.returned).toBe(1);
   });
 
   it("empty: valid query but no item matches", () => {
-    const c = grade(MODEL + "\n@ap Cancelled orders -> GSI1 GSI1PK = :s  :s=STATUS#cancelled");
+    const c = grade(
+      MODEL +
+        '\n@ap Cancelled orders -> GSI1 GSI1PK = :s  values={":s": {"S": "STATUS#cancelled"}}',
+    );
     expect(c.status).toBe("empty");
     expect(c.returned).toBe(0);
   });
 
   it("invalid: query is missing the partition key (teaches the rule)", () => {
-    const c = grade(MODEL + "\n@ap Orders by date -> GSI1 begins_with(GSI1SK, :y)  :y=2024");
+    const c = grade(
+      MODEL + '\n@ap Orders by date -> GSI1 begins_with(GSI1SK, :y)  values={":y": {"N": "2024"}}',
+    );
     expect(c.status).toBe("invalid");
     expect(c.message).toMatch(/partition key condition must use equality/);
   });
 
   it("invalid: a sort-key condition on a non-key attribute", () => {
     const c = grade(
-      MODEL + "\n@ap Bad -> GSI1 GSI1PK = :s AND price > :n  :s=STATUS#pending :n=10",
+      MODEL +
+        '\n@ap Bad -> GSI1 GSI1PK = :s AND price > :n  values={":s": {"S": "STATUS#pending"}, ":n": {"N": "10"}}',
     );
     expect(c.status).toBe("invalid");
     expect(c.message).toMatch(/missed key schema element: GSI1SK/);
+  });
+
+  it("empty: explains a type mismatch, the usual reason nothing matches", () => {
+    // a table whose sort keys are all Numbers, queried with a String
+    const doc = [
+      "@table T pk=PK sk=SK",
+      "n1: PK=N  SK=5",
+      '@ap By number -> T PK = :p AND SK > :s  values={":p": {"S": "N"}, ":s": {"S": "1"}}',
+    ].join("\n");
+    const c = grade(doc);
+    expect(c.status).toBe("empty");
+    expect(c.message).toMatch(/SK holds/);
   });
 
   it("assigned: index named but no key condition to verify", () => {
@@ -60,7 +82,7 @@ describe("apCoverage (v2: runs the declared query)", () => {
   });
 
   it("no-index: names an index that isn't defined", () => {
-    const c = grade(MODEL + "\n@ap Something -> GSI9 GSI9PK = :x  :x=x");
+    const c = grade(MODEL + '\n@ap Something -> GSI9 GSI9PK = :x  values={":x": {"S": "x"}}');
     expect(c.status).toBe("no-index");
   });
 
@@ -70,19 +92,27 @@ describe("apCoverage (v2: runs the declared query)", () => {
   });
 
   it("served: a GetItem by full base key", () => {
-    const c = grade(MODEL + "\n@ap Get profile -> AppTable get PK=USER#1 SK=PROFILE");
+    const c = grade(
+      MODEL +
+        '\n@ap Get profile -> AppTable get key={"PK": {"S": "USER#1"}, "SK": {"S": "PROFILE"}}',
+    );
     expect(c.status).toBe("served");
     expect(c.returned).toBe(1);
   });
 
   it("invalid: a reserved word without a #name (DynamoDB's own error)", () => {
-    const c = grade(MODEL + "\n@ap Bad -> GSI1 GSI1PK = :s AND status = :x  :s=a :x=b");
+    const c = grade(
+      MODEL +
+        '\n@ap Bad -> GSI1 GSI1PK = :s AND status = :x  values={":s": {"S": "a"}, ":x": {"S": "b"}}',
+    );
     expect(c.status).toBe("invalid");
     expect(c.message).toMatch(/reserved keyword: status/);
   });
 
   it("invalid: a GetItem key with a non-key attribute", () => {
-    const c = grade(MODEL + "\n@ap Get -> AppTable get PK=USER#1 name=Ada");
+    const c = grade(
+      MODEL + '\n@ap Get -> AppTable get key={"PK": {"S": "USER#1"}, "name": {"S": "Ada"}}',
+    );
     expect(c.status).toBe("invalid");
     expect(c.message).toMatch(/does not match the schema/);
   });

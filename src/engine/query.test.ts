@@ -56,8 +56,7 @@ const state = fold(data, BASE);
 
 const spec = (o: Partial<QuerySpec>): QuerySpec => ({
   op: "query",
-  pk: [],
-  sk: [],
+  getKey: null,
   key: null,
   filter: null,
   consistent: false,
@@ -66,13 +65,21 @@ const spec = (o: Partial<QuerySpec>): QuerySpec => ({
 
 describe("runQuery: get", () => {
   it("returns the exact item and charges one read", () => {
-    const r = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"] }));
+    const r = runQuery(
+      state,
+      BASE,
+      spec({ op: "get", getKey: { PK: { S: "U#1" }, SK: { S: "PROFILE" } } }),
+    );
     expect(r.items.map((i) => i.id)).toEqual(["p"]);
     expect(r.scanned).toBe(1);
     expect(r.rcu).toBe(0.5); // eventually consistent
   });
   it("still charges a read on a miss", () => {
-    const r = runQuery(state, BASE, spec({ op: "get", pk: ["U#9"], sk: ["PROFILE"] }));
+    const r = runQuery(
+      state,
+      BASE,
+      spec({ op: "get", getKey: { PK: { S: "U#9" }, SK: { S: "PROFILE" } } }),
+    );
     expect(r.items).toHaveLength(0);
     expect(r.scanned).toBe(1);
   });
@@ -83,7 +90,12 @@ describe("runQuery: query", () => {
     const r = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND begins_with(SK, :a)  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#"}}',
+        ),
+      }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o2", "o3"]);
     expect(r.scanned).toBe(3); // the profile is not read
@@ -94,8 +106,11 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
-        filter: filter("#s = :p  #s=status :p=pending"),
+        key: key(
+          BASE,
+          'PK = :u AND begins_with(SK, :a)  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#"}}',
+        ),
+        filter: filter('#s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}'),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]); // returned
@@ -103,7 +118,11 @@ describe("runQuery: query", () => {
   });
 
   it("queries a GSI partition", () => {
-    const r = runQuery(state, GSI1, spec({ key: key(GSI1, "GSI1PK = :s  :s=STATUS#pending") }));
+    const r = runQuery(
+      state,
+      GSI1,
+      spec({ key: key(GSI1, 'GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}') }),
+    );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
   });
 
@@ -112,8 +131,13 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
-        filter: filter("#s = :p AND GSI1SK > :d  #s=status :p=pending :d=2024-02"),
+        key: key(
+          BASE,
+          'PK = :u AND begins_with(SK, :a)  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#"}}',
+        ),
+        filter: filter(
+          '#s = :p AND GSI1SK > :d  names={"#s": "status"}  values={":p": {"S": "pending"}, ":d": {"S": "2024-02"}}',
+        ),
       }),
     );
     expect(r.items.map((i) => i.id)).toEqual(["o3"]);
@@ -124,8 +148,13 @@ describe("runQuery: query", () => {
       state,
       BASE,
       spec({
-        key: key(BASE, "PK = :u AND begins_with(SK, :a)  :u=U#1 :a=ORDER#"),
-        filter: filter("#s = :sh OR GSI1SK = :d  #s=status :sh=shipped :d=2024-03"),
+        key: key(
+          BASE,
+          'PK = :u AND begins_with(SK, :a)  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#"}}',
+        ),
+        filter: filter(
+          '#s = :sh OR GSI1SK = :d  names={"#s": "status"}  values={":sh": {"S": "shipped"}, ":d": {"S": "2024-03"}}',
+        ),
       }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o3"]);
@@ -138,7 +167,7 @@ describe("runQuery: query", () => {
       spec({
         key: key(
           BASE,
-          "PK = :u AND SK BETWEEN :a AND :b  :u=U#1 :a=ORDER#2024-02 :b=ORDER#2024-99",
+          'PK = :u AND SK BETWEEN :a AND :b  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}, ":b": {"S": "ORDER#2024-99"}}',
         ),
       }),
     );
@@ -161,7 +190,10 @@ describe("runQuery: scan", () => {
     const r = runQuery(
       state,
       BASE,
-      spec({ op: "scan", filter: filter("#s = :p  #s=status :p=pending") }),
+      spec({
+        op: "scan",
+        filter: filter('#s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}'),
+      }),
     );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o2", "o3"]);
     expect(r.scanned).toBe(5); // still read everything
@@ -173,21 +205,36 @@ describe("runQuery: sort-key condition matrix", () => {
     const eq = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND SK = :a  :u=U#1 :a=ORDER#2024-02") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND SK = :a  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}}',
+        ),
+      }),
     );
     expect(eq.items.map((i) => i.id)).toEqual(["o2"]);
 
     const lt = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND SK < :a  :u=U#1 :a=ORDER#2024-02") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND SK < :a  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}}',
+        ),
+      }),
     );
     expect(lt.items.map((i) => i.id)).toEqual(["o1"]);
 
     const lte = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND SK <= :a  :u=U#1 :a=ORDER#2024-02") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND SK <= :a  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}}',
+        ),
+      }),
     );
     expect(lte.items.map((i) => i.id).sort()).toEqual(["o1", "o2"]);
 
@@ -196,26 +243,44 @@ describe("runQuery: sort-key condition matrix", () => {
     const gt = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND SK > :a  :u=U#1 :a=ORDER#2024-02") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND SK > :a  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}}',
+        ),
+      }),
     );
     expect(gt.items.map((i) => i.id).sort()).toEqual(["o3", "p"]);
 
     const gte = runQuery(
       state,
       BASE,
-      spec({ key: key(BASE, "PK = :u AND SK >= :a  :u=U#1 :a=ORDER#2024-02") }),
+      spec({
+        key: key(
+          BASE,
+          'PK = :u AND SK >= :a  values={":u": {"S": "U#1"}, ":a": {"S": "ORDER#2024-02"}}',
+        ),
+      }),
     );
     expect(gte.items.map((i) => i.id).sort()).toEqual(["o2", "o3", "p"]);
   });
 
   it("a query with no sort condition reads the whole partition (incl. the profile)", () => {
-    const r = runQuery(state, BASE, spec({ key: key(BASE, "PK = :u  :u=U#1") }));
+    const r = runQuery(
+      state,
+      BASE,
+      spec({ key: key(BASE, 'PK = :u  values={":u": {"S": "U#1"}}') }),
+    );
     expect(r.items.map((i) => i.id).sort()).toEqual(["o1", "o2", "o3", "p"]);
     expect(r.scanned).toBe(4);
   });
 
   it("an empty partition reads nothing but still costs the 1-unit RCU floor", () => {
-    const r = runQuery(state, BASE, spec({ key: key(BASE, "PK = :u  :u=U#404") }));
+    const r = runQuery(
+      state,
+      BASE,
+      spec({ key: key(BASE, 'PK = :u  values={":u": {"S": "U#404"}}') }),
+    );
     expect(r.items).toHaveLength(0);
     expect(r.scanned).toBe(0);
     expect(r.rcu).toBe(0.5); // even a zero-item read bills the minimum eventual unit
@@ -227,10 +292,14 @@ describe("runQuery: read consistency (RCU)", () => {
     const strong = runQuery(
       state,
       BASE,
-      spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"], consistent: true }),
+      spec({ op: "get", getKey: { PK: { S: "U#1" }, SK: { S: "PROFILE" } }, consistent: true }),
     );
     expect(strong.rcu).toBe(1);
-    const eventual = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: ["PROFILE"] }));
+    const eventual = runQuery(
+      state,
+      BASE,
+      spec({ op: "get", getKey: { PK: { S: "U#1" }, SK: { S: "PROFILE" } } }),
+    );
     expect(eventual.rcu).toBe(0.5);
   });
 });
@@ -285,8 +354,16 @@ describe("runQuery: validation (ExtendDB key-condition rules)", () => {
     });
     expect(runQuery(state, MGSI, spec({ key: k })).error).toBeNull();
   });
+  it("GetItem matches by type as well as value, as DynamoDB does", () => {
+    const typed = fold([put("n", { PK: "7", SK: "A" })], BASE);
+    const asNumber = { PK: { N: "7" }, SK: { S: "A" } };
+    const asString = { PK: { S: "7" }, SK: { S: "A" } };
+    expect(runQuery(typed, BASE, spec({ op: "get", getKey: asNumber })).items).toHaveLength(1);
+    expect(runQuery(typed, BASE, spec({ op: "get", getKey: asString })).items).toHaveLength(0);
+  });
+
   it("GetItem needs the full primary key", () => {
-    const r = runQuery(state, BASE, spec({ op: "get", pk: ["U#1"], sk: [] }));
+    const r = runQuery(state, BASE, spec({ op: "get", getKey: { PK: { S: "U#1" } } }));
     expect(r.error).toMatch(/does not match the schema/);
   });
 });
@@ -294,7 +371,7 @@ describe("runQuery: validation (ExtendDB key-condition rules)", () => {
 describe("runQuery: GSI reads are billed by the projected entry", () => {
   it("a KEYS_ONLY index reads fewer bytes than the full item", () => {
     const keysOnly: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
-    const k = key(keysOnly, "GSI1PK = :s  :s=STATUS#pending");
+    const k = key(keysOnly, 'GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}');
     const full = runQuery(state, GSI1, spec({ key: k }), BASE);
     const keys = runQuery(state, keysOnly, spec({ key: k }), BASE);
     expect(keys.items.map((i) => i.id)).toEqual(full.items.map((i) => i.id));
@@ -303,8 +380,8 @@ describe("runQuery: GSI reads are billed by the projected entry", () => {
 
   it("a filter on a GSI sees only the projected attributes", () => {
     const keysOnly: IndexSpec = { ...GSI1, projection: "KEYS_ONLY" };
-    const k = key(keysOnly, "GSI1PK = :s  :s=STATUS#pending");
-    const f = filter("attribute_exists(#s)  #s=status");
+    const k = key(keysOnly, 'GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}');
+    const f = filter('attribute_exists(#s)  names={"#s": "status"}');
     expect(runQuery(state, GSI1, spec({ key: k, filter: f }), BASE).items).toHaveLength(2);
     expect(runQuery(state, keysOnly, spec({ key: k, filter: f }), BASE).items).toHaveLength(0);
   });

@@ -1,15 +1,15 @@
 import type { Expression, IndexSpec, Item } from "./types";
 import { keyOf, pkAttrs, projectItem, skAttrs } from "./engine";
-import { evaluateCompiled, validateKeyCompiled } from "./extenddb";
+import { evaluateCompiled, toAttributeValue, validateKeyCompiled } from "./extenddb";
+import type { AttributeValue } from "./extenddb";
 import { itemSize, rcu } from "./itemsize";
 import type { ReadMode } from "./itemsize";
 
 export interface QuerySpec {
   op: "get" | "query" | "scan";
-  /** get: the Key, a value per partition-key attribute. */
-  pk: string[];
-  /** get: the Key, a value per sort-key attribute. */
-  sk: string[];
+  /** get: the `Key`, a typed value per key attribute, as the API takes it:
+   *  `{"PK": {"S": "ORDER#1"}, "SK": {"S": "META"}}`. */
+  getKey: Record<string, AttributeValue> | null;
   /** query: a real KeyConditionExpression (see `parseExpression`), checked
    *  against the index's key schema and matched by ExtendDB. */
   key: Expression | null;
@@ -41,11 +41,17 @@ export interface QueryResult {
 export function validate(index: IndexSpec, spec: QuerySpec): string | null {
   if (spec.op === "scan") return null;
   if (spec.op === "get") {
-    const given = [...spec.pk, ...spec.sk];
-    const missing = [...pkAttrs(index), ...skAttrs(index)].filter((_, i) => !given[i]);
-    return missing.length
-      ? `The provided key element does not match the schema: GetItem needs ${missing.join(", ")}`
-      : null;
+    // DynamoDB's message when the Key isn't exactly the table's key attributes.
+    const schemaMismatch = "The provided key element does not match the schema";
+    const attrs = [...pkAttrs(index), ...skAttrs(index)];
+    const key = spec.getKey ?? {};
+    const missing = attrs.filter((a) => !(a in key));
+    const extra = Object.keys(key).filter((a) => !attrs.includes(a));
+    if (missing.length) return `${schemaMismatch}: the Key needs ${missing.join(", ")}`;
+    if (extra.length) return `${schemaMismatch}: ${extra.join(", ")} isn't a key attribute`;
+    const empty = attrs.find((a) => Object.values(key[a] ?? {})[0] === "");
+    if (empty) return `${empty} is empty: fill in its value`;
+    return null;
   }
   if (!spec.key) return "a Query needs a KeyConditionExpression";
   return validateKeyCompiled(spec.key, pkAttrs(index), skAttrs(index));
@@ -81,13 +87,14 @@ export function runQuery(
   const inIndex = (it: Item) => keyOf(it, index) !== null;
 
   if (spec.op === "get") {
-    const pks = pkAttrs(index);
-    const sks = skAttrs(index);
+    // Match by type AND value, as DynamoDB does: {"S": "7"} isn't {"N": "7"}.
+    const key = spec.getKey!;
+    const same = (a: AttributeValue | undefined, b: AttributeValue | undefined) =>
+      JSON.stringify(a) === JSON.stringify(b);
     const found = [...state.values()].find(
       (it) =>
         inIndex(it) &&
-        pks.every((a, i) => it.attrs[a] === spec.pk[i]) &&
-        sks.every((a, i) => it.attrs[a] === spec.sk[i]),
+        Object.keys(key).every((a) => a in it.attrs && same(toAttributeValue(it.attrs[a]), key[a])),
     );
     const bytes = found ? readSize(found) : 0;
     return {

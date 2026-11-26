@@ -72,8 +72,13 @@ export function AccessPatterns({
         })}
       </div>
       <div className="ap-foot">
-        Declare with <code>@ap description -&gt; Index PK = :v :v=value</code> (a real
-        KeyConditionExpression). Coverage runs the query - <b>served</b> means it returns data.
+        Declare with{" "}
+        <code>
+          @ap description -&gt; Index PK = :v values={"{"}&quot;:v&quot;: {"{"}&quot;S&quot;:
+          &quot;value&quot;{"}}"}
+        </code>{" "}
+        (a real KeyConditionExpression). Coverage runs the query - <b>served</b> means it returns
+        data.
       </div>
     </Drawer>
   );
