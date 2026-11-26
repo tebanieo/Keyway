@@ -1815,6 +1815,24 @@ body {
 
 /* Share modal: a centered, opaque card (a surface you read from) over a dimmed
    backdrop, carrying a scannable QR of the model link plus a copy fallback. */
+/* The native <dialog> is only the modal shell (top layer, focus trap); the
+   overlay inside it keeps drawing the backdrop and centering the card. */
+.share-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.share-dialog::backdrop {
+  background: transparent;
+}
 .share-overlay {
   position: fixed;
   inset: 0;

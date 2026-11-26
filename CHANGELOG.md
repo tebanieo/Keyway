@@ -40,6 +40,8 @@ hand-curated summary. It follows
   panel's first field, the first example or tour), Escape closes it, and focus
   returns to where you came from. The tucked rail shows itself when it has
   keyboard focus, and the green ✓ marks only the button whose badge cleared.
+- **Share is a real modal dialog**: it opens on "Copy link", Tab stays inside
+  it, Escape closes it, and focus returns to the Share button.
 
 ### Changed
 

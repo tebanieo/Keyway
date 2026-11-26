@@ -19,11 +19,21 @@ function setup(over: Partial<Parameters<typeof ShareDialog>[0]> = {}) {
 }
 
 describe("ShareDialog", () => {
-  it("renders nothing when closed", () => {
+  it("renders an empty, closed dialog when closed", () => {
     const { container } = render(
       <ShareDialog open={false} url={SHORT} copied={false} onCopy={() => {}} onClose={() => {}} />,
     );
-    expect(container.firstChild).toBeNull();
+    const dialog = container.querySelector("dialog")!;
+    expect(dialog).not.toHaveAttribute("open");
+    expect(dialog).toBeEmptyDOMElement();
+  });
+
+  it("is a modal dialog that focuses Copy link", () => {
+    setup();
+    const dialog = document.querySelector("dialog")!;
+    expect(dialog).toHaveAttribute("open");
+    expect(dialog).toHaveAccessibleName("Share this model");
+    expect(screen.getByRole("button", { name: "Copy link" })).toHaveFocus();
   });
 
   it("shows a scannable QR and the link for a small model", () => {
@@ -42,8 +52,9 @@ describe("ShareDialog", () => {
 
   it("closes from the button and on Escape", () => {
     const p = setup();
-    fireEvent.click(screen.getByRole("button", { name: "close" }));
-    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: "Close share dialog" }));
+    // Escape on a modal <dialog> arrives as its `cancel` event
+    fireEvent(document.querySelector("dialog")!, new Event("cancel", { cancelable: true }));
     expect(p.onClose).toHaveBeenCalledTimes(2);
   });
 
