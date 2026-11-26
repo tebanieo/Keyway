@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- Panel co-locates its
    small pure helpers (projLabel, unionKeys, isKeyAttr) with the components that
    use them; the only cost is coarser HMR for this file, which is fine. */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FocusEvent, KeyboardEvent } from "react";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { diffPartitions } from "../engine/diff";
 import type { DiffRow } from "../engine/diff";
@@ -164,7 +165,12 @@ function GridRows({
   const stickCls = (k: string) => (k === stick ? " stick" : "");
   return (
     <div className="ptable-scroll">
-      <table className="ptable" aria-label={label}>
+      <table
+        className="ptable"
+        aria-label={label}
+        onKeyDown={edit ? moveInGrid : undefined}
+        onFocus={edit ? rove : undefined}
+      >
         <thead>
           <tr>
             {gutter && <th className="gutter" />}
@@ -207,6 +213,7 @@ function GridRows({
                         value={val}
                         isKey={key}
                         extra={stickCls(k)}
+                        first={r === rows[0] && k === cols[0]}
                         onCommit={(v) => edit.onEdit(it, k, v)}
                         onCopy={link.onCopy}
                       />
@@ -259,26 +266,76 @@ function GridRows({
   );
 }
 
+// Keyboard grid for editable (Canvas) tables: one tab stop per table, the
+// arrow keys move between cells, Enter or F2 edits, Escape cancels.
+const CELL = "td[data-cell]";
+
+/** Only the focused cell is in the tab order, so Tab leaves the table. */
+function rove(e: FocusEvent<HTMLTableElement>) {
+  const cell = (e.target as Element).closest?.(CELL) as HTMLElement | null;
+  if (!cell) return;
+  e.currentTarget.querySelectorAll<HTMLElement>(CELL).forEach((c) => (c.tabIndex = -1));
+  cell.tabIndex = 0;
+}
+
+function moveInGrid(e: KeyboardEvent<HTMLTableElement>) {
+  const cell = (e.target as Element).closest?.(CELL) as HTMLTableCellElement | null;
+  if (!cell || e.target !== cell) return; // not while typing in a cell
+  const row = cell.parentElement as HTMLTableRowElement;
+  const rows = [...e.currentTarget.tBodies[0].rows];
+  const r = rows.indexOf(row);
+  const c = cell.cellIndex;
+  const at = (ri: number, ci: number) => {
+    const target = rows[ri]?.cells[ci];
+    return target?.matches(CELL) ? (target as HTMLElement) : null;
+  };
+  const cells = [...row.querySelectorAll<HTMLElement>(CELL)];
+  const next: Record<string, () => HTMLElement | null> = {
+    ArrowUp: () => at(r - 1, c),
+    ArrowDown: () => at(r + 1, c),
+    ArrowLeft: () => at(r, c - 1),
+    ArrowRight: () => at(r, c + 1),
+    Home: () => cells[0] ?? null,
+    End: () => cells[cells.length - 1] ?? null,
+  };
+  const go = next[e.key];
+  if (!go) return;
+  e.preventDefault();
+  go()?.focus();
+}
+
 function EditableCell({
   value,
   isKey,
   extra = "",
+  first = false,
   onCommit,
   onCopy,
 }: {
   value: string;
   isKey: boolean;
   extra?: string;
+  /** The table's first cell: its tab stop until another cell takes focus. */
+  first?: boolean;
   onCommit: (v: string) => void;
   onCopy: (v: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const cell = useRef<HTMLTableCellElement>(null);
+  // Back from editing by keyboard: the cell takes focus again.
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!editing && refocus.current) {
+      refocus.current = false;
+      cell.current?.focus();
+    }
+  }, [editing]);
   const base = isKey ? "iskey editable" : value ? "editable" : "blank editable";
   const cls = (value ? `${base} copyable` : base) + extra;
 
   if (editing) {
     return (
-      <td className={(isKey ? "iskey" : "") + extra}>
+      <td className={(isKey ? "iskey" : "") + extra} ref={cell}>
         <input
           className="cell-input"
           autoFocus
@@ -286,9 +343,12 @@ function EditableCell({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
+              refocus.current = true;
               onCommit(e.currentTarget.value);
               setEditing(false);
             } else if (e.key === "Escape") {
+              e.stopPropagation();
+              refocus.current = true;
               setEditing(false);
             }
           }}
@@ -303,10 +363,21 @@ function EditableCell({
 
   return (
     <td
+      ref={cell}
       className={cls}
-      title={value ? "click to copy · double-click to edit" : "double-click to edit"}
+      data-cell=""
+      tabIndex={first ? 0 : -1}
+      title={
+        value ? "click to copy · double-click or Enter to edit" : "double-click or Enter to edit"
+      }
       onClick={() => value && onCopy(value)}
       onDoubleClick={() => setEditing(true)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === "F2") {
+          e.preventDefault();
+          setEditing(true);
+        }
+      }}
     >
       {value}
     </td>

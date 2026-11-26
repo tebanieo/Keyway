@@ -128,6 +128,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Canvas tables work from the keyboard:** each table is one tab stop, the arrow keys (and Home/End) move between cells, Enter or F2 edits a cell, and Enter/Escape bring you back to it.
 - **Command palette (Ctrl/Cmd+K)** with every action, example and tour, and **single-key shortcuts** (`q`, `e`, `l`, `a`, `p`, `[`/`]`, `t`, `i`) that act only when you're not typing. `?` shows them all, with a switch to turn the single keys off.
 - **Ctrl/Cmd+Enter on an `@ap` line runs it** in the Query panel, with the pattern's index, key condition and values filled in.
 - **Syntax highlighting** in the script: comments, directives, labels, attribute names, values, and expression placeholders each get a colour from the theme.

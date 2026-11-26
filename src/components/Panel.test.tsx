@@ -79,6 +79,26 @@ describe("Panel", () => {
     expect(e.onEdit).toHaveBeenCalledWith(expect.anything(), "name", "Ada Lovelace");
   });
 
+  it("is a keyboard grid: one tab stop, arrows move, Enter edits", () => {
+    const { view } = viewOf(TWO);
+    const e = editProps();
+    render(<Panel view={view} prev={view} diffOn={false} link={link()} edit={e} />);
+    const cells = [...document.querySelectorAll<HTMLElement>("td[data-cell]")];
+    expect(cells.filter((c) => c.tabIndex === 0)).toHaveLength(1); // PK of the first row
+    cells[0].focus();
+    fireEvent.keyDown(cells[0], { key: "ArrowRight" }); // -> SK
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" }); // -> name
+    expect(document.activeElement).toHaveTextContent("Ada");
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(document.activeElement).toHaveTextContent("Alan");
+    expect((document.activeElement as HTMLElement).tabIndex).toBe(0); // the tab stop moved
+    fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+    const input = screen.getByDisplayValue("Alan");
+    fireEvent.change(input, { target: { value: "Alan Turing" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(e.onEdit).toHaveBeenCalledWith(expect.anything(), "name", "Alan Turing");
+  });
+
   it("cancels a cell edit on Escape without committing", () => {
     const { view } = viewOf(TWO);
     const e = editProps();
