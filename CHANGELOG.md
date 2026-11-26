@@ -25,6 +25,8 @@ hand-curated summary. It follows
   4.5:1 on white; they're now 4.5:1 or better on every light background, and
   the editor's line numbers and placeholders pass in the dark theme too. The
   editor's suggestion popup follows the theme instead of staying dark.
+- **Motion respects the system's reduced-motion setting**, and the rail's
+  attention pulse runs three times instead of forever. "1 items" reads "1 item".
 
 ### Changed
 

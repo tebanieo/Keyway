@@ -6,6 +6,9 @@ import { pkAttrs, skAttrs } from "../engine/engine";
 import { diffPartitions } from "../engine/diff";
 import type { DiffRow } from "../engine/diff";
 import type { IndexSpec, Item, View } from "../engine/types";
+
+/** `1 item`, `3 items`. */
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 import type { QueryHighlight } from "./QueryPanel";
 
 /** Hover/pin/copy wiring, shared by every row across every pane. */
@@ -85,7 +88,7 @@ export function Panel({
       <div className="panel-title">
         <span className="idx">{index.name}</span>
         {subtitle && <span className="sub">{subtitle}</span>}
-        <span className="count">{total} items</span>
+        <span className="count">{plural(total, "item")}</span>
       </div>
       <div className="partitions">
         {parts.length === 0 &&
@@ -104,7 +107,7 @@ export function Panel({
             <div className="partition-head">
               <span className="pk">{part.pk}</span>
               <span className="count">
-                {part.rows.filter((r) => r.status !== "removed").length} items
+                {plural(part.rows.filter((r) => r.status !== "removed").length, "item")}
               </span>
               {edit && (
                 <button

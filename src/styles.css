@@ -761,7 +761,8 @@ body {
     border-color 0.2s var(--ease);
 }
 .rail.revealed .rail-btn.warn {
-  animation: rail-pulse 2.2s var(--ease) infinite;
+  /* a few pulses to draw the eye, not forever (WCAG 2.2.2) */
+  animation: rail-pulse 2.2s var(--ease) 3;
 }
 @keyframes rail-pulse {
   0%,
@@ -819,7 +820,7 @@ body {
 .rail.hint .rail-btn {
   color: var(--accent);
   border-color: rgba(91, 157, 255, 0.5);
-  animation: rail-hint 2s var(--ease) infinite;
+  animation: rail-hint 2s var(--ease) 3;
 }
 @keyframes rail-hint {
   0%,
@@ -2111,4 +2112,17 @@ body {
 }
 .del-btn:hover {
   color: var(--danger);
+}
+
+/* Respect the system's reduced-motion setting: no animation, near-instant
+   transitions (state changes still happen, just without movement). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
