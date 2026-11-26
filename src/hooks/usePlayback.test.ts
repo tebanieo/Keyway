@@ -18,11 +18,10 @@ describe("usePlayback", () => {
     vi.useRealTimers();
   });
 
-  it("starts paused at half speed with no cost pulse", () => {
+  it("starts paused at half speed", () => {
     const { result } = renderHook(() => useHarness(3));
     expect(result.current.playing).toBe(false);
     expect(result.current.speed).toBe(0.5);
-    expect(result.current.costPulse).toBe(false);
   });
 
   it("auto-advances the step while playing and stops at the end", () => {
@@ -36,15 +35,6 @@ describe("usePlayback", () => {
     expect(result.current.curStep).toBe(2);
     // reaching the end stops playback
     expect(result.current.playing).toBe(false);
-  });
-
-  it("pulseCost shows the HUD, then hides it after 2.6s", () => {
-    vi.useFakeTimers();
-    const { result } = renderHook(() => useHarness(3));
-    act(() => result.current.pulseCost());
-    expect(result.current.costPulse).toBe(true);
-    act(() => vi.advanceTimersByTime(2600));
-    expect(result.current.costPulse).toBe(false);
   });
 
   it("togglePlay from the end replays from step 0", () => {

@@ -7,15 +7,6 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
-### Changed
-
-- **A workbench layout: the script and the tables side by side.** The page is a
-  fixed-height frame with no page scroll; the script sits on the left and the
-  tables on the right, each scrolling on its own. At 1440x900 you see about 9
-  table rows next to the whole script, where the stacked layout showed about 4
-  rows below an editor that took half the screen. Tours and examples fold the
-  script to a slim tab.
-
 ### Fixed
 
 - **Enter is always a newline in the editor.** The suggestion menu that opens on
@@ -71,6 +62,17 @@ hand-curated summary. It follows
   included.
 
 ### Changed
+
+- **A workbench layout: the script and the tables side by side.** The page is a
+  fixed-height frame with no page scroll; the script sits on the left and the
+  tables on the right, each scrolling on its own. At 1440x900 you see about 9
+  table rows next to the whole script, where the stacked layout showed about 4
+  rows below an editor that took half the screen. Tours and examples fold the
+  script to a slim tab.
+- **A permanent status bar.** Playback, the current step and its narration,
+  that step's cost chips and a running WCU total for every step so far sit in
+  one strip at the bottom. It replaces the narration pill and the cost pop-up
+  that floated over the tables and vanished after 2.6 seconds.
 
 - **Expressions are written exactly as the DynamoDB API takes them**: the
   expression, plus `ExpressionAttributeNames` and typed

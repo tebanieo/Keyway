@@ -14,15 +14,6 @@ function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
     onReset: vi.fn(),
     pinnedId: null as string | null,
     onUnpin: vi.fn(),
-    curStep: 1,
-    opsLength: 3,
-    op: { verb: "PUT", detail: "u1" },
-    playing: false,
-    onTogglePlay: vi.fn(),
-    onPrev: vi.fn(),
-    onNext: vi.fn(),
-    speed: 0.5,
-    onSpeed: vi.fn(),
     ...over,
   };
   const { unmount } = render(<Toolbar {...props} />);
@@ -30,16 +21,14 @@ function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
 }
 
 describe("Toolbar", () => {
-  it("renders the brand, mode toggle, and step label", () => {
+  it("renders the brand and the mode toggle", () => {
     setup();
     expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Canvas" })).toHaveClass("active");
     // state is exposed, not only shown by colour
     expect(screen.getByRole("button", { name: "Canvas" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Editor" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Editor" })).not.toHaveClass("active");
-    expect(screen.getByText(/step 1\/3/)).toBeInTheDocument();
   });
 
   it("wires mode, theme, and share", () => {
@@ -67,19 +56,5 @@ describe("Toolbar", () => {
     expect(chip).toBeInTheDocument();
     fireEvent.click(chip);
     expect(p.onUnpin).toHaveBeenCalledOnce();
-  });
-
-  it("disables prev at the start and next at the end", () => {
-    const a = setup({ curStep: 0, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "Step back" })).toBeDisabled();
-    a.unmount();
-    setup({ curStep: 3, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "Step forward" })).toBeDisabled();
-  });
-
-  it("cycles the speed 0.5 -> 1", () => {
-    const p = setup({ speed: 0.5 });
-    fireEvent.click(screen.getByRole("button", { name: /Playback speed/ }));
-    expect(p.onSpeed).toHaveBeenCalledWith(1);
   });
 });

@@ -20,15 +20,6 @@ export function Toolbar({
   onReset,
   pinnedId,
   onUnpin,
-  curStep,
-  opsLength,
-  op,
-  playing,
-  onTogglePlay,
-  onPrev,
-  onNext,
-  speed,
-  onSpeed,
 }: {
   mode: Mode;
   onMode: (m: Mode) => void;
@@ -39,15 +30,6 @@ export function Toolbar({
   onReset: () => void;
   pinnedId: string | null;
   onUnpin: () => void;
-  curStep: number;
-  opsLength: number;
-  op: { verb: string; detail: string };
-  playing: boolean;
-  onTogglePlay: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-  speed: number;
-  onSpeed: (n: number) => void;
 }) {
   return (
     <header className="toolbar">
@@ -95,41 +77,6 @@ export function Toolbar({
           <span className="x">&times;</span>
         </button>
       )}
-
-      <div className="spacer" />
-
-      <div className="op-label">
-        step {curStep}/{opsLength} &middot; <b>{op.verb}</b> {op.detail}
-      </div>
-      <div className="stepper" role="group" aria-label="Playback">
-        <button disabled={curStep === 0} onClick={onPrev} title="step back" aria-label="Step back">
-          <Icon name="prev" />
-        </button>
-        <button
-          className="play"
-          onClick={onTogglePlay}
-          title="auto-play"
-          aria-label={playing ? "Pause" : "Play"}
-        >
-          <Icon name={playing ? "pause" : "play"} />
-        </button>
-        <button
-          disabled={curStep === opsLength}
-          onClick={onNext}
-          title="step forward"
-          aria-label="Step forward"
-        >
-          <Icon name="next" />
-        </button>
-        <button
-          className="speed"
-          onClick={() => onSpeed(speed === 0.5 ? 1 : speed === 1 ? 2 : 0.5)}
-          title="playback speed (click to cycle)"
-          aria-label={`Playback speed ${speed}×`}
-        >
-          {speed}&times;
-        </button>
-      </div>
     </header>
   );
 }

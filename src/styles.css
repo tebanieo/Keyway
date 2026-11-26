@@ -432,63 +432,6 @@ body {
   transition: opacity 0.2s ease;
 }
 
-/* Narration callout: a floating caption for the current step. Fixed (not in
-   the flow) so appearing/disappearing never shifts the page; pointer-events off
-   so it doesn't block the content it hovers over. */
-.narration {
-  position: fixed;
-  top: 76px;
-  left: 50%;
-  z-index: 55;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: max-content;
-  max-width: min(720px, 92vw);
-  padding: 12px 18px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-line);
-  border-radius: var(--r-pill);
-  box-shadow:
-    var(--shadow-2),
-    inset 0 1px 0 var(--glass-hi);
-  animation: narr-drop 0.3s var(--ease);
-}
-/* Keyframes keep translate(-50%) so centering survives the animation. */
-@keyframes narr-drop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -12px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-.narration {
-  transform: translate(-50%, 0);
-}
-.narr-step {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 700;
-}
-.narr-text {
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.4;
-}
-
 /* Access-patterns panel: the spec + coverage. */
 /* Right slide-over drawer: a reusable shell opened from the activity rail. It
    never steals focus from the editor hero or the tables. */
@@ -1294,20 +1237,6 @@ body {
   background: var(--fill-3);
 }
 
-/* Cost is a transient HUD now: floats up on a step/playback, auto-hides. */
-.cost-hud {
-  position: fixed;
-  bottom: 26px;
-  left: 50%;
-  transform: translate(-50%, 0);
-  z-index: 60;
-  animation: toast-rise 0.24s var(--ease);
-}
-.cost-hud .costbar {
-  margin-bottom: 0;
-  box-shadow: var(--shadow-2);
-}
-
 .costbar {
   display: flex;
   align-items: center;
@@ -1370,9 +1299,6 @@ body {
 .reject-note {
   font-size: var(--fs-xs);
   color: var(--muted);
-}
-.narration.rejected .narr-step {
-  background: var(--danger);
 }
 
 .seg-cost {
@@ -2225,7 +2151,7 @@ body {
   box-sizing: border-box;
   height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: var(--s3);
   padding: var(--s3) var(--s4);
   /* room for the rail on the right edge */
@@ -2287,4 +2213,60 @@ body {
 .app.script-collapsed .editor-head .eh-stats,
 .app.script-collapsed .editor-problems {
   display: none;
+}
+
+/* The status strip: playback, the step and its narration, its cost, and the
+   running total. Always there, never over the tables. */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  min-height: 48px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+.statusbar .costbar {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+}
+.sb-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  max-width: 34%;
+}
+.sb-narration {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-step.rejected .op-label b {
+  color: var(--danger);
+}
+.sb-total {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sb-total b {
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+.sb-sigma {
+  color: var(--accent);
+  font-weight: 600;
 }

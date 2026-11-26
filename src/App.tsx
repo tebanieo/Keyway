@@ -26,7 +26,8 @@ import { QueryPanel } from "./components/QueryPanel";
 import { EditorPane } from "./components/EditorPane";
 import { BackfillBanner } from "./components/BackfillBanner";
 import { AppRail } from "./components/AppRail";
-import { PlaybackHud } from "./components/PlaybackHud";
+import { StatusBar } from "./components/StatusBar";
+import { totalWrites } from "./engine/cost";
 import { PanesBar } from "./components/PanesBar";
 import { PanesGrid } from "./components/PanesGrid";
 import type { ShownPane } from "./components/PanesGrid";
@@ -105,7 +106,7 @@ export function App() {
   } = usePaneVisibility(paneNames);
 
   const editing = mode === "editor";
-  const { playing, setPlaying, speed, setSpeed, togglePlay, costPulse, pulseCost } = usePlayback(
+  const { playing, setPlaying, speed, setSpeed, togglePlay } = usePlayback(
     curStep,
     ops.length,
     setStep,
@@ -226,6 +227,9 @@ export function App() {
     }
   };
 
+  // Write units of every step up to the current one (the status bar's total).
+  const totalWcu = useMemo(() => totalWrites(ops, base, gsis, curStep), [ops, base, gsis, curStep]);
+
   const curOp = ops[curStep - 1];
   const op = describe(curOp, base);
   const opItem = putItemOf(curOp);
@@ -268,7 +272,6 @@ export function App() {
   const step1 = (delta: number) => {
     setPlaying(false);
     setStep(curStep + delta);
-    pulseCost();
   };
 
   return (
@@ -287,15 +290,6 @@ export function App() {
         onReset={reset}
         pinnedId={pinnedId}
         onUnpin={() => setPinnedId(null)}
-        curStep={curStep}
-        opsLength={ops.length}
-        op={op}
-        playing={playing}
-        onTogglePlay={togglePlay}
-        onPrev={() => step1(-1)}
-        onNext={() => step1(1)}
-        speed={speed}
-        onSpeed={setSpeed}
       />
 
       <main className="wb-main">
@@ -389,12 +383,20 @@ export function App() {
         />
       )}
 
-      <PlaybackHud
-        visible={playing || costPulse}
-        narration={narration}
+      <StatusBar
         curStep={curStep}
+        opsLength={ops.length}
+        op={op}
+        narration={narration}
+        playing={playing}
+        onTogglePlay={togglePlay}
+        onPrev={() => step1(-1)}
+        onNext={() => step1(1)}
+        speed={speed}
+        onSpeed={setSpeed}
         cost={cost}
         opBytes={opBytes}
+        totalWcu={totalWcu}
       />
 
       <AppFooter />

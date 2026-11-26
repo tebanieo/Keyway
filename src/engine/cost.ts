@@ -237,3 +237,23 @@ export function writeCost(
     totalWrites: baseWrites + sumWrites(indexes),
   };
 }
+
+/**
+ * The total write units of the first `upTo` ops: each op priced against the
+ * state just before it, as `writeCost` does, accumulated in one pass.
+ */
+export function totalWrites(
+  ops: readonly Op[],
+  baseIndex: IndexSpec,
+  gsis: readonly IndexSpec[],
+  upTo = ops.length,
+): number {
+  const state = new Map<string, Item>();
+  let total = 0;
+  for (const op of ops.slice(0, upTo)) {
+    total += writeCost(state, op, baseIndex, gsis).totalWrites;
+    if (op.kind === "transact") for (const a of op.actions) applyAction(state, a, baseIndex);
+    else applyAction(state, op, baseIndex);
+  }
+  return total;
+}
