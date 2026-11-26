@@ -1,7 +1,14 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { Decoration, EditorView, keymap, placeholder } from "@codemirror/view";
 import type { Command, DecorationSet } from "@codemirror/view";
-import { EditorSelection, EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
+import {
+  Compartment,
+  EditorSelection,
+  EditorState,
+  Prec,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import {
   acceptCompletion,
@@ -126,27 +133,33 @@ const dslLinter = linter((view): CmDiagnostic[] => {
     });
 });
 
-const theme = EditorView.theme(
-  {
-    "&": { backgroundColor: "var(--editor-bg)", color: "var(--editor-fg)", fontSize: "13px" },
-    ".cm-content": {
-      fontFamily: "var(--font-mono)",
-      caretColor: "var(--accent)",
+// The `dark` flag picks CodeMirror's built-in colours for its own widgets (the
+// suggestion popup, search panel), so it follows the page's theme.
+const isDark = () => document.documentElement.getAttribute("data-theme") !== "paper";
+const themeFor = (dark: boolean) =>
+  EditorView.theme(
+    {
+      "&": { backgroundColor: "var(--editor-bg)", color: "var(--editor-fg)", fontSize: "13px" },
+      ".cm-content": {
+        fontFamily: "var(--font-mono)",
+        caretColor: "var(--accent)",
+      },
+      ".cm-gutters": {
+        fontFamily: "var(--font-mono)",
+        backgroundColor: "var(--editor-bg)",
+        color: "var(--editor-gutter)",
+        border: "none",
+      },
+      ".cm-activeLine": { backgroundColor: "var(--fill-1)" },
+      ".cm-activeLineGutter": { backgroundColor: "var(--fill-1)" },
+      ".cm-step-line": { backgroundColor: "var(--editor-step)" },
+      "&.cm-focused": { outline: "none" },
+      ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
     },
-    ".cm-gutters": {
-      fontFamily: "var(--font-mono)",
-      backgroundColor: "var(--editor-bg)",
-      color: "var(--editor-gutter)",
-      border: "none",
-    },
-    ".cm-activeLine": { backgroundColor: "var(--fill-1)" },
-    ".cm-activeLineGutter": { backgroundColor: "var(--fill-1)" },
-    ".cm-step-line": { backgroundColor: "var(--editor-step)" },
-    "&.cm-focused": { outline: "none" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
-  },
-  { dark: true },
-);
+    { dark },
+  );
+
+const themeSlot = new Compartment();
 
 // A single "current step" line highlight, driven imperatively from the app so
 // playback lights up the source line of the op that's running.
@@ -237,7 +250,7 @@ export const Editor = forwardRef<
           dslLinter,
           lintGutter(),
           placeholder("item<Tab> to scaffold a row…"),
-          theme,
+          themeSlot.of(themeFor(isDark())),
           stepLineField,
           EditorView.lineWrapping,
           EditorView.updateListener.of((u) => {
@@ -261,7 +274,13 @@ export const Editor = forwardRef<
       }),
     });
     viewRef.current = view;
+    // Follow theme switches (the system setting, or the toggle).
+    const observer = new MutationObserver(() =>
+      view.dispatch({ effects: themeSlot.reconfigure(themeFor(isDark())) }),
+    );
+    observer.observe(document.documentElement, { attributeFilter: ["data-theme"] });
     return () => {
+      observer.disconnect();
       view.destroy();
       viewRef.current = null;
     };

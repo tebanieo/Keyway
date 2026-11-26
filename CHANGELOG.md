@@ -20,6 +20,11 @@ hand-curated summary. It follows
 - **Buttons and fields use the app's fonts** (they rendered in Arial, and the
   editor's line numbers in a generic monospace), and native controls and
   scrollbars follow the light or dark theme.
+- **The light theme meets WCAG AA contrast.** Key attributes, errors, warnings,
+  served/unserved counts, the accent and editor line numbers measured 1.7 to
+  4.5:1 on white; they're now 4.5:1 or better on every light background, and
+  the editor's line numbers and placeholders pass in the dark theme too. The
+  editor's suggestion popup follows the theme instead of staying dark.
 
 ### Changed
 

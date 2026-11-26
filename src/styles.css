@@ -34,7 +34,7 @@
   /* editor (CodeMirror) surface: themable via custom props */
   --editor-bg: #12151c;
   --editor-fg: #e6e9ef;
-  --editor-gutter: #5b6172;
+  --editor-gutter: #7a8294;
   --editor-sel: rgba(91, 157, 255, 0.25);
   --editor-step: rgba(91, 157, 255, 0.16);
 
@@ -96,12 +96,14 @@
   --hairline: #e4e8ee;
   --text: #11141a;
   --muted: #5b6474;
-  --accent: #2f6bff;
+  /* Semantic colours darkened to reach WCAG AA (4.5:1) on white and on the
+     grey panels, since they carry meaning (keys, errors, served/unserved). */
+  --accent: #2457d6;
   --accent-2: #6d5cf0;
-  --enter: #12a150;
-  --key: #e58600;
-  --danger: #e5352b;
-  --warn: #e07407;
+  --enter: #067a35;
+  --key: #9a5500;
+  --danger: #b42318;
+  --warn: #9a4f00;
 
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.07);
   --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.14);
@@ -117,7 +119,7 @@
   --on-accent: #ffffff;
   --on-warn: #ffffff;
   --accent-fill: var(--accent);
-  --accent-fill-hover: #1d4ed8;
+  --accent-fill-hover: #1a45b8;
 
   --glass-bg: #ffffff;
   --glass-bg-2: #f2f4f7;
@@ -131,7 +133,7 @@
 
   --editor-bg: #ffffff;
   --editor-fg: #1a1d24;
-  --editor-gutter: #9aa2af;
+  --editor-gutter: #646b78;
   --editor-sel: rgba(37, 99, 235, 0.16);
   --editor-step: rgba(37, 99, 235, 0.12);
 }
@@ -165,6 +167,10 @@ input,
 select,
 textarea {
   font: inherit;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 /* ...but keep the size buttons had under the UA default, so labels and icons
    that rely on it don't grow. */
@@ -570,7 +576,7 @@ body {
 }
 .ap-count {
   font-size: 12px;
-  color: #ffb020;
+  color: var(--warn);
   font-weight: 600;
 }
 .ap-count.all {
@@ -578,7 +584,7 @@ body {
 }
 .ap-gaps {
   font-size: 12px;
-  color: #ff7a7a;
+  color: var(--danger);
   font-weight: 600;
 }
 .ap-list {
@@ -645,10 +651,10 @@ body {
   color: var(--enter);
 }
 .ap-msg.warn {
-  color: #ffb020;
+  color: var(--warn);
 }
 .ap-msg.bad {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 .ap-foot {
   padding: 12px 16px;
@@ -1072,10 +1078,10 @@ body {
   color: var(--accent);
 }
 .q-note {
-  color: #ffb020;
+  color: var(--warn);
 }
 .q-err {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 
 /* Query result highlights: teal for "returned by a read" (distinct from the
@@ -1690,7 +1696,7 @@ body {
   text-decoration-color: rgba(255, 122, 122, 0.5);
 }
 .ptable tr.row-removed td.gutter {
-  color: #ff7a7a;
+  color: var(--danger);
   text-decoration: none;
 }
 
@@ -1698,7 +1704,7 @@ body {
   background: rgba(255, 176, 32, 0.08);
 }
 .ptable tr.row-modified td.gutter {
-  color: #ffb020;
+  color: var(--warn);
 }
 
 /* Rows are clickable (click to pin). */
@@ -2104,5 +2110,5 @@ body {
   color: var(--muted);
 }
 .del-btn:hover {
-  color: #ff7a7a;
+  color: var(--danger);
 }
