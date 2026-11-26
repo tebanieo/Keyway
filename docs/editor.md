@@ -69,6 +69,9 @@ defaults:
   ends the snippet you're filling in, then gets the editor ready to let you
   out: the very next **Tab** moves on to the tables, **Shift+Tab** back to the
   toolbar. Any other key keeps you typing.
+- **Ctrl/Cmd+Enter** on an `@ap` line runs that access pattern in the Query
+  panel: its index, operation, key condition and values are written into the
+  request, and the result (with the returned items) shows right away.
 
 ## Live diagnostics (linting)
 

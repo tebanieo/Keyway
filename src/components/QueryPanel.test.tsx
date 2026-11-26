@@ -77,6 +77,21 @@ describe("QueryPanel", () => {
     expect(list).toHaveTextContent("GSI1PK=E#a");
   });
 
+  it("loads and runs an @ap sent from the editor", () => {
+    const ap = {
+      n: 1,
+      description: "by email",
+      index: "GSI1",
+      readOp: "query" as const,
+      keyText: 'GSI1PK = :e  values={":e": {"S": "E#b"}}',
+    };
+    const p = setup({ request: { seq: 1, ap } });
+    expect(field("KeyConditionExpression").value).toBe("GSI1PK = :e");
+    expect((screen.getByLabelText("index") as HTMLSelectElement).value).toBe("GSI1");
+    const last = p.onHighlight.mock.calls.at(-1)![0];
+    expect([...last.matched]).toEqual(["u2"]);
+  });
+
   it("starts from a typed request template for the chosen index", () => {
     setup();
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");

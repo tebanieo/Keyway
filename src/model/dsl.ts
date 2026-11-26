@@ -43,6 +43,8 @@ export interface AccessPattern {
    * - get: the Key, as `attr=value` pairs (`PK=USER#1 SK=PROFILE`).
    */
   keyText?: string;
+  /** 0-based source line, so the editor can run the pattern under its caret. */
+  line?: number;
 }
 
 /** `@ap … -> <Index> [get|query|scan] [key]`: split the tail after the arrow. */
@@ -311,7 +313,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
           });
         }
       }
-      aps.push({ n: aps.length + 1, description, index, readOp, keyText });
+      aps.push({ n: aps.length + 1, description, index, readOp, keyText, line });
       apLines.push(line);
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });

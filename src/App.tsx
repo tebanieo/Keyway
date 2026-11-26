@@ -10,6 +10,7 @@ import { ExamplesDrawer } from "./components/ExamplesDrawer";
 import { LearnDrawer } from "./components/LearnDrawer";
 import type { Tour } from "./model/tours";
 import { AccessPatterns } from "./components/AccessPatterns";
+import type { AccessPattern } from "./model/dsl";
 import { useTheme } from "./hooks/useTheme";
 import { usePlayback } from "./hooks/usePlayback";
 import { useModel } from "./hooks/useModel";
@@ -257,6 +258,16 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinnedId]);
 
+  // Ctrl/Cmd+Enter on an @ap line: run that pattern in the Query panel.
+  const [apRequest, setApRequest] = useState<{ seq: number; ap: AccessPattern } | null>(null);
+  const onRunLine = (line: number) => {
+    const ap = aps.find((a) => a.line === line);
+    if (!ap) return false;
+    setApRequest((r) => ({ seq: (r?.seq ?? 0) + 1, ap }));
+    setDrawer("query");
+    return true;
+  };
+
   const totalWcu = useMemo(() => totalWrites(ops, base, gsis, curStep), [ops, base, gsis, curStep]);
 
   const curOp = ops[curStep - 1];
@@ -366,6 +377,7 @@ export function App() {
               onChange={onDoc}
               activeLine={activeLine}
               onCaretLine={onCaretLine}
+              onRunLine={onRunLine}
             />
           </section>
         )}
@@ -412,6 +424,7 @@ export function App() {
             state={state}
             onHighlight={setQhl}
             onClose={closeDrawer}
+            request={apRequest}
           />
 
           <ExamplesDrawer open={drawer === "examples"} onClose={closeDrawer} onLoad={playExample} />

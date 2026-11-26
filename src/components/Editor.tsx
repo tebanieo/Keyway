@@ -291,8 +291,10 @@ export const Editor = forwardRef<
     autoFocus?: boolean;
     /** The 0-based line the caret moved to while typing; null when it leaves. */
     onCaretLine?: (line: number | null) => void;
+    /** Ctrl/Cmd+Enter on a 0-based line; true if it ran something there. */
+    onRunLine?: (line: number) => boolean;
   }
->(function Editor({ initialDoc, onChange, activeLine, autoFocus, onCaretLine }, ref) {
+>(function Editor({ initialDoc, onChange, activeLine, autoFocus, onCaretLine, onRunLine }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Keep the latest onChange without re-creating the editor.
@@ -300,6 +302,8 @@ export const Editor = forwardRef<
   cb.current = onChange;
   const caret = useRef(onCaretLine);
   caret.current = onCaretLine;
+  const runLine = useRef(onRunLine);
+  runLine.current = onRunLine;
 
   useImperativeHandle(
     ref,
@@ -356,6 +360,15 @@ export const Editor = forwardRef<
         extensions: [
           authoringKeys, // Tab/Shift-Tab/Escape: must win over defaults
           disarmOnOtherKeys,
+          keymap.of([
+            {
+              key: "Mod-Enter",
+              run: (v) => {
+                const line = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
+                return runLine.current?.(line) ?? false;
+              },
+            },
+          ]),
           basicSetup,
           dslHighlighting,
           keymap.of(completionKeymap),

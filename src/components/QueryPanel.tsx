@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrawerFocus } from "../hooks/useDrawerFocus";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
-import { compileExpression } from "../engine/expression";
+import { compileExpression, splitClauses } from "../engine/expression";
 import type { AttributeValue } from "../engine/extenddb";
 import {
   SORT_KEY_OPS,
@@ -15,6 +15,7 @@ import {
 import type { SortKeyOp } from "../engine/keyhelp";
 import type { Expression, IndexSpec, Item } from "../engine/types";
 import { parseGetKey } from "../model/dsl";
+import type { AccessPattern } from "../model/dsl";
 import { cliCommand, pick, refsIn, unusedAcross } from "../model/request";
 
 const schemaOf = (index: IndexSpec) => ({ hash: pkAttrs(index), range: skAttrs(index) });
@@ -65,7 +66,10 @@ export function QueryPanel({
   state,
   onHighlight,
   onClose,
+  request,
 }: {
+  /** A pattern to load and run (Ctrl/Cmd+Enter on an `@ap` line). */
+  request?: { seq: number; ap: AccessPattern } | null;
   open: boolean;
   base: IndexSpec;
   gsis: IndexSpec[];
@@ -158,6 +162,38 @@ export function QueryPanel({
   if (templateSig !== schemaSig) {
     setTemplateSig(schemaSig);
     reset(index);
+  }
+
+  // An @ap sent from the editor: write it into the request and run it. After
+  // the pre-fill and key-change resets above, so the pattern wins.
+  const [loadedSeq, setLoadedSeq] = useState(0);
+  const [runSeq, setRunSeq] = useState(0);
+  if (request && request.seq !== loadedSeq) {
+    setLoadedSeq(request.seq);
+    const { ap } = request;
+    const ix = indexes.find((i) => i.name === ap.index) ?? base;
+    const readOp = ap.readOp ?? "query";
+    const text = ap.keyText ?? "";
+    setIndexName(ix.name);
+    setOp(readOp);
+    setTemplateSig(JSON.stringify([ix.name, schemaOf(ix)]));
+    setSortOp(null);
+    setFilterText("");
+    if (readOp === "get") {
+      const k = parseGetKey(text);
+      setGetKeyText(typeof k === "string" ? text : pretty(k));
+    } else if (readOp === "query") {
+      const split = splitClauses(text, ["names", "values"]);
+      if ("error" in split) {
+        setKeyText(text);
+      } else {
+        const { names, values } = split.clauses as Record<string, Record<string, unknown>>;
+        setKeyText(split.expression);
+        setNamesText(names && Object.keys(names).length ? pretty(names) : "");
+        setValuesText(pretty(values ?? {}));
+      }
+    }
+    setRunSeq(request.seq);
   }
 
   /** A sort-key button: rewrite the key condition for `sortOp`, keeping the
@@ -269,6 +305,12 @@ export function QueryPanel({
       scanned: new Set(read.items.map((i) => i.id)),
     });
   };
+
+  useEffect(() => {
+    if (runSeq) run();
+    // Only when a new pattern arrives; `run` reads the fields just written.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runSeq]);
 
   const clear = () => {
     setResult(null);

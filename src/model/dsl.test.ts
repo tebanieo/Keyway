@@ -168,6 +168,7 @@ describe("parseDoc", () => {
         index: undefined,
         readOp: "query",
         keyText: undefined,
+        line: 1,
       },
       {
         n: 2,
@@ -175,6 +176,7 @@ describe("parseDoc", () => {
         index: "GSI1",
         readOp: "query",
         keyText: undefined,
+        line: 2,
       },
     ]);
   });
@@ -195,8 +197,9 @@ describe("parseDoc", () => {
       ["get", key],
       ["scan", undefined],
     ]);
-    const reparsed = parseDoc(serializeAps(aps), BASE).aps;
-    expect(reparsed).toEqual(aps);
+    // The text survives the round trip (source lines move: no @table line).
+    const text = (list: typeof aps) => list.map(({ line: _line, ...rest }) => rest);
+    expect(text(parseDoc(serializeAps(aps), BASE).aps)).toEqual(text(aps));
   });
 
   it.each([
