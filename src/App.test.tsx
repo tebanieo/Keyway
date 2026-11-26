@@ -36,13 +36,12 @@ describe("App (smoke)", () => {
     expect(learn).toHaveClass("open");
   });
 
-  it("dismisses the open drawer on an outside click", () => {
+  it("closes the open drawer from its × button", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Examples/ }));
     const examples = drawerByTitle("Examples");
     expect(examples).toHaveClass("open");
-
-    fireEvent.mouseDown(document.body);
+    fireEvent.click(screen.getByRole("button", { name: "Close Examples" }));
     expect(examples).not.toHaveClass("open");
   });
 

@@ -35,7 +35,7 @@ export function Toolbar({
     <header className="toolbar">
       <h1>
         <Logo />
-        Keyway
+        <span className="brand-name">Keyway</span>
       </h1>
 
       <div className="seg" role="group" aria-label="View">

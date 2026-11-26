@@ -68,6 +68,10 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **More room for the tables.** A docked panel has a fixed 360px reading width and the script gives up a share, so the tables keep the most space. Below 1100px a panel sits under the tables (at most 40% of the height) instead of covering them, so matched rows stay visible while you query. Clicking elsewhere no longer closes a panel; use its ×, Escape or its rail button.
+- **Wide tables show there's more to the right** (a shade at the edge that goes away at the end), and long values end in an ellipsis (hover for the whole value, click to copy it).
+- **High zoom works:** in a short window (400% zoom, or under 520px tall) the page scrolls instead of squeezing the tables to nothing.
+- **Phone:** a one-row toolbar, the Script/Tables switch and the rail share one bottom bar, and the footer no longer runs into itself. Rail labels no longer sit on top of the content or an open panel's header.
 - **Playback reads at your pace.** Each step is held long enough to read its note, the default speed is labelled 1× (0.5× and 2× around it), and the step banner above the tables is always there (a step without a note shows what it does), so the tables no longer jump. Screen readers hear every step (number, write, cost and note) through one live region.
 - **Examples keep the script open** beside the tables on wide screens, with the running step lit, and the keyboard lands on Play/Pause after loading an example or a tour.
 - **Step narration sits above the tables, in full.** It was cut off with an ellipsis in the status bar; now it wraps at the top of the tables, where you're looking, on every screen size including phones.

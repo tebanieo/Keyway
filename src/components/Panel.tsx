@@ -227,7 +227,7 @@ function GridRows({
                     <td
                       className={cls}
                       key={k}
-                      title={val ? "click to copy" : undefined}
+                      title={val ? `${val.length > 36 ? `${val}\n` : ""}click to copy` : undefined}
                       onClick={() => val && link.onCopy(val)}
                     >
                       {val}
@@ -401,7 +401,9 @@ function EditableCell({
       data-col={col}
       tabIndex={first ? 0 : -1}
       title={
-        value ? "click to copy · double-click or Enter to edit" : "double-click or Enter to edit"
+        value
+          ? `${value.length > 36 ? `${value}\n` : ""}click to copy · double-click or Enter to edit`
+          : "double-click or Enter to edit"
       }
       onClick={() => value && onCopy(value)}
       onDoubleClick={() => setEditing(true)}

@@ -26,19 +26,9 @@ export function useDrawers(modelEmpty: boolean) {
     if (drawer !== "query") setHighlight(NO_HIGHLIGHT);
   }, [drawer]);
 
-  // On a narrow screen the open drawer overlays the content, so a click
-  // outside it dismisses it. On a wide one it's docked beside the tables:
-  // clicking the tables (e.g. while querying) leaves it open.
-  useEffect(() => {
-    if (!drawer) return;
-    const onDown = (e: MouseEvent) => {
-      if (window.matchMedia?.(DOCKED).matches) return;
-      const t = e.target as Element | null;
-      if (t && !t.closest(".rail") && !t.closest(".drawer")) setDrawer(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [drawer]);
+  // An open panel never covers the tables (docked beside them, or below them
+  // on a narrow screen), so clicking elsewhere leaves it open: close it with
+  // its × button, Escape, or its rail button.
 
   // Close the Query drawer if the model empties out while it's open.
   useEffect(() => {

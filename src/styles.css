@@ -770,9 +770,6 @@ body {
 }
 
 /* Empty-canvas hint: reveal the labels and pulse so a new user knows to click. */
-.rail.hint .rail-label {
-  opacity: 1;
-}
 .rail.hint .rail-btn {
   color: var(--accent);
   border-color: rgba(91, 157, 255, 0.5);
@@ -2358,15 +2355,17 @@ body {
   min-width: 0;
 }
 .wb-main.dock-open {
+  /* the tables keep the most room: the script gives up a share, the panel
+     takes a fixed reading width */
   grid-template-columns:
-    minmax(300px, calc(var(--script-w, 40%) * 0.8)) minmax(0, 1fr)
-    minmax(340px, 30%);
+    minmax(280px, calc(var(--script-w, 40%) * 0.65)) minmax(0, 1fr)
+    360px;
 }
 .app.no-script .wb-main.dock-open {
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 30%);
+  grid-template-columns: minmax(0, 1fr) 360px;
 }
 .app.script-collapsed .wb-main.dock-open {
-  grid-template-columns: 40px minmax(0, 1fr) minmax(340px, 30%);
+  grid-template-columns: 40px minmax(0, 1fr) 360px;
 }
 .wb-main.dock-open .wb-dock {
   display: block;
@@ -2407,17 +2406,19 @@ body {
   display: none;
 }
 /* The first-run labels would sit over an open panel's header. */
-.wb-main.dock-open ~ .rail.hint .rail-label {
-  opacity: 0;
-}
-.wb-main.dock-open ~ .rail.hint .rail-btn:hover .rail-label {
-  opacity: 1;
+/* No hover label on the button whose panel is open: it would sit on the
+   panel's header (its title already says what it is). */
+.rail-btn.active .rail-label {
+  display: none;
 }
 
-/* Narrow screens: the open panel is a bottom sheet over the content. */
+/* Narrow screens: the open panel sits BELOW the script and tables, sized to
+   its content (at most about half the height), never over them: matched rows
+   stay visible while you query, and nothing behind it holds hidden focus. */
 @media (max-width: 1099px) {
   .wb-main.dock-open {
-    grid-template-columns: minmax(300px, 40%) minmax(0, 1fr);
+    grid-template-columns: minmax(300px, var(--script-w, 40%)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
   }
   .app.no-script .wb-main.dock-open {
     grid-template-columns: minmax(0, 1fr);
@@ -2426,15 +2427,12 @@ body {
     grid-template-columns: 40px minmax(0, 1fr);
   }
   .wb-main.dock-open .wb-dock {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    z-index: 60;
-    height: min(75dvh, 680px);
+    grid-column: 1 / -1;
   }
   .wb-dock .drawer {
-    box-shadow: var(--shadow-2);
+    height: auto;
+    max-height: min(40dvh, 440px);
+    overflow: auto;
   }
 }
 
@@ -2502,23 +2500,24 @@ body {
     padding: 8px;
     gap: 8px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    /* the Script/Tables switch and the rail share one bottom bar */
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      "top"
-      "switch"
-      "main"
-      "rail"
-      "status"
-      "foot";
+      "top top"
+      "main main"
+      "switch rail"
+      "status status"
+      "foot foot";
   }
   .app.wb.no-script {
     grid-template-rows: auto minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      "top"
-      "main"
-      "rail"
-      "status"
-      "foot";
+      "top top"
+      "main main"
+      "rail rail"
+      "status status"
+      "foot foot";
   }
   .wb-switch {
     grid-area: switch;
@@ -2556,7 +2555,7 @@ body {
   }
   .app.wb > .rail {
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-end;
     align-self: stretch;
     padding: 6px;
   }
@@ -2565,6 +2564,37 @@ body {
   }
   .app.wb > .app-footer {
     font-size: 11px;
+    grid-template-columns: 1fr;
+    gap: 2px;
+    text-align: center;
+  }
+  .app.wb > .app-footer .disclaimer,
+  .app.wb > .app-footer .copyright {
+    grid-column: 1;
+    justify-self: center;
+  }
+  /* one-row toolbar: the logo stands in for the wordmark */
+  .toolbar .brand-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .toolbar .seg button,
+  .toolbar .share,
+  .toolbar .reset {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+  .toolbar h1 svg {
+    width: 30px;
+    height: 30px;
   }
   /* Playback and the step's total cost; the per-index breakdown and the
      narration wait for a wider screen. */
@@ -2799,4 +2829,30 @@ input[type="checkbox"]:focus-visible {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Wide items: a soft shade at the right edge says there's more to scroll to;
+   it slides away (the "local" cover) once you reach the end. Long values are
+   cut with an ellipsis (hover or copy for the whole value). */
+.ptable-scroll {
+  background:
+    linear-gradient(to left, var(--panel) 40%, transparent) right / 48px 100% no-repeat local,
+    linear-gradient(to left, rgba(0, 0, 0, 0.16), transparent) right / 16px 100% no-repeat scroll;
+}
+.ptable td {
+  max-width: 36ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* High zoom or a short window: let the page scroll instead of squeezing the
+   tables to nothing (WCAG 1.4.10). */
+@media (max-height: 520px) {
+  .app.wb {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .app.wb > .wb-main {
+    min-height: 320px;
+  }
 }
