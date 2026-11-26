@@ -180,31 +180,32 @@ describe("parseDoc", () => {
   });
 
   it("keeps an @ap's KeyConditionExpression (or GetItem key) as written, and round-trips it", () => {
-    const src =
-      "@ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#\n" +
-      "@ap Get a profile -> AppTable get PK=USER#1 SK=PROFILE\n" +
-      "@ap Everything -> AppTable scan";
+    const query = `PK = :u AND begins_with(SK, :o)  values={":u": {"S": "USER#1"}, ":o": {"S": "ORDER#"}}`;
+    const key = `key={"PK": {"S": "USER#1"}, "SK": {"S": "PROFILE"}}`;
+    const src = [
+      `@ap List a user's orders -> AppTable ${query}`,
+      `@ap Get a profile -> AppTable get ${key}`,
+      "@ap Everything -> AppTable scan",
+    ].join("\n");
     const { aps, diagnostics } = parseDoc(src, BASE);
     expect(diagnostics).toEqual([]);
     expect(aps.map((a) => [a.readOp, a.keyText])).toEqual([
-      ["query", "PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#"],
-      ["get", "PK=USER#1 SK=PROFILE"],
+      ["query", query],
+      ["get", key],
       ["scan", undefined],
     ]);
     const reparsed = parseDoc(serializeAps(aps), BASE).aps;
     expect(reparsed).toEqual(aps);
   });
 
-  it("points the old compact @ap key syntax at a real KeyConditionExpression", () => {
-    const { diagnostics } = parseDoc(
-      "@ap Orders -> AppTable PK=USER#1 SK begins_with ORDER#",
-      BASE,
-    );
+  it.each([
+    ["compact", "@ap Orders -> AppTable PK=USER#1 SK begins_with ORDER#", /as the API takes it/],
+    ["pair", "@ap Orders -> AppTable PK = :u  :u=USER#1", /as the API takes it/],
+    ["get", "@ap Get -> AppTable get PK=USER#1 SK=P", /GetItem key is written as the API/],
+  ])("points the old %s @ap syntax at the API form", (_, line, message) => {
+    const { diagnostics } = parseDoc(line, BASE);
     expect(diagnostics).toContainEqual(
-      expect.objectContaining({
-        severity: "warning",
-        message: expect.stringMatching(/real KeyConditionExpression/),
-      }),
+      expect.objectContaining({ severity: "warning", message: expect.stringMatching(message) }),
     );
   });
 
@@ -289,7 +290,7 @@ describe("parseDoc: conditional writes (@if)", () => {
 
   it("puts the @if guard on the put action of a key-change transact", () => {
     const { ops } = parseDoc(
-      "t1: PK=U#1  SK=T#open\nt1: PK=U#2  SK=T#open  @if #s = :s  #s=status :s=pending",
+      't1: PK=U#1  SK=T#open\nt1: PK=U#2  SK=T#open  @if #s = :s  names={"#s": "status"}  values={":s": {"S": "pending"}}',
       BASE,
     );
     expect(ops[1]).toMatchObject({
@@ -299,7 +300,10 @@ describe("parseDoc: conditional writes (@if)", () => {
   });
 
   it("parses an @if guard on a delete", () => {
-    const { ops } = parseDoc("delete o1  @if #s = :s  #s=status :s=shipped", BASE);
+    const { ops } = parseDoc(
+      'delete o1  @if #s = :s  names={"#s": "status"}  values={":s": {"S": "shipped"}}',
+      BASE,
+    );
     expect(ops[0]).toMatchObject({
       kind: "delete",
       id: "o1",
@@ -311,16 +315,16 @@ describe("parseDoc: conditional writes (@if)", () => {
     });
   });
 
-  it("types placeholder values: bare numbers are N, quoted values are S", () => {
+  it("takes typed values exactly as the API does", () => {
     const { ops, diagnostics } = parseDoc(
-      'u1: PK=U#1  SK=P  @if #v < :n AND #c = :c AND #n = :who  #v=version #c=code #n=name :n=3 :c="007" :who="Ada Lovelace"',
+      'u1: PK=U#1  SK=P  @if #v < :n AND #c = :c  names={"#v": "version", "#c": "code"}  values={":n": {"N": "3"}, ":c": {"S": "007"}}',
       BASE,
     );
     expect(diagnostics).toEqual([]);
     expect(ops[0]).toMatchObject({
       condition: {
-        expression: "#v < :n AND #c = :c AND #n = :who",
-        values: { ":n": { N: "3" }, ":c": { S: "007" }, ":who": { S: "Ada Lovelace" } },
+        expression: "#v < :n AND #c = :c",
+        values: { ":n": { N: "3" }, ":c": { S: "007" } },
       },
     });
   });
@@ -331,10 +335,20 @@ describe("parseDoc: conditional writes (@if)", () => {
       "@if status=pending",
       /reserved keyword: status/,
     ],
-    ["an undefined value", "@if #s = :s  #s=status", /:s/],
-    ["an unused value", "@if attribute_exists(PK)  :s=x", /ExpressionAttributeValues unused/],
-    ["an unused name", "@if attribute_exists(PK)  #s=status", /ExpressionAttributeNames unused/],
-    ["a placeholder defined twice", "@if #a = :v  #a=x :v=1 :v=2", /defined twice/],
+    ["an undefined value", '@if #s = :s  names={"#s": "status"}', /:s/],
+    [
+      "an unused value",
+      '@if attribute_exists(PK)  values={":s": {"S": "x"}}',
+      /ExpressionAttributeValues unused/,
+    ],
+    [
+      "an unused name",
+      '@if attribute_exists(PK)  names={"#s": "status"}',
+      /ExpressionAttributeNames unused/,
+    ],
+    ["a value without a type", '@if a = :v  values={":v": "x"}', /must be a typed value/],
+    ["values that aren't JSON", "@if a = :v  values={:v: x}", /isn't valid JSON/],
+    ["the old pair syntax", "@if #s = :p  #s=status :p=x", /write it as names=\{"#s": "status"\}/],
   ])("rejects %s with DynamoDB's error", (_, guard, message) => {
     const { diagnostics } = parseDoc(`u1: PK=U#1  SK=P  ${guard}`, BASE);
     expect(diagnostics).toContainEqual(
@@ -350,12 +364,16 @@ describe("parseDoc: conditional writes (@if)", () => {
     expect(ops).toHaveLength(1);
   });
 
-  it("reports a bad escape in a quoted value instead of crashing", () => {
-    const { diagnostics } = parseDoc('a: PK=A  SK=1  x=1  @if x = :v  :v="C:\\dir"', BASE);
+  it("reports a bad JSON escape instead of crashing", () => {
+    // in JSON, a backslash must itself be escaped: "C:\\dir", not "C:\dir"
+    const { diagnostics } = parseDoc(
+      'a: PK=A  SK=1  x=1  @if x = :v  values={":v": {"S": "C:\\dir"}}',
+      BASE,
+    );
     expect(diagnostics).toContainEqual(
       expect.objectContaining({
         severity: "error",
-        message: expect.stringMatching(/invalid quoted value/),
+        message: expect.stringMatching(/isn't valid JSON/),
       }),
     );
   });

@@ -41,11 +41,15 @@ describe("fold: conditional writes", () => {
   it("applies an optimistic update while the guard holds, then rejects it", () => {
     const ops: Op[] = [
       put("o1", { PK: "U#1", SK: "O#1", status: "pending" }),
-      put("o1", { PK: "U#1", SK: "O#1", status: "shipped" }, cond("#s = :s  #s=status :s=pending")),
+      put(
+        "o1",
+        { PK: "U#1", SK: "O#1", status: "shipped" },
+        cond('#s = :s  names={"#s": "status"}  values={":s": {"S": "pending"}}'),
+      ),
       put(
         "o1",
         { PK: "U#1", SK: "O#1", status: "cancelled" },
-        cond("#s = :s  #s=status :s=pending"),
+        cond('#s = :s  names={"#s": "status"}  values={":s": {"S": "pending"}}'),
       ),
     ];
     const state = fold(ops, BASE);
@@ -57,7 +61,11 @@ describe("fold: conditional writes", () => {
     const held = fold(
       [
         put("o1", { PK: "U#1", SK: "O#1", status: "shipped" }),
-        { kind: "delete", id: "o1", condition: cond("#s = :s  #s=status :s=shipped") },
+        {
+          kind: "delete",
+          id: "o1",
+          condition: cond('#s = :s  names={"#s": "status"}  values={":s": {"S": "shipped"}}'),
+        },
       ],
       BASE,
     );
@@ -66,7 +74,11 @@ describe("fold: conditional writes", () => {
     const blocked = fold(
       [
         put("o1", { PK: "U#1", SK: "O#1", status: "pending" }),
-        { kind: "delete", id: "o1", condition: cond("#s = :s  #s=status :s=shipped") },
+        {
+          kind: "delete",
+          id: "o1",
+          condition: cond('#s = :s  names={"#s": "status"}  values={":s": {"S": "shipped"}}'),
+        },
       ],
       BASE,
     );
@@ -113,7 +125,7 @@ describe("writeCost: rejected conditional write", () => {
         {
           kind: "put",
           item: { id: "t1", attrs: { PK: "U#2", SK: "T#open" } },
-          condition: cond("#s = :s  #s=status :s=pending"),
+          condition: cond('#s = :s  names={"#s": "status"}  values={":s": {"S": "pending"}}'),
         },
       ],
     };

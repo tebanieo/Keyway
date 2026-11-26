@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateCompiled, sizeOf, toWireItem, validateCompiled } from "./extenddb";
-import { keyConditionTemplate, needsNamePlaceholder, parseExpression } from "./expression";
+import { needsNamePlaceholder, parseExpression } from "./expression";
 import type { Item } from "./types";
 
 // The WASM is loaded by src/test/extenddb.setup.mjs.
@@ -32,16 +32,19 @@ describe("evaluateCompiled (ExtendDB)", () => {
   it.each([
     ["attribute_exists(PK)", true],
     ["attribute_not_exists(PK)", false],
-    ["#s = :a  #s=status :a=active", true],
-    ["#s <> :a  #s=status :a=active", false],
-    ["age > :lo AND age < :hi  :lo=30 :hi=40", true],
-    ["age BETWEEN :lo AND :hi  :lo=37 :hi=99", false],
-    ["#s IN (:p, :a)  #s=status :p=pending :a=active", true],
-    ["begins_with(PK, :u)  :u=USER#", true],
-    ["contains(#n, :x)  #n=name :x=Love", true],
-    ["size(#n) = :len  #n=name :len=12", true],
-    ["attribute_type(age, :t)  :t=N", true],
-    ["NOT (#s = :a)  #s=status :a=active", false],
+    ['#s = :a  names={"#s": "status"}  values={":a": {"S": "active"}}', true],
+    ['#s <> :a  names={"#s": "status"}  values={":a": {"S": "active"}}', false],
+    ['age > :lo AND age < :hi  values={":lo": {"N": "30"}, ":hi": {"N": "40"}}', true],
+    ['age BETWEEN :lo AND :hi  values={":lo": {"N": "37"}, ":hi": {"N": "99"}}', false],
+    [
+      '#s IN (:p, :a)  names={"#s": "status"}  values={":p": {"S": "pending"}, ":a": {"S": "active"}}',
+      true,
+    ],
+    ['begins_with(PK, :u)  values={":u": {"S": "USER#"}}', true],
+    ['contains(#n, :x)  names={"#n": "name"}  values={":x": {"S": "Love"}}', true],
+    ['size(#n) = :len  names={"#n": "name"}  values={":len": {"N": "12"}}', true],
+    ['attribute_type(age, :t)  values={":t": {"S": "N"}}', true],
+    ['NOT (#s = :a)  names={"#s": "status"}  values={":a": {"S": "active"}}', false],
   ])("%s → %s", (text, expected) => {
     expect(holds(text)).toBe(expected);
   });
@@ -49,11 +52,13 @@ describe("evaluateCompiled (ExtendDB)", () => {
   it("treats a missing item as empty, as DynamoDB does", () => {
     const none: Item = { id: "", attrs: {} };
     expect(holds("attribute_not_exists(PK)", none)).toBe(true);
-    expect(holds("#s = :a  #s=status :a=active", none)).toBe(false);
+    expect(holds('#s = :a  names={"#s": "status"}  values={":a": {"S": "active"}}', none)).toBe(
+      false,
+    );
   });
 
   it("compares numbers numerically, not as text", () => {
-    expect(holds("age > :n  :n=4")).toBe(true); // "36" > "4" as text would be false
+    expect(holds('age > :n  values={":n": {"N": "4"}}')).toBe(true); // "36" > "4" as text would be false
   });
 });
 
@@ -77,25 +82,10 @@ describe("sizeOf", () => {
   });
 });
 
-describe("keyConditionTemplate", () => {
-  it("names the partition key, leaving its value to fill in", () => {
-    expect(keyConditionTemplate({ hash: ["PK"], range: ["SK"] })).toBe("PK = :pk  :pk=");
-  });
-
-  it("routes reserved words through #names, as DynamoDB requires", () => {
+describe("needsNamePlaceholder", () => {
+  it("asks ExtendDB which attribute names are reserved", () => {
     expect(needsNamePlaceholder("region")).toBe(true);
     expect(needsNamePlaceholder("GSI1PK")).toBe(false);
-    expect(keyConditionTemplate({ hash: ["tenant", "region"], range: ["status", "date"] })).toBe(
-      "tenant = :pk1 AND #pk2 = :pk2  #pk2=region :pk1= :pk2=",
-    );
-  });
-
-  it("is a valid key condition once the values are filled in", () => {
-    const schema = { hash: ["tenant", "region"], range: ["status", "date"] };
-    const filled = keyConditionTemplate(schema)
-      .replace(":pk1=", ":pk1=acme")
-      .replace(":pk2=", ":pk2=us");
-    expect(parseExpression(filled, "key", schema).error).toBeUndefined();
   });
 });
 
@@ -109,28 +99,47 @@ describe("evaluateCompiled never throws", () => {
   });
 });
 
-describe("parseExpression: quoted values", () => {
-  it("unescapes a quoted value, and reports a bad escape instead of throwing", () => {
-    // the DSL text  :v="C:\\dir"  is the value  C:\dir
-    const ok = parseExpression('x = :v  :v="C:\\\\dir"', "condition");
-    expect(ok.expression?.values[":v"]).toEqual({ S: "C:\\dir" });
-    // the DSL text  :v="C:\dir"  has an escape JSON doesn't know (\d)
-    const bad = parseExpression('x = :v  :v="C:\\dir"', "condition");
-    expect(bad.error).toMatch(/:v has an invalid quoted value/);
-  });
-});
-
-describe("parseExpression: how people actually type pairs", () => {
+describe("parseExpression: the API's names= and values=", () => {
   const schema = { hash: ["PK"], range: ["SK"] };
 
-  it("accepts a space after the = of a pair", () => {
-    const p = parseExpression("PK = :pk  and SK = :sk :pk= ORDER#1 :sk=META", "key", schema);
+  it("reads names and typed values as JSON, spaces and all", () => {
+    const p = parseExpression(
+      'PK = :pk and begins_with(#s, :o)  names={"#s": "SK"}  values={":pk": {"S": "ORDER 1"}, ":o": {"S": "ME"}}',
+      "key",
+      schema,
+    );
     expect(p.error).toBeUndefined();
-    expect(p.expression?.values).toEqual({ ":pk": { S: "ORDER#1" }, ":sk": { S: "META" } });
+    expect(p.expression?.values).toEqual({ ":pk": { S: "ORDER 1" }, ":o": { S: "ME" } });
   });
 
-  it("explains a pair left inside the expression", () => {
-    const p = parseExpression("PK = :pk  :pk=a b", "key", schema);
-    expect(p.error).toMatch(/pair ended up inside the expression/);
+  it("keeps a Number a Number, and a quoted 007 a String", () => {
+    const p = parseExpression(
+      'a = :n OR b = :s  values={":n": {"N": "7"}, ":s": {"S": "007"}}',
+      "filter",
+    );
+    expect(p.expression?.values).toEqual({ ":n": { N: "7" }, ":s": { S: "007" } });
+  });
+
+  it("still accepts a compact expression with no spaces", () => {
+    const p = parseExpression('#a=:v  names={"#a": "SK"}  values={":v": {"S": "x"}}', "filter");
+    expect(p.error).toBeUndefined();
+  });
+
+  it("asks for a value the template left empty", () => {
+    const p = parseExpression('PK = :pk  values={":pk": {"S": ""}}', "key", schema);
+    expect(p.error).toMatch(/:pk is empty/);
+  });
+
+  it.each([
+    ['PK = :pk  values={":pk": "x"}', /must be a typed value/],
+    ['PK = :pk  values={":pk": {"S": "x"}', /complete JSON object/],
+    ['PK = :pk  names={"s": "SK"}  values={":pk": {"S": "x"}}', /must start with #/],
+    // the user's own query, typed with the old pairs
+    [
+      "PK = :pk  and SK = :sk :pk= ORDER#1 :sk=META",
+      /write it as values=\{":pk": \{"S": "ORDER#1"\}\}/,
+    ],
+  ])("explains a malformed request: %s", (text, message) => {
+    expect(parseExpression(text, "key", schema).error).toMatch(message);
   });
 });

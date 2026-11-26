@@ -1,5 +1,6 @@
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { parseExpression } from "../engine/expression";
+import { attributeTypes, typeMismatches } from "../engine/keyhelp";
 import { runQuery } from "../engine/query";
 import type { QuerySpec } from "../engine/query";
 import type { IndexSpec, Item } from "../engine/types";
@@ -45,22 +46,14 @@ function buildSpec(
   index: IndexSpec,
   keyText: string,
 ): QuerySpec | string {
-  const base = { pk: [], sk: [], key: null, filter: null, consistent: false };
+  const base = { getKey: null, key: null, filter: null, consistent: false };
   if (readOp === "scan") return { ...base, op: "scan" };
   const pks = pkAttrs(index);
   const sks = skAttrs(index);
   if (readOp === "get") {
     const key = parseGetKey(keyText);
-    const stray = Object.keys(key).find((a) => !pks.includes(a) && !sks.includes(a));
-    if (stray) {
-      return `The provided key element does not match the schema: "${stray}" isn't a key of ${index.name}`;
-    }
-    return {
-      ...base,
-      op: "get",
-      pk: pks.map((a) => key[a] ?? ""),
-      sk: sks.map((a) => key[a] ?? ""),
-    };
+    if (typeof key === "string") return key;
+    return { ...base, op: "get", getKey: key };
   }
   const parsed = parseExpression(keyText, "key", { hash: pks, range: sks });
   if (!parsed.expression) return parsed.error ?? "invalid KeyConditionExpression";
@@ -111,9 +104,13 @@ export function apCoverage(
     return { status: "invalid", message: r.error, returned: 0, scanned: 0 };
   }
   if (r.items.length === 0) {
+    // A type mismatch is the usual reason a valid query finds nothing: say so.
+    const why = spec.key ? typeMismatches(spec.key, attributeTypes(state.values()))[0] : undefined;
     return {
       status: "empty",
-      message: "valid query, but no item matches - the model can't answer it yet",
+      message: why
+        ? `valid query, but no item matches: ${why}`
+        : "valid query, but no item matches - the model can't answer it yet",
       returned: 0,
       scanned: r.scanned,
     };

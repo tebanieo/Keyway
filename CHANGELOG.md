@@ -9,22 +9,32 @@ hand-curated summary. It follows
 
 ### Changed
 
-- **`@if` now takes a real DynamoDB `ConditionExpression`**, with its
-  placeholders as trailing `#name=attr` / `:value=literal` pairs (quote a value
-  to force a String). It's parsed, validated, and evaluated by ExtendDB's
+- **Expressions are written exactly as the DynamoDB API takes them**: the
+  expression, plus `ExpressionAttributeNames` and typed
+  `ExpressionAttributeValues` as JSON. On a DSL line that's
+  `names={…} values={…}` after the expression; in the Query panel, a field per
+  API parameter.
+- **`@if` takes a real DynamoDB `ConditionExpression`**. It's parsed, validated, and evaluated by ExtendDB's
   `extenddb-core` running as WebAssembly in the page, so errors are DynamoDB's
   own (reserved words, undefined or unused placeholders), and a write with an
   invalid condition no longer lands. A comparison against a bare word warns that
   DynamoDB reads it as an attribute name.
-- **The Query panel's filter is a real DynamoDB `FilterExpression`**, written
-  the same way (expression, then `#name=attr` / `:value=literal` pairs) and
-  evaluated by ExtendDB, with DynamoDB's `Invalid FilterExpression` errors.
+- **The Query panel is the real API request**: `Key` (GetItem),
+  `KeyConditionExpression`, `FilterExpression`, `ExpressionAttributeNames`, and
+  `ExpressionAttributeValues`, with the API's rule that every name and value is
+  used. A button per sort-key operator (`=`, `<`, `<=`, `>`, `>=`, `BETWEEN`,
+  `begins_with`) writes the key condition, and the matching
+  `aws dynamodb query` / `scan` / `get-item` command is shown live, ready to
+  copy. GetItem no longer shows a filter, since the API has none.
 - **Queries take a real DynamoDB `KeyConditionExpression`**, in `@ap` lines
-  (`@ap … -> GSI1 GSI1PK = :e  :e=EMAIL#ada`) and in the Query panel, which
-  pre-fills one for the chosen index. ExtendDB checks it against the index's
-  key schema, so a broken key rule shows DynamoDB's own error (and flags the
-  pattern `invalid` in coverage). GetItem keeps its `Key` (`get PK=… SK=…`) and
-  no longer shows a filter box, since GetItem has no FilterExpression.
+  (`@ap … -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada"}}`) and in the
+  panel. ExtendDB checks it against the index's key schema, so a broken key
+  rule shows DynamoDB's own error (and flags the pattern `invalid` in coverage).
+  An `@ap get` takes the API's typed `key={…}`.
+- **Types come from the table.** An attribute holds Numbers when every value is
+  written as a plain number. Templates and sort-key buttons type values to
+  match, and a value whose type can't match what the table holds gets a
+  warning, in the panel and in coverage: DynamoDB compares by type.
 - **Capacity follows ExtendDB's measured rules.** Item size is ExtendDB's
   `item_size_bytes` (a plain number is sized as a Number: `2024` is 3
   bytes); an overwrite bills the larger of the old and new item; deleting a
@@ -34,12 +44,12 @@ hand-curated summary. It follows
 - **Number keys sort numerically**, as DynamoDB orders an `N` key (`9` before
   `10`). A value counts as a Number only when written as a plain number: `007`
   stays a String.
-- **Breaking:** the old compact `@ap` key syntax, like
-  `PK=USER#1 SK begins_with ORDER#`, is no longer read; the editor points at
-  the new form.
-- **Breaking:** the old inline syntax (`@if status=pending`) is no longer
-  accepted; write `@if #s = :p  #s=status :p=pending`. Shared links that use it
-  show the error on those lines.
+- **Breaking:** the earlier forms are no longer read: inline values
+  (`@if status=pending`), `:v=value` pairs, and the compact `@ap` key
+  (`PK=USER#1 SK begins_with ORDER#`). Write
+  `@if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}`; the
+  editor points old lines at that form. Shared links that use them show the
+  error on those lines.
 
 ### Removed
 

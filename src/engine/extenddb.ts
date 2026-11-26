@@ -34,16 +34,20 @@ function assertReady(): void {
   if (!ready) throw new Error("ExtendDB WASM isn't loaded yet: call initExtendDB() first");
 }
 
-export type AttributeValue = { S: string } | { N: string };
+/** A DynamoDB-typed value, as the API writes it: `{"S": "x"}`, `{"N": "1"}`, … */
+export type AttributeValue =
+  { S: string } | { N: string } | { BOOL: boolean } | { NULL: true } | { [type: string]: unknown };
 
 /** One Keyway value as DynamoDB wire JSON. */
-export function toAttributeValue(value: string): AttributeValue {
+export function toAttributeValue(value: string): { S: string } | { N: string } {
   return isNumber(value) ? { N: value } : { S: value };
 }
 
 /** A Keyway item's attributes as a DynamoDB wire item. */
-export function toWireItem(attrs: Record<string, string>): Record<string, AttributeValue> {
-  const out: Record<string, AttributeValue> = {};
+export function toWireItem(
+  attrs: Record<string, string>,
+): Record<string, { S: string } | { N: string }> {
+  const out: Record<string, { S: string } | { N: string }> = {};
   for (const [k, v] of Object.entries(attrs)) out[k] = toAttributeValue(v);
   return out;
 }

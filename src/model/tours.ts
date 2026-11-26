@@ -45,8 +45,8 @@ const REINDEX = `# Reindex on Ship: shipping an order moves it across the GSI, i
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
-@ap List shipped orders -> GSI1 GSI1PK = :s  :s=STATUS#shipped
+@ap List pending orders -> GSI1 GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}
+@ap List shipped orders -> GSI1 GSI1PK = :s  values={":s": {"S": "STATUS#shipped"}}
 
 # Three orders arrive pending. GSI1 overloads status into its partition key, so
 # STATUS#pending gathers every open order under one queryable partition.
@@ -66,7 +66,7 @@ const SPARSE = `# Sparse Index: an index only holds items that carry its key. Le
 @table AppTable pk=PK sk=SK
 @gsi GSI1 pk=GSI1PK sk=GSI1SK projection=all
 
-@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@analytical.io
+@ap Look up a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada@analytical.io"}}
 
 # Two profiles carry GSI1PK=EMAIL#..., so both appear on GSI1, keyed by email.
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace  email=ada@analytical.io  GSI1PK=EMAIL#ada@analytical.io  GSI1SK=USER#1  _type=user-profile
@@ -114,11 +114,12 @@ const MODELING = `# How to Model: in Keyway you design top-down. Start from the 
 @table AppTable pk=PK sk=SK
 
 # 2. Write the access patterns as @ap lines: one plain-language question each.
-# They are the SPEC. After "->", name the index and the real KeyConditionExpression
-# that answers it, with its :values. The rail tracks which ones your design serves.
-@ap Get a user and their orders -> AppTable PK = :u  :u=USER#1
-@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@keyway.dev
-@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
+# They are the SPEC. After "->", name the index and the KeyConditionExpression that
+# answers it, with values={...} exactly as the API takes them (typed: "S" is a
+# String). The rail tracks which ones your design serves.
+@ap Get a user and their orders -> AppTable PK = :u  values={":u": {"S": "USER#1"}}
+@ap Look up a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada@keyway.dev"}}
+@ap List pending orders -> GSI1 GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}
 
 # 3. Two of those questions do not fit the base key, so add a GSI to answer them.
 # A GSI is a second view of the same items under different keys. Overload it: it
@@ -161,13 +162,13 @@ u1: PK=USER#1  SK=PROFILE  name=Ada Impostor  @if attribute_not_exists(PK)
 o1: PK=USER#1  SK=ORDER#1  total=42  status=pending  _type=order
 
 # Optimistic ship: move to shipped only if it is still pending. It is, so it ships.
-# Values go in :placeholders, like ExpressionAttributeValues, listed after the
-# expression. And "status" is a DynamoDB reserved word, so it needs a #name.
-o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if #s = :p  #s=status :p=pending
+# As in the API, the value goes in a :placeholder, defined in values={...}, and
+# "status" is a DynamoDB reserved word, so it needs a #name, defined in names={...}.
+o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
 
 # A second worker tries to cancel the same order. Now status is shipped, so
 # #s = :p fails: the late cancel is rejected. No lost update.
-o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if #s = :p  #s=status :p=pending
+o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
 `;
 
 export const TOURS: Tour[] = [

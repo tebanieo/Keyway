@@ -1,23 +1,22 @@
 import {
   type AttributeValue,
   type ExpressionKind,
-  toAttributeValue,
   validateCompiled,
   validateKeyCompiled,
 } from "./extenddb";
 import type { Expression } from "./types";
 
 /**
- * Parse a real DynamoDB expression written Keyway-style: the expression,
- * followed by its placeholders as `#name=attr` / `:value=literal` pairs. Used
- * for `@if` (a ConditionExpression) and the Query panel's FilterExpression.
+ * Real DynamoDB expressions, written the way the API, the CLI, and the SDKs
+ * take them: the expression, plus its ExpressionAttributeNames and
+ * ExpressionAttributeValues as JSON, values typed (`{"S": "…"}`, `{"N": "…"}`).
  *
- *     attribute_not_exists(PK) OR #s = :s   #s=status :s=pending
+ *     attribute_not_exists(PK) OR #s = :s  names={"#s":"status"} values={":s":{"S":"pending"}}
  *
- * A bare canonical number (`42`, `-1.5`; see `number.ts`) is a Number (`N`), anything else a
- * String (`S`); quote it (`:v="42"`, `:v="Ada Lovelace"`) to force a String or
- * include spaces. The expression is validated by ExtendDB exactly as PutItem
- * would: reserved words, syntax, undefined and unused placeholders.
+ * On one DSL line, `names=` and `values=` follow the expression; the Query
+ * panel has a field for each, as the API does. ExtendDB validates the result
+ * exactly as DynamoDB would: reserved words, syntax, undefined and unused
+ * placeholders, and (for a KeyConditionExpression) the index's key rules.
  */
 export interface ParsedExpression {
   expression?: Expression;
@@ -26,61 +25,87 @@ export interface ParsedExpression {
   warnings: string[];
 }
 
-// One trailing pair. Spaces after the `=` are allowed (`:pk= ORDER#1`), but
-// the value can't start with `#`/`:`, so a compact `#s=:s` stays part of the
-// expression instead of being read as a pair.
-const PAIR = /\s+([#:][A-Za-z0-9_]+)=[ \t]*("(?:[^"\\]|\\.)*"|[^\s"#:]\S*)?$/;
-
-// Something that looks like a pair but was left inside the expression,
-// e.g. `:v=a b` (a space inside an unquoted value) or a pair in the middle.
-const STRAY_PAIR = /(^|\s)[#:][A-Za-z0-9_]+=/;
-
 /** An index's key schema: its partition and sort key attributes, in order. */
 export interface KeySchema {
   hash: string[];
   range: string[];
 }
 
+// `#s=status` or `:p= open` left in the expression text (no space before `=`).
+// A compact but valid `#a=:v` (value starts with `:`/`#`) isn't one.
+const OLD_PAIR = /(?:^|\s)([#:][A-Za-z0-9_]+)=\s*([^\s"{:#][^\s]*)/;
+
+/** The parts of a request, as the API takes them. */
+export interface ExpressionParts {
+  expression: string;
+  names?: unknown;
+  values?: unknown;
+}
+
+const TYPES = new Set(["S", "N", "B", "BOOL", "NULL", "L", "M", "SS", "NS", "BS"]);
+
+/** Check ExpressionAttributeNames/Values have the API's shape. */
+function checkMaps(
+  names: unknown,
+  values: unknown,
+): { names: Record<string, string>; values: Record<string, AttributeValue> } | string {
+  const isObject = (v: unknown): v is Record<string, unknown> =>
+    typeof v === "object" && v !== null && !Array.isArray(v);
+  const n = names ?? {};
+  const v = values ?? {};
+  if (!isObject(n)) return 'ExpressionAttributeNames must be an object, e.g. {"#s": "status"}';
+  if (!isObject(v)) {
+    return 'ExpressionAttributeValues must be an object, e.g. {":v": {"S": "pending"}}';
+  }
+  for (const [k, attr] of Object.entries(n)) {
+    if (!k.startsWith("#")) return `ExpressionAttributeNames: "${k}" must start with #`;
+    if (typeof attr !== "string") return `ExpressionAttributeNames: "${k}" must name an attribute`;
+  }
+  for (const [k, av] of Object.entries(v)) {
+    if (!k.startsWith(":")) return `ExpressionAttributeValues: "${k}" must start with :`;
+    const typeKeys = isObject(av) ? Object.keys(av) : [];
+    if (typeKeys.length !== 1 || !TYPES.has(typeKeys[0])) {
+      return `ExpressionAttributeValues: "${k}" must be a typed value, e.g. {"S": "ORDER#1"} or {"N": "42"}`;
+    }
+  }
+  return { names: n as Record<string, string>, values: v as Record<string, AttributeValue> };
+}
+
 /**
- * Parse `text` as `kind`. A KeyConditionExpression is only meaningful against
- * an index, so `kind: "key"` takes that index's `schema` and is validated
- * against it.
+ * Validate an expression given as the API's separate parts (the Query panel's
+ * fields). `kind: "key"` takes the queried index's `schema`.
  */
-export function parseExpression(
-  text: string,
+export function compileExpression(
+  parts: ExpressionParts,
   kind: ExpressionKind,
   schema?: KeySchema,
 ): ParsedExpression {
-  let expression = text.trim();
-  const names: Record<string, string> = {};
-  const values: Record<string, AttributeValue> = {};
-  const pairs: [string, string | undefined][] = [];
-  for (let m = PAIR.exec(expression); m; m = PAIR.exec(expression)) {
-    pairs.unshift([m[1], m[2]]);
-    expression = expression.slice(0, m.index).trimEnd();
-  }
+  const expression = parts.expression.trim();
   if (expression === "") return { error: "an expression is required", warnings: [] };
+  // Catch the pre-API `#s=status :p=open` pairs before ExtendDB does: it would
+  // read `status` as an attribute and report a puzzling reserved keyword.
+  const pair = OLD_PAIR.exec(expression);
+  if (pair) {
+    const [, ref, value] = pair;
+    const fix = ref.startsWith("#")
+      ? `names={"${ref}": "${value}"}`
+      : `values={"${ref}": {"S": "${value}"}}`;
+    return {
+      error: `"${ref}=${value}" isn't part of an expression: write it as ${fix}, as the API takes it`,
+      warnings: [],
+    };
+  }
+  const maps = checkMaps(parts.names, parts.values);
+  if (typeof maps === "string") return { error: maps, warnings: [] };
+  const { names, values } = maps;
 
-  for (const [ref, raw] of pairs) {
-    if (raw === undefined) {
-      return { error: `${ref} needs a value, e.g. ${ref}=USER#1`, warnings: [] };
-    }
-    const quoted = raw.startsWith('"');
-    let literal = raw;
-    if (quoted) {
-      try {
-        literal = JSON.parse(raw) as string;
-      } catch {
-        return {
-          error: `${ref} has an invalid quoted value; inside quotes, write a backslash as \\\\ and a quote as \\"`,
-          warnings: [],
-        };
-      }
-    }
-    const seen = ref.startsWith("#") ? ref in names : ref in values;
-    if (seen) return { error: `${ref} is defined twice`, warnings: [] };
-    if (ref.startsWith("#")) names[ref] = literal;
-    else values[ref] = quoted ? { S: literal } : toAttributeValue(literal);
+  if (kind === "key") {
+    // A key attribute can't be compared with an empty value. Checked here,
+    // because the fresh templates start with empty values to fill in.
+    const empty = Object.entries(values).find(
+      ([, av]) => "S" in av && (av as { S: string }).S === "",
+    );
+    if (empty) return { error: `${empty[0]} is empty: fill in its value`, warnings: [] };
   }
 
   const compiled = { expression, names, values };
@@ -88,16 +113,103 @@ export function parseExpression(
     kind === "key" && schema
       ? validateKeyCompiled(compiled, schema.hash, schema.range)
       : validateCompiled(compiled, kind);
-  if (error) {
-    const hint = STRAY_PAIR.test(expression)
-      ? ' (a #name=/:value= pair ended up inside the expression: pairs go at the end, and a value with spaces needs quotes, e.g. :v="Ada Lovelace")'
-      : "";
-    return { error: error + hint, warnings: [] };
-  }
+  if (error) return { error, warnings: [] };
   return {
-    expression: { expression, names, values, text: text.trim() },
+    expression: { expression, names, values, text: render(parts) },
     warnings: bareComparisons(expression),
   };
+}
+
+/** The one-line form: `expr [names={…}] [values={…}]`. */
+function render(parts: ExpressionParts): string {
+  const n = parts.names && Object.keys(parts.names).length ? parts.names : undefined;
+  const v = parts.values && Object.keys(parts.values).length ? parts.values : undefined;
+  return [
+    parts.expression.trim(),
+    n && `names=${JSON.stringify(n)}`,
+    v && `values=${JSON.stringify(v)}`,
+  ]
+    .filter(Boolean)
+    .join("  ");
+}
+
+/**
+ * Split `expr names={…} values={…}` (also `key={…}` for a GetItem) into its
+ * expression and JSON clauses. The clauses come last; their JSON may hold
+ * spaces and `=`, so each is read by matching braces, not by splitting.
+ */
+export function splitClauses(
+  text: string,
+  allowed: readonly string[],
+): { expression: string; clauses: Record<string, unknown> } | { error: string } {
+  const start = new RegExp(`(^|\\s)(${allowed.join("|")})=\\s*\\{`, "g");
+  for (const m of text.matchAll(start)) {
+    const at = m.index + m[1].length;
+    const clauses = readClauses(text.slice(at), allowed);
+    if (clauses === null) continue; // not where the clauses begin; try the next
+    if (typeof clauses === "string") return { error: clauses };
+    return { expression: text.slice(0, at).trim(), clauses };
+  }
+  return { expression: text.trim(), clauses: {} };
+}
+
+/** Read `name={json} name={json}` to the end, or null if `rest` isn't that. */
+function readClauses(
+  rest: string,
+  allowed: readonly string[],
+): Record<string, unknown> | string | null {
+  const out: Record<string, unknown> = {};
+  let i = 0;
+  while (i < rest.length) {
+    const m = /^\s*([a-z]+)=\s*/.exec(rest.slice(i));
+    if (!m || !allowed.includes(m[1])) return null;
+    i += m[0].length;
+    const end = matchBrace(rest, i);
+    if (end < 0) return `${m[1]}= needs a complete JSON object, e.g. ${m[1]}={…}`;
+    try {
+      out[m[1]] = JSON.parse(rest.slice(i, end + 1));
+    } catch (e) {
+      return `${m[1]}= isn't valid JSON: ${e instanceof Error ? e.message : String(e)}`;
+    }
+    i = end + 1;
+    while (i < rest.length && /\s/.test(rest[i])) i++;
+  }
+  return out;
+}
+
+/** Index of the `}` closing the `{` at `from`, honoring JSON strings; -1 if none. */
+function matchBrace(s: string, from: number): number {
+  if (s[from] !== "{") return -1;
+  let depth = 0;
+  for (let i = from; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"') {
+      for (i++; i < s.length && s[i] !== '"'; i++) if (s[i] === "\\") i++;
+    } else if (c === "{" || c === "[") depth++;
+    else if (c === "}" || c === "]") {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Parse the one-line form used on DSL lines (`@if`, `@ap`):
+ * `expr [names={…}] [values={…}]`.
+ */
+export function parseExpression(
+  text: string,
+  kind: ExpressionKind,
+  schema?: KeySchema,
+): ParsedExpression {
+  const split = splitClauses(text, ["names", "values"]);
+  if ("error" in split) return { error: split.error, warnings: [] };
+  return compileExpression(
+    { expression: split.expression, names: split.clauses.names, values: split.clauses.values },
+    kind,
+    schema,
+  );
 }
 
 // `status = pending` is valid DynamoDB, but it compares two ATTRIBUTES. That's
@@ -107,7 +219,7 @@ const BARE_CMP = /(?:<>|<=|>=|=|<|>)\s*([A-Za-z_][A-Za-z0-9_.]*)\b(?!\s*\()/g;
 function bareComparisons(expression: string): string[] {
   return [...expression.matchAll(BARE_CMP)].map(
     ([, word]) =>
-      `\`${word}\` is read as an attribute name; for a literal value, use a placeholder like :v and add :v=${word}`,
+      `\`${word}\` is read as an attribute name; for a literal value, use a placeholder like :v and put it in values={":v": {"S": "${word}"}}`,
   );
 }
 
@@ -117,23 +229,4 @@ export function needsNamePlaceholder(attr: string): boolean {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(attr)) return true;
   const probe = { expression: `${attr} = :v`, names: {}, values: { ":v": { S: "x" } } };
   return validateCompiled(probe, "condition") !== null;
-}
-
-/** A starting KeyConditionExpression for `schema`: equality on every partition
- *  key attribute, values left for the user to fill in (`PK = :pk  :pk=`). */
-export function keyConditionTemplate(schema: KeySchema): string {
-  const clauses: string[] = [];
-  const names: string[] = [];
-  const values: string[] = [];
-  schema.hash.forEach((attr, i) => {
-    const v = schema.hash.length > 1 ? `:pk${i + 1}` : ":pk";
-    let ref = attr;
-    if (needsNamePlaceholder(attr)) {
-      ref = schema.hash.length > 1 ? `#pk${i + 1}` : "#pk";
-      names.push(`${ref}=${attr}`);
-    }
-    clauses.push(`${ref} = ${v}`);
-    values.push(`${v}=`);
-  });
-  return [clauses.join(" AND "), [...names, ...values].join(" ")].join("  ");
 }

@@ -829,9 +829,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
 }
-.query-head,
-.query-keys,
-.query-filter {
+.query-head {
   display: flex;
   align-items: center;
   gap: var(--s2);
@@ -840,9 +838,6 @@ body {
 }
 .query-head {
   background: var(--fill-1);
-  border-bottom: 1px solid var(--glass-line);
-}
-.query-keys {
   border-bottom: 1px solid var(--glass-line);
 }
 .q-title {
@@ -959,13 +954,87 @@ body {
   font-size: var(--fs-xs);
   color: var(--muted);
 }
-.q-flabel {
-  font-size: var(--fs-sm);
-  color: var(--muted);
+/* The request, laid out as the API's parameters. Ligatures off: `<=` must
+   read as the two characters you type, not as a ≤ glyph. */
+.query-panel input,
+.query-panel textarea,
+.query-panel button,
+.query-panel pre {
+  font-variant-ligatures: none;
 }
-.q-filter-input {
-  flex: 1;
-  min-width: 280px;
+.q-request {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+}
+.q-param {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.q-pname {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--key);
+}
+.query-panel textarea {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  resize: vertical;
+}
+.query-panel textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.q-ops {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.q-ops button {
+  padding: 3px 9px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.q-ops button:hover {
+  color: var(--text);
+}
+.q-ops button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.q-cli {
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--glass-line);
+}
+.q-cli-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.q-cli pre {
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 .query-result {
   display: flex;
