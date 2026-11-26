@@ -31,6 +31,7 @@ import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "../model/dsl";
 import { BASE_INDEX } from "../model/seed";
 import { completeDsl } from "./editorCompletions";
+import { dslHighlighting } from "./dslLanguage";
 
 const SEP2 = String.fromCharCode(32, 32); // two-space attribute separator
 
@@ -356,6 +357,7 @@ export const Editor = forwardRef<
           authoringKeys, // Tab/Shift-Tab/Escape: must win over defaults
           disarmOnOtherKeys,
           basicSetup,
+          dslHighlighting,
           keymap.of(completionKeymap),
           // Never preselect: an auto-opened menu must not turn Enter (a newline,
           // e.g. a blank line between groups) into "insert the first option".
