@@ -73,6 +73,8 @@ export function App() {
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
   const [editorCollapsed, setEditorCollapsed] = useState(false);
+  // Phone width: one column, so the script and the tables take turns.
+  const [narrowView, setNarrowView] = useState<"script" | "tables">("script");
   const [dismissedBackfill, setDismissedBackfill] = useState<string | null>(null);
   const editorRef = useRef<EditorHandle>(null);
 
@@ -319,7 +321,32 @@ export function App() {
         onUnpin={() => setPinnedId(null)}
       />
 
-      <main className={drawer ? "wb-main dock-open" : "wb-main"}>
+      {editing && (
+        <div className="wb-switch" role="group" aria-label="Show">
+          <button
+            aria-pressed={narrowView === "script"}
+            className={narrowView === "script" ? "active" : ""}
+            onClick={() => {
+              setNarrowView("script");
+              setEditorCollapsed(false);
+            }}
+          >
+            Script
+          </button>
+          <button
+            aria-pressed={narrowView === "tables"}
+            className={narrowView === "tables" ? "active" : ""}
+            onClick={() => setNarrowView("tables")}
+          >
+            Tables
+          </button>
+        </div>
+      )}
+
+      <main
+        className={drawer ? "wb-main dock-open" : "wb-main"}
+        data-view={editing ? narrowView : "tables"}
+      >
         {editing && (
           <section className="wb-script" aria-label="Script">
             <EditorPane

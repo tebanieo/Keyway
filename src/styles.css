@@ -2490,3 +2490,100 @@ body {
   padding: 6px 2px;
   background: var(--bg);
 }
+
+/* The Script | Tables switch only exists at phone width. */
+.wb-switch {
+  display: none;
+}
+
+/* Phone: one column. The script and the tables take turns (the switch), the
+   rail is a row of buttons under them, and the playback bar tightens up. */
+@media (max-width: 699px) {
+  .app.wb {
+    padding: 8px;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "top"
+      "switch"
+      "main"
+      "rail"
+      "status"
+      "foot";
+  }
+  .app.wb.no-script {
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "top"
+      "main"
+      "rail"
+      "status"
+      "foot";
+  }
+  .wb-switch {
+    grid-area: switch;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    background: var(--panel-2);
+  }
+  .wb-switch button {
+    flex: 1;
+    min-height: 36px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .wb-switch button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .wb-main,
+  .app.no-script .wb-main,
+  .app.script-collapsed .wb-main,
+  .wb-main.dock-open,
+  .app.no-script .wb-main.dock-open,
+  .app.script-collapsed .wb-main.dock-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wb-main[data-view="tables"] .wb-script,
+  .wb-main[data-view="script"] .wb-tables {
+    display: none;
+  }
+  .app.wb > .rail {
+    flex-direction: row;
+    justify-content: center;
+    align-self: stretch;
+    padding: 6px;
+  }
+  .app.wb > .rail .rail-label {
+    display: none;
+  }
+  .app.wb > .app-footer {
+    font-size: 11px;
+  }
+  /* Playback and the step's total cost; the per-index breakdown and the
+     narration wait for a wider screen. */
+  .statusbar {
+    gap: 6px 10px;
+  }
+  .statusbar .sb-step {
+    order: -1;
+    flex: 1 0 100%;
+  }
+  .statusbar .sb-total {
+    margin-left: auto;
+  }
+  .statusbar .sb-narration,
+  .statusbar .seg-cost,
+  .statusbar .item-bytes,
+  .statusbar .reject-note,
+  .statusbar .costbar .idle {
+    display: none;
+  }
+}
