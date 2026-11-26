@@ -119,3 +119,18 @@ describe("parseExpression: quoted values", () => {
     expect(bad.error).toMatch(/:v has an invalid quoted value/);
   });
 });
+
+describe("parseExpression: how people actually type pairs", () => {
+  const schema = { hash: ["PK"], range: ["SK"] };
+
+  it("accepts a space after the = of a pair", () => {
+    const p = parseExpression("PK = :pk  and SK = :sk :pk= ORDER#1 :sk=META", "key", schema);
+    expect(p.error).toBeUndefined();
+    expect(p.expression?.values).toEqual({ ":pk": { S: "ORDER#1" }, ":sk": { S: "META" } });
+  });
+
+  it("explains a pair left inside the expression", () => {
+    const p = parseExpression("PK = :pk  :pk=a b", "key", schema);
+    expect(p.error).toMatch(/pair ended up inside the expression/);
+  });
+});

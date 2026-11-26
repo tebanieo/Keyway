@@ -26,9 +26,14 @@ export interface ParsedExpression {
   warnings: string[];
 }
 
-// One trailing pair. Its value can't start with `#`/`:`, so a compact
-// `#s=:s` stays part of the expression instead of being read as a pair.
-const PAIR = /\s+([#:][A-Za-z0-9_]+)=("(?:[^"\\]|\\.)*"|[^\s"#:]\S*)?$/;
+// One trailing pair. Spaces after the `=` are allowed (`:pk= ORDER#1`), but
+// the value can't start with `#`/`:`, so a compact `#s=:s` stays part of the
+// expression instead of being read as a pair.
+const PAIR = /\s+([#:][A-Za-z0-9_]+)=[ \t]*("(?:[^"\\]|\\.)*"|[^\s"#:]\S*)?$/;
+
+// Something that looks like a pair but was left inside the expression,
+// e.g. `:v=a b` (a space inside an unquoted value) or a pair in the middle.
+const STRAY_PAIR = /(^|\s)[#:][A-Za-z0-9_]+=/;
 
 /** An index's key schema: its partition and sort key attributes, in order. */
 export interface KeySchema {
@@ -83,7 +88,12 @@ export function parseExpression(
     kind === "key" && schema
       ? validateKeyCompiled(compiled, schema.hash, schema.range)
       : validateCompiled(compiled, kind);
-  if (error) return { error, warnings: [] };
+  if (error) {
+    const hint = STRAY_PAIR.test(expression)
+      ? ' (a #name=/:value= pair ended up inside the expression: pairs go at the end, and a value with spaces needs quotes, e.g. :v="Ada Lovelace")'
+      : "";
+    return { error: error + hint, warnings: [] };
+  }
   return {
     expression: { expression, names, values, text: text.trim() },
     warnings: bareComparisons(expression),
