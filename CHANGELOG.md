@@ -128,6 +128,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **More editor completions:** index names after `->` in an `@ap`, `all`/`keys`/attribute names after `projection=`, and existing item labels after `delete`.
 - **The script and the tables are linked.** The item line under the caret lights its row in every pane and scrolls it into view; pinning a row puts the caret on the line that wrote it.
 - **The Query panel lists what it returned**, keys first then the other attributes, so you no longer have to hunt for highlighted rows.
 - **ExtendDB as Keyway's DynamoDB engine.** `wasm/` wraps ExtendDB's

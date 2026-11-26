@@ -114,6 +114,56 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
     return { from: ctx.pos - dir[1].length - 1, options: DIRECTIVES };
   }
 
+  // `@ap … -> ` → the indexes the pattern can be served by.
+  const apIx = /^@ap\b.*->\s*([\w.-]*)$/.exec(before);
+  if (apIx) {
+    const parsed = parseDoc(ctx.state.doc.toString(), BASE_INDEX);
+    return {
+      from: ctx.pos - apIx[1].length,
+      options: [parsed.base, ...parsed.gsis].map((ix, i) => ({
+        label: ix.name,
+        detail: `${i === 0 ? "table" : "GSI"}: ${[...pkAttrs(ix), ...skAttrs(ix)].join(", ")}`,
+        type: "class",
+      })),
+    };
+  }
+
+  // `@gsi … projection=` → all / keys, or the attributes of an include list.
+  const proj = /^@gsi\b.*\bprojection=((?:[\w-]+,)*)([\w-]*)$/.exec(before);
+  if (proj) {
+    const { attrs } = liveModel(ctx.state.doc.toString());
+    const listed = proj[1].split(",").filter(Boolean);
+    const named = attrs
+      .filter((a) => !listed.includes(a))
+      .map((a) => ({ label: a, detail: "include this attribute", type: "property" }));
+    const modes = [
+      { label: "all", detail: "project every attribute", type: "keyword" },
+      { label: "keys", detail: "only the table and index keys", type: "keyword" },
+    ];
+    return {
+      from: ctx.pos - proj[2].length,
+      options: listed.length ? named : [...modes, ...named],
+    };
+  }
+
+  // `delete ` → the labels of items that exist.
+  const del = /^\s*delete\s+([^\s]*)$/.exec(before);
+  if (del) {
+    const parsed = parseDoc(ctx.state.doc.toString(), BASE_INDEX);
+    const items = [...fold(parsed.ops, parsed.base).values()];
+    return {
+      from: ctx.pos - del[1].length,
+      options: items.map((it) => ({
+        label: it.id,
+        detail: [...pkAttrs(parsed.base), ...skAttrs(parsed.base)]
+          .map((k) => it.attrs[k])
+          .filter(Boolean)
+          .join(" / "),
+        type: "variable",
+      })),
+    };
+  }
+
   // After `_type=` → offer the entity types already defined in the model.
   const typeVal = /_type=([\w-]*)$/.exec(before);
   if (typeVal) {
