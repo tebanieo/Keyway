@@ -2216,3 +2216,75 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ---- Workbench layout ------------------------------------------------------
+   A fixed-height frame (no page scroll): toolbar on top, then the script and
+   the tables side by side, each scrolling on its own, then the footer. Writing
+   the model and seeing its effect always share the screen. */
+.app.wb {
+  box-sizing: border-box;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  /* room for the rail on the right edge */
+  padding-right: calc(var(--s4) + 56px);
+  overflow: hidden;
+}
+.app.wb > .toolbar {
+  position: static;
+  margin: 0;
+}
+.wb-main {
+  display: grid;
+  grid-template-columns: minmax(340px, 40%) minmax(0, 1fr);
+  gap: var(--s4);
+  min-height: 0;
+}
+.app.no-script .wb-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+.app.script-collapsed .wb-main {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+.wb-script {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.wb-script .editor-wrap {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+}
+.wb-script .editor-body,
+.wb-script .editor {
+  height: 100%;
+}
+.wb-script .editor .cm-editor {
+  height: 100%;
+  max-height: none;
+}
+.wb-tables {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  /* keep focus rings and row edges clear of the scroll edge */
+  padding: 2px 4px 2px 2px;
+}
+.app.wb .app-footer {
+  margin: 0;
+}
+/* Collapsed (tours, examples): the script folds to a slim vertical tab. */
+.app.script-collapsed .editor-head {
+  writing-mode: vertical-rl;
+  height: 100%;
+  padding: 14px 10px;
+  border-bottom: 0;
+}
+.app.script-collapsed .editor-head .eh-stats,
+.app.script-collapsed .editor-problems {
+  display: none;
+}

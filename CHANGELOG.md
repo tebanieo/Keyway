@@ -7,6 +7,15 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Changed
+
+- **A workbench layout: the script and the tables side by side.** The page is a
+  fixed-height frame with no page scroll; the script sits on the left and the
+  tables on the right, each scrolling on its own. At 1440x900 you see about 9
+  table rows next to the whole script, where the stacked layout showed about 4
+  rows below an editor that took half the screen. Tours and examples fold the
+  script to a slim tab.
+
 ### Fixed
 
 - **Enter is always a newline in the editor.** The suggestion menu that opens on

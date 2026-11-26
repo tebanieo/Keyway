@@ -272,7 +272,11 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    // The workbench: a fixed-height frame (no page scroll) with the script and
+    // the tables side by side, each scrolling on its own.
+    <div
+      className={`app wb${editing ? "" : " no-script"}${editing && editorCollapsed ? " script-collapsed" : ""}`}
+    >
       <Toolbar
         mode={mode}
         onMode={(m) => (m === "editor" ? enterEditor() : setMode("canvas"))}
@@ -294,33 +298,63 @@ export function App() {
         onSpeed={setSpeed}
       />
 
-      {editing && (
-        <EditorPane
-          ref={editorRef}
-          collapsed={editorCollapsed}
-          problems={problems}
-          onOpenProblems={() => {
-            setEditorCollapsed(false);
-            editorRef.current?.openProblems();
-          }}
-          onToggleCollapse={() => setEditorCollapsed((v) => !v)}
-          itemCount={fullState.size}
-          gsiCount={gsis.length}
-          apCount={aps.length}
-          editorKey={docVersion}
-          initialDoc={docText}
-          onChange={onDoc}
-          activeLine={activeLine}
-        />
-      )}
+      <main className="wb-main">
+        {editing && (
+          <section className="wb-script" aria-label="Script">
+            <EditorPane
+              ref={editorRef}
+              collapsed={editorCollapsed}
+              problems={problems}
+              onOpenProblems={() => {
+                setEditorCollapsed(false);
+                editorRef.current?.openProblems();
+              }}
+              onToggleCollapse={() => setEditorCollapsed((v) => !v)}
+              itemCount={fullState.size}
+              gsiCount={gsis.length}
+              apCount={aps.length}
+              editorKey={docVersion}
+              initialDoc={docText}
+              onChange={onDoc}
+              activeLine={activeLine}
+            />
+          </section>
+        )}
 
-      {showBackfill && backfill && (
-        <BackfillBanner
-          backfill={backfill}
-          onApply={applyBackfill}
-          onDismiss={() => setDismissedBackfill(backfillSig)}
-        />
-      )}
+        <section className="wb-tables" aria-label="Tables">
+          {showBackfill && backfill && (
+            <BackfillBanner
+              backfill={backfill}
+              onApply={applyBackfill}
+              onDismiss={() => setDismissedBackfill(backfillSig)}
+            />
+          )}
+
+          <PanesBar
+            paneNames={paneNames}
+            visible={visible}
+            onTogglePane={togglePane}
+            showAll={gsis.length > 0}
+            allVisible={allVisible}
+            onToggleAll={toggleAll}
+            diffOn={diffOn}
+            onToggleDiff={() => setDiffOn((v) => !v)}
+            compact={compact}
+            onToggleCompact={() => setCompact((v) => !v)}
+          />
+
+          <PanesGrid
+            panes={shownPanes}
+            compact={compact}
+            diffOn={diffOn}
+            link={link}
+            query={qhl}
+            focusId={focusId}
+          />
+
+          <AppHint editing={editing} />
+        </section>
+      </main>
 
       <QueryPanel
         open={drawer === "query"}
@@ -362,30 +396,6 @@ export function App() {
         cost={cost}
         opBytes={opBytes}
       />
-
-      <PanesBar
-        paneNames={paneNames}
-        visible={visible}
-        onTogglePane={togglePane}
-        showAll={gsis.length > 0}
-        allVisible={allVisible}
-        onToggleAll={toggleAll}
-        diffOn={diffOn}
-        onToggleDiff={() => setDiffOn((v) => !v)}
-        compact={compact}
-        onToggleCompact={() => setCompact((v) => !v)}
-      />
-
-      <PanesGrid
-        panes={shownPanes}
-        compact={compact}
-        diffOn={diffOn}
-        link={link}
-        query={qhl}
-        focusId={focusId}
-      />
-
-      <AppHint editing={editing} />
 
       <AppFooter />
 
