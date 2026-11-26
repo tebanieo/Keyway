@@ -34,20 +34,27 @@ return { scanned: read.length, items, rcu: rcu(bytes, mode), … };
 Use filters to express intent and see results; use **key design** to control
 cost.
 
-## Writing a filter
+## The Query panel is the API request
 
-Type the `FilterExpression` exactly as you would send it to DynamoDB, then its
-placeholders as pairs, the same form `@if` uses (see [The DSL](/dsl)):
+The **Read / Query** panel takes exactly what the API (and the AWS CLI, and the
+SDKs) take, one field per parameter:
 
-```text
-#s = :p AND size(#n) > :len   #s=status #n=name :p=pending :len=5
-```
+| Field                       | What goes in it                                                |
+| --------------------------- | -------------------------------------------------------------- |
+| `Key` (GetItem)             | the typed key: `{"PK": {"S": "ORDER#1"}, "SK": {"S": "META"}}` |
+| `KeyConditionExpression`    | `PK = :pk AND begins_with(SK, :sk)`                            |
+| `FilterExpression`          | optional: `#s = :p AND size(#n) > :len`                        |
+| `ExpressionAttributeNames`  | `{"#s": "status", "#n": "name"}`                               |
+| `ExpressionAttributeValues` | `{":pk": {"S": "ORDER#1"}, ":len": {"N": "5"}}`                |
 
-- `#name=attr` is an `ExpressionAttributeNames` entry: needed for reserved
-  words (`status`, `name`, `date`, …) and special characters.
-- `:value=literal` is an `ExpressionAttributeValues` entry. A bare number is a
-  Number (`N`); anything else is a String (`S`). Quote it to force a String or
-  include spaces: `:who="Ada Lovelace"`.
+The key condition and the filter share the names and values, as in the API, and
+every entry must be used by one of them. Under the form, the panel shows the
+matching `aws dynamodb query` / `scan` / `get-item` command, live, with a copy
+button.
+
+`#names` are needed for reserved words (`status`, `name`, `date`, …) and special
+characters. Values are typed: `{"S": "…"}` for a String, `{"N": "…"}` for a
+Number.
 
 The whole DynamoDB grammar works: comparators, `BETWEEN`, `IN`, `AND`/`OR`/`NOT`
 with parentheses, and the functions (`attribute_exists`, `attribute_not_exists`,
@@ -57,13 +64,24 @@ undefined or unused placeholder, a `begins_with` on a Number.
 
 ::: tip `status = pending` compares two attributes
 A bare word on the right of a comparison is an attribute name, not a value. The
-panel warns when it sees one; use a placeholder (`:p=pending`).
+panel warns when it sees one; use a placeholder (`#s = :p`, with
+`{":p": {"S": "pending"}}` in the values).
 :::
 
-Keyway attributes are untyped text: a value written as a plain number (`42`,
-`-1.5`; no leading zeros, at most 38 digits) is a Number (`N`), anything else
-(`007`, `v2`) a String (`S`). So `#t > :n  :n=10` compares numerically, and the
-panes sort Number keys numerically too, as DynamoDB does.
+## Types come from your table
+
+Keyway attributes are written as text, so Keyway reads their types from the
+table: an attribute whose every value is a plain number (`42`, `-1.5`; no
+leading zeros, at most 38 digits) holds Numbers (`N`); anything else (`007`,
+`v2`) holds Strings (`S`). The panes sort Number keys numerically, as DynamoDB
+does, and the panel uses these types to help:
+
+- The templates and sort-key buttons type each value from the table, e.g.
+  `{":sk": {"N": ""}}` when the sort key holds Numbers.
+- When a value's type can't match what the table holds, the panel warns, e.g.
+  _"SK holds Numbers (N) in this table, but :sk is a String (S): DynamoDB
+  compares by type, so it won't match"_. Coverage says the same for an `@ap`
+  that finds nothing for that reason.
 
 ::: warning Not checked yet
 A real Query refuses a filter on the index's own key attributes ("Filter
@@ -74,10 +92,12 @@ key condition.
 
 ## Query sort-key conditions are a restricted set
 
-A Query takes a real `KeyConditionExpression`, written like a filter (the
-expression, then its pairs). The panel pre-fills one for the chosen index, e.g.
-`PK = :pk  :pk=`, so you only type the value. It's not the filter grammar: it
-mirrors DynamoDB's real rules, checked by ExtendDB against the index's keys:
+A Query's `KeyConditionExpression` isn't the filter grammar: it mirrors
+DynamoDB's real rules, checked by ExtendDB against the index's keys. The panel
+pre-fills one for the chosen index (`PK = :pk`, with `{":pk": {"S": ""}}` to fill
+in), and has a button per sort-key operator that writes the condition for you:
+`=`, `<`, `<=`, `>`, `>=`, `BETWEEN` (both ends included), and `begins_with`
+(Strings only, e.g. every `ORDER#…`). The rules:
 
 - The **partition key** must be **equality** (`=`) for **every** partition
   attribute. (A multi-key GSI needs an equality value for each pk attr.)

@@ -183,23 +183,26 @@ changing `wasm/` itself. Coding agents follow [`AGENTS.md`](AGENTS.md).
 @gsi GSI1 pk=GSI1PK sk=GSI1SK            # declare an index (one pane per @gsi)
 @gsi ByRegion pk=tenant,region sk=status,date   # native multi-key GSI
 
-@ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  :u=USER#1 :o=ORDER#   # a requirement
-@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@x.io     # the app runs it + grades coverage
+# a requirement, written as the API takes it; the app runs it + grades coverage
+@ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  values={":u": {"S": "USER#1"}, ":o": {"S": "ORDER#"}}
+@ap Look up a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada@x.io"}}
 
 u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user   # label: attrs (label = stable id)
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace      # same label = update
 o1: PK=USER#2  SK=PROFILE                          # a new PK = atomic key change
 u2: PK=USER#3  SK=PROFILE  @if attribute_not_exists(PK)   # conditional write (create-only)
-o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  #s=status :p=pending   # real ConditionExpression
 delete o1                                          # remove an item
+
+# a real ConditionExpression, with the API's names= and values=
+o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
 ```
 
 - **`@ap`** declares an access pattern (a requirement) with the index and the
   real `KeyConditionExpression` that should serve it; the app runs it against
   the model and shows which patterns are served and which aren't.
 - **`@if`**, as the last clause on a put/delete, is a conditional write: a real
-  DynamoDB `ConditionExpression`, followed by its `#name=attr` and `:value=literal`
-  placeholders. It applies only if the condition holds, else it's rejected (and
+  DynamoDB `ConditionExpression`, with `names={…}` and `values={…}` exactly as
+  the API takes them. It applies only if the condition holds, else it's rejected (and
   a failed check still costs). It's checked by
   [ExtendDB](https://github.com/ExtendDB/extenddb)'s expression engine, compiled
   to WebAssembly and running in your browser, so reserved words, syntax, and
