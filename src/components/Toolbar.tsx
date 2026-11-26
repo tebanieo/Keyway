@@ -50,15 +50,20 @@ export function Toolbar({
   onSpeed: (n: number) => void;
 }) {
   return (
-    <div className="toolbar">
+    <header className="toolbar">
       <h1>
         <Logo />
         Keyway
       </h1>
 
-      <div className="seg">
+      <div className="seg" role="group" aria-label="View">
         {(["canvas", "editor"] as Mode[]).map((m) => (
-          <button key={m} className={m === mode ? "active" : ""} onClick={() => onMode(m)}>
+          <button
+            key={m}
+            className={m === mode ? "active" : ""}
+            aria-pressed={m === mode}
+            onClick={() => onMode(m)}
+          >
             {cap(m)}
           </button>
         ))}
@@ -84,7 +89,7 @@ export function Toolbar({
       )}
 
       {pinnedId && (
-        <button className="pin-chip" onClick={onUnpin}>
+        <button className="pin-chip" onClick={onUnpin} aria-label={`Unpin ${pinnedId}`}>
           <span className="dot" />
           Pinned <code>{pinnedId.slice(0, 8)}</code>
           <span className="x">&times;</span>
@@ -96,25 +101,35 @@ export function Toolbar({
       <div className="op-label">
         step {curStep}/{opsLength} &middot; <b>{op.verb}</b> {op.detail}
       </div>
-      <div className="stepper">
-        <button disabled={curStep === 0} onClick={onPrev} title="step back">
+      <div className="stepper" role="group" aria-label="Playback">
+        <button disabled={curStep === 0} onClick={onPrev} title="step back" aria-label="Step back">
           <Icon name="prev" />
         </button>
-        <button className="play" onClick={onTogglePlay} title="auto-play">
+        <button
+          className="play"
+          onClick={onTogglePlay}
+          title="auto-play"
+          aria-label={playing ? "Pause" : "Play"}
+        >
           <Icon name={playing ? "pause" : "play"} />
         </button>
-        <button disabled={curStep === opsLength} onClick={onNext} title="step forward">
+        <button
+          disabled={curStep === opsLength}
+          onClick={onNext}
+          title="step forward"
+          aria-label="Step forward"
+        >
           <Icon name="next" />
         </button>
         <button
           className="speed"
           onClick={() => onSpeed(speed === 0.5 ? 1 : speed === 1 ? 2 : 0.5)}
           title="playback speed (click to cycle)"
-          aria-label="playback speed"
+          aria-label={`Playback speed ${speed}×`}
         >
           {speed}&times;
         </button>
       </div>
-    </div>
+    </header>
   );
 }

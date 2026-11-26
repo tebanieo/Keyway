@@ -38,6 +38,7 @@ export const EditorPane = forwardRef<
       <button
         className="editor-head"
         onClick={onToggleCollapse}
+        aria-expanded={!collapsed}
         title={collapsed ? "expand the editor" : "collapse the editor - focus the tables"}
       >
         <span className="chev" aria-hidden>

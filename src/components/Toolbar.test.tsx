@@ -34,6 +34,10 @@ describe("Toolbar", () => {
     setup();
     expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Canvas" })).toHaveClass("active");
+    // state is exposed, not only shown by colour
+    expect(screen.getByRole("button", { name: "Canvas" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Editor" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Editor" })).not.toHaveClass("active");
     expect(screen.getByText(/step 1\/3/)).toBeInTheDocument();
   });
@@ -67,15 +71,15 @@ describe("Toolbar", () => {
 
   it("disables prev at the start and next at the end", () => {
     const a = setup({ curStep: 0, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "step back" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step back" })).toBeDisabled();
     a.unmount();
     setup({ curStep: 3, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "step forward" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step forward" })).toBeDisabled();
   });
 
   it("cycles the speed 0.5 -> 1", () => {
     const p = setup({ speed: 0.5 });
-    fireEvent.click(screen.getByRole("button", { name: "playback speed" }));
+    fireEvent.click(screen.getByRole("button", { name: /Playback speed/ }));
     expect(p.onSpeed).toHaveBeenCalledWith(1);
   });
 });

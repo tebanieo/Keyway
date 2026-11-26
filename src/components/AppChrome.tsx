@@ -40,7 +40,7 @@ export function AppFooter() {
 export function CopiedToast({ value }: { value: string | null }) {
   if (value === null) return null;
   return (
-    <div className="copied-toast">
+    <div className="copied-toast" role="status">
       copied <code>{value}</code>
     </div>
   );

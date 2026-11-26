@@ -25,28 +25,39 @@ export function PanesBar({
 }) {
   return (
     <div className="panes-bar">
-      <div className="seg" title="toggle which panes are shown">
+      <div
+        className="seg"
+        title="toggle which panes are shown"
+        role="group"
+        aria-label="Panes shown"
+      >
         {paneNames.map((name) => (
           <button
             key={name}
             className={visible.has(name) ? "active" : ""}
+            aria-pressed={visible.has(name)}
             onClick={() => onTogglePane(name)}
           >
             {name}
           </button>
         ))}
         {showAll && (
-          <button className={allVisible ? "active" : ""} onClick={onToggleAll}>
+          <button
+            className={allVisible ? "active" : ""}
+            aria-pressed={allVisible}
+            onClick={onToggleAll}
+          >
             All
           </button>
         )}
       </div>
-      <div className="seg">
-        <button className={diffOn ? "active" : ""} onClick={onToggleDiff}>
+      <div className="seg" role="group" aria-label="View options">
+        <button className={diffOn ? "active" : ""} aria-pressed={diffOn} onClick={onToggleDiff}>
           Diff
         </button>
         <button
           className={compact ? "active" : ""}
+          aria-pressed={compact}
           onClick={onToggleCompact}
           title="tighten rows so larger models fit on screen"
         >

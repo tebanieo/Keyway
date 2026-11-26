@@ -299,6 +299,7 @@ export function QueryPanel({
               <button
                 key={o}
                 className={o === op ? "active" : ""}
+                aria-pressed={o === op}
                 disabled={disabled}
                 title={
                   disabled ? "GetItem is base-table only - GSIs support query/scan" : undefined
@@ -384,6 +385,7 @@ export function QueryPanel({
               </span>
               <button
                 className={sortOp === null ? "active" : ""}
+                aria-pressed={sortOp === null}
                 title="partition key only: read the whole partition"
                 onClick={() => applySortOp(null)}
               >
@@ -394,6 +396,7 @@ export function QueryPanel({
                   <button
                     key={o}
                     className={sortOp === o ? "active" : ""}
+                    aria-pressed={sortOp === o}
                     title={SORT_KEY_OP_HELP[o]}
                     onClick={() => applySortOp(o)}
                   >
@@ -447,7 +450,11 @@ export function QueryPanel({
       </div>
 
       {result && (
-        <div className={result.error ? "query-result err" : "query-result"}>
+        // Announced: an error as an alert, a result as a polite status.
+        <div
+          className={result.error ? "query-result err" : "query-result"}
+          role={result.error ? "alert" : "status"}
+        >
           {result.error ? (
             <span className="q-err">⚠ {result.error}</span>
           ) : (

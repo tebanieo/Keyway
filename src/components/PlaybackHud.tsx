@@ -24,6 +24,7 @@ export function PlaybackHud({
         <div
           className={cost?.rejected ? "narration rejected" : "narration"}
           key={`narr-${curStep}`}
+          role="status"
         >
           <span className="narr-step">{curStep}</span>
           <span className="narr-text">{narration}</span>

@@ -88,7 +88,8 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
   if (items.length === 0) return null;
   const signal = total > 0 || resolved || reveal || items.some((i) => i.active);
   return (
-    <div
+    <nav
+      aria-label="Tools"
       className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}${reveal ? " hint" : ""}`}
     >
       {items.map((it) => {
@@ -110,6 +111,6 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

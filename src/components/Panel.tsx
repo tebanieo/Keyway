@@ -85,7 +85,7 @@ export function Panel({
 
   return (
     <div className="panel">
-      <div className="panel-title">
+      <div className="panel-title" role="heading" aria-level={2}>
         <span className="idx">{index.name}</span>
         {subtitle && <span className="sub">{subtitle}</span>}
         <span className="count">{plural(total, "item")}</span>
@@ -120,6 +120,7 @@ export function Panel({
               )}
             </div>
             <GridRows
+              label={`${index.name}, partition ${part.pk}`}
               rows={part.rows}
               index={index}
               link={link}
@@ -136,6 +137,7 @@ export function Panel({
 }
 
 function GridRows({
+  label,
   rows,
   index,
   link,
@@ -144,6 +146,8 @@ function GridRows({
   query,
   focusId,
 }: {
+  /** Names the table for assistive tech: the index and the partition. */
+  label: string;
   rows: DiffRow[];
   index: IndexSpec;
   link: LinkProps;
@@ -154,7 +158,7 @@ function GridRows({
 }) {
   const cols = unionKeys(rows, index);
   return (
-    <table className="ptable">
+    <table className="ptable" aria-label={label}>
       <thead>
         <tr>
           {gutter && <th className="gutter" />}
@@ -216,6 +220,8 @@ function GridRows({
                 <button
                   className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
                   title="pin / follow this item"
+                  aria-label={`${link.pinnedId === it.id ? "Unpin" : "Pin"} ${it.id}`}
+                  aria-pressed={link.pinnedId === it.id}
                   onClick={(e) => {
                     e.stopPropagation();
                     link.onPin(it.id);
@@ -225,6 +231,7 @@ function GridRows({
                   <button
                     className="del-btn"
                     title="delete item"
+                    aria-label={`Delete ${it.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       edit.onDelete(it.id);

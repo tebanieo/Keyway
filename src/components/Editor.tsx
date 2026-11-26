@@ -339,6 +339,7 @@ export const Editor = forwardRef<
           themeSlot.of(themeFor(isDark())),
           stepLineField,
           EditorView.lineWrapping,
+          EditorView.contentAttributes.of({ "aria-label": "Model script" }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) {
               cb.current(u.state.doc.toString());

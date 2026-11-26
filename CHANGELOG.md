@@ -42,6 +42,12 @@ hand-curated summary. It follows
   keyboard focus, and the green ✓ marks only the button whose badge cleared.
 - **Share is a real modal dialog**: it opens on "Copy link", Tab stays inside
   it, Escape closes it, and focus returns to the Share button.
+- **Screen readers get state, names and structure.** Toggles report whether
+  they're on (`aria-pressed`), the editor header whether it's expanded, icon
+  buttons have names (Play/Pause, Step back, Pin, Delete, Close), the editor is
+  labelled "Model script", panes are headings and each partition's table is
+  named. Query results and errors, narration, the "copied" toast and the
+  served count are announced, and the toolbar and rail are landmarks.
 
 ### Changed
 
