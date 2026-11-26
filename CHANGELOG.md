@@ -44,6 +44,8 @@ hand-curated summary. It follows
 - **Number keys sort numerically**, as DynamoDB orders an `N` key (`9` before
   `10`). A value counts as a Number only when written as a plain number: `007`
   stays a String.
+- **The theme follows your system** (light or dark), live, until you pick one
+  with the toggle; only that choice is remembered. Before, it defaulted to dark.
 - **Breaking:** the earlier forms are no longer read: inline values
   (`@if status=pending`), `:v=value` pairs, and the compact `@ap` key
   (`PK=USER#1 SK begins_with ORDER#`). Write
