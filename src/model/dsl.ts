@@ -204,6 +204,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   let base: IndexSpec = { name: "base", pk: baseIndex.pk, sk: baseIndex.sk };
   const gsis: IndexSpec[] = [];
   const aps: AccessPattern[] = [];
+  const apLines: number[] = []; // source line of each @ap, for diagnostics
   lines.forEach((raw, line) => {
     const s = raw.trim();
     if (!s.startsWith("@")) return;
@@ -311,6 +312,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         }
       }
       aps.push({ n: aps.length + 1, description, index, readOp, keyText });
+      apLines.push(line);
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
@@ -416,6 +418,19 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     notes.push(takeNote());
     opLines.push(line);
     if (newKey) lastKey.set(label, newKey);
+  });
+
+  // An @ap naming an index that doesn't exist: say so on its line (the
+  // directives can come in any order, so this waits until all are read).
+  const indexNames = [base.name, ...gsis.map((g) => g.name)];
+  aps.forEach((ap, i) => {
+    if (ap.index && !indexNames.includes(ap.index)) {
+      diagnostics.push({
+        line: apLines[i],
+        message: `@ap: index "${ap.index}" isn't defined (indexes: ${indexNames.join(", ")})`,
+        severity: "warning",
+      });
+    }
   });
 
   return { ops, diagnostics, base, gsis, aps, notes, opLines };

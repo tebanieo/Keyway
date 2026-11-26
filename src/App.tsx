@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { parseDoc } from "./model/dsl";
+import { BASE_INDEX } from "./model/seed";
 import { itemSize } from "./engine/itemsize";
 import { Toolbar } from "./components/Toolbar";
 import type { Mode } from "./components/Toolbar";
@@ -155,6 +157,13 @@ export function App() {
     if (shared) loadModel(shared);
   }, [loadModel]);
 
+  // The script's errors and warnings, counted for the editor header.
+  const problems = useMemo(() => {
+    const { diagnostics } = parseDoc(docText, BASE_INDEX);
+    const errors = diagnostics.filter((d) => d.severity === "error").length;
+    return { errors, warnings: diagnostics.length - errors };
+  }, [docText]);
+
   const enterEditor = () => {
     syncDoc(); // one source: reflect current state as text
     setMode("editor");
@@ -279,6 +288,11 @@ export function App() {
         <EditorPane
           ref={editorRef}
           collapsed={editorCollapsed}
+          problems={problems}
+          onOpenProblems={() => {
+            setEditorCollapsed(false);
+            editorRef.current?.openProblems();
+          }}
           onToggleCollapse={() => setEditorCollapsed((v) => !v)}
           itemCount={fullState.size}
           gsiCount={gsis.length}

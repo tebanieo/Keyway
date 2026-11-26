@@ -9,6 +9,9 @@ export const EditorPane = forwardRef<
   EditorHandle,
   {
     collapsed: boolean;
+    /** Errors and warnings in the model, shown as a count that opens the list. */
+    problems?: { errors: number; warnings: number };
+    onOpenProblems?: () => void;
     onToggleCollapse: () => void;
     itemCount: number;
     gsiCount: number;
@@ -22,6 +25,8 @@ export const EditorPane = forwardRef<
 >(function EditorPane(
   {
     collapsed,
+    problems,
+    onOpenProblems,
     onToggleCollapse,
     itemCount,
     gsiCount,
@@ -63,6 +68,20 @@ export const EditorPane = forwardRef<
           )}
         </span>
       </button>
+      {problems && problems.errors + problems.warnings > 0 && (
+        <button
+          className={problems.errors ? "editor-problems err" : "editor-problems"}
+          onClick={onOpenProblems}
+          title="open the problems list (Ctrl+Shift+M); F8 jumps to the next one"
+        >
+          {problems.errors > 0 &&
+            `${problems.errors} ${problems.errors === 1 ? "error" : "errors"}`}
+          {problems.errors > 0 && problems.warnings > 0 && " · "}
+          {problems.warnings > 0 &&
+            `${problems.warnings} ${problems.warnings === 1 ? "warning" : "warnings"}`}
+          <kbd>F8</kbd>
+        </button>
+      )}
       {/* inert while collapsed: a zero-height editor must not take focus */}
       <div className="editor-body" inert={collapsed}>
         <Editor

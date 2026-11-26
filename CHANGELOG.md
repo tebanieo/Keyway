@@ -48,6 +48,11 @@ hand-curated summary. It follows
   labelled "Model script", panes are headings and each partition's table is
   named. Query results and errors, narration, the "copied" toast and the
   served count are announced, and the toolbar and rail are landmarks.
+- **Problems are visible without a mouse.** The editor header counts errors and
+  warnings and opens the problems list (also Ctrl+Shift+M; F8 jumps to the
+  next). A problem you jump to now shows its message (the editor only stays
+  quiet on a line you're in the middle of typing), and an `@ap` naming an index
+  that doesn't exist gets a warning on its line.
 
 ### Changed
 

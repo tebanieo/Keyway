@@ -26,7 +26,7 @@ import {
   setSelectedCompletion,
   startCompletion,
 } from "@codemirror/autocomplete";
-import { forceLinting, linter, lintGutter } from "@codemirror/lint";
+import { forceLinting, linter, lintGutter, openLintPanel } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "../model/dsl";
 import { BASE_INDEX } from "../model/seed";
@@ -198,14 +198,20 @@ const authoringKeys = Prec.highest(
   ]),
 );
 
-// Run the same pure parser the app uses, surface its diagnostics inline, but
-// never nag the line the cursor is on, so a half-typed `o5: PK=` stays quiet
-// until you move off it.
+// Which line the caret is on, and whether it has been edited since the caret
+// arrived: a half-typed `o5: PK=` stays quiet, but a problem you jumped to
+// (F8, or the problems list) still shows.
+const editing = new WeakMap<EditorView, { line: number; edited: boolean }>();
+
+// Run the same pure parser the app uses and surface its diagnostics inline,
+// except on the line you're in the middle of typing.
 const dslLinter = linter((view): CmDiagnostic[] => {
   const activeLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+  const typing = editing.get(view);
+  const quiet = typing && typing.line === activeLine && typing.edited ? activeLine : -1;
   const { diagnostics } = parseDoc(view.state.doc.toString(), BASE_INDEX);
   return diagnostics
-    .filter((d) => d.line + 1 !== activeLine)
+    .filter((d) => d.line + 1 !== quiet)
     .map((d) => {
       const l = view.state.doc.line(d.line + 1);
       return { from: l.from, to: l.to, severity: d.severity, message: d.message };
@@ -268,6 +274,8 @@ export interface EditorHandle {
   appendLines: (text: string) => void;
   /** Append ` attr=value` to the last line defining each label, in place. */
   patchItems: (patches: { label: string; append: string }[]) => void;
+  /** Open the problems list (the same as Ctrl+Shift+M in the editor). */
+  openProblems: () => void;
 }
 
 export const Editor = forwardRef<
@@ -314,6 +322,10 @@ export const Editor = forwardRef<
         }
         if (changes.length) view.dispatch({ changes });
       },
+      openProblems: () => {
+        const view = viewRef.current;
+        if (view) openLintPanel(view);
+      },
     }),
     [],
   );
@@ -352,6 +364,10 @@ export const Editor = forwardRef<
               }
             }
             const line = u.state.doc.lineAt(u.state.selection.main.head).number;
+            const typing = editing.get(u.view);
+            if (!typing || typing.line !== line)
+              editing.set(u.view, { line, edited: u.docChanged });
+            else if (u.docChanged) typing.edited = true;
             if (line !== lastLine) {
               lastLine = line;
               forceLinting(u.view); // refresh so the line you just left re-lints

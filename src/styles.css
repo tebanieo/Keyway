@@ -1110,6 +1110,7 @@ body {
 /* The editor is the hero: an unbounded surface (no boxed card), collapsible by
    its header so the tables below take the whole screen. */
 .editor-wrap {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
   margin-bottom: var(--s5);
@@ -1141,6 +1142,34 @@ body {
   transition:
     background var(--tf),
     border-color var(--tf);
+}
+/* The problems count, at the right end of the editor's header row. */
+.editor-problems {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.editor-problems.err {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.editor-problems kbd {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.8;
 }
 .editor-head:hover {
   background: var(--fill-1);
