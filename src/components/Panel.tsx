@@ -192,6 +192,7 @@ function GridRows({
               <tr
                 key={`${removed ? "x" : ""}${it.id}`}
                 className={`row-${r.status}${pinned}${hovered}${q}${dim}`}
+                data-item={it.id}
                 onMouseEnter={() => link.onHover(it.id)}
                 onMouseLeave={() => link.onHover(null)}
               >

@@ -276,6 +276,8 @@ export interface EditorHandle {
   patchItems: (patches: { label: string; append: string }[]) => void;
   /** Open the problems list (the same as Ctrl+Shift+M in the editor). */
   openProblems: () => void;
+  /** Scroll a 0-based line into view and put the caret there (no focus). */
+  revealLine: (line: number) => void;
 }
 
 export const Editor = forwardRef<
@@ -286,13 +288,17 @@ export const Editor = forwardRef<
     activeLine?: number | null;
     /** Focus on mount with the caret at the end, ready to type. */
     autoFocus?: boolean;
+    /** The 0-based line the caret moved to while typing; null when it leaves. */
+    onCaretLine?: (line: number | null) => void;
   }
->(function Editor({ initialDoc, onChange, activeLine, autoFocus }, ref) {
+>(function Editor({ initialDoc, onChange, activeLine, autoFocus, onCaretLine }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Keep the latest onChange without re-creating the editor.
   const cb = useRef(onChange);
   cb.current = onChange;
+  const caret = useRef(onCaretLine);
+  caret.current = onCaretLine;
 
   useImperativeHandle(
     ref,
@@ -326,6 +332,15 @@ export const Editor = forwardRef<
         const view = viewRef.current;
         if (view) openLintPanel(view);
       },
+      revealLine: (line: number) => {
+        const view = viewRef.current;
+        if (!view || line < 0 || line >= view.state.doc.lines) return;
+        const at = view.state.doc.line(line + 1).from;
+        view.dispatch({
+          selection: EditorSelection.cursor(at),
+          effects: EditorView.scrollIntoView(at, { y: "center" }),
+        });
+      },
     }),
     [],
   );
@@ -352,6 +367,13 @@ export const Editor = forwardRef<
           stepLineField,
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "Model script" }),
+          EditorView.domEventHandlers({
+            focus: (_e, v) => {
+              lastLine = v.state.doc.lineAt(v.state.selection.main.head).number;
+              caret.current?.(lastLine - 1);
+            },
+            blur: () => caret.current?.(null),
+          }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) {
               cb.current(u.state.doc.toString());
@@ -371,6 +393,7 @@ export const Editor = forwardRef<
             if (line !== lastLine) {
               lastLine = line;
               forceLinting(u.view); // refresh so the line you just left re-lints
+              if (u.view.hasFocus) caret.current?.(line - 1);
             }
           }),
         ],

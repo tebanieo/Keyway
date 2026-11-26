@@ -228,6 +228,33 @@ export function App() {
   };
 
   // Write units of every step up to the current one (the status bar's total).
+  // Editor <-> tables: the line under the caret lights its row (and scrolls it
+  // into view); pinning a row reveals the line that wrote it.
+  const opIdAt = (i: number): string | null => {
+    const op = ops[i];
+    if (!op) return null;
+    const w = op.kind === "transact" ? op.actions.find((a) => a.kind === "put") : op;
+    return !w ? null : w.kind === "put" ? w.item.id : w.id;
+  };
+  const onCaretLine = (line: number | null) => {
+    const i = line == null ? -1 : opLines.indexOf(line);
+    const id = i < 0 ? null : opIdAt(i);
+    link.onHover(id);
+    if (id) {
+      document
+        .querySelector(`.wb-tables tr[data-item="${CSS.escape(id)}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    }
+  };
+  useEffect(() => {
+    if (!pinnedId || !editing) return;
+    for (let i = ops.length - 1; i >= 0; i--) {
+      if (opIdAt(i) === pinnedId) return editorRef.current?.revealLine(opLines[i]);
+    }
+    // Only when the pin changes, not on every edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedId]);
+
   const totalWcu = useMemo(() => totalWrites(ops, base, gsis, curStep), [ops, base, gsis, curStep]);
 
   const curOp = ops[curStep - 1];
@@ -311,6 +338,7 @@ export function App() {
               initialDoc={docText}
               onChange={onDoc}
               activeLine={activeLine}
+              onCaretLine={onCaretLine}
             />
           </section>
         )}

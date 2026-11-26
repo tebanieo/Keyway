@@ -127,6 +127,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **The script and the tables are linked.** The item line under the caret lights its row in every pane and scrolls it into view; pinning a row puts the caret on the line that wrote it.
 - **The Query panel lists what it returned**, keys first then the other attributes, so you no longer have to hunt for highlighted rows.
 - **ExtendDB as Keyway's DynamoDB engine.** `wasm/` wraps ExtendDB's
   `extenddb-core` (Apache-2.0, pinned to v1.0.0, no fork) and compiles it to

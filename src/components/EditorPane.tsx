@@ -21,6 +21,7 @@ export const EditorPane = forwardRef<
     initialDoc: string;
     onChange: (text: string) => void;
     activeLine: number | null;
+    onCaretLine?: (line: number | null) => void;
   }
 >(function EditorPane(
   {
@@ -35,6 +36,7 @@ export const EditorPane = forwardRef<
     initialDoc,
     onChange,
     activeLine,
+    onCaretLine,
   },
   ref,
 ) {
@@ -90,6 +92,7 @@ export const EditorPane = forwardRef<
           initialDoc={initialDoc}
           onChange={onChange}
           activeLine={activeLine}
+          onCaretLine={onCaretLine}
           autoFocus={!collapsed}
         />
       </div>
