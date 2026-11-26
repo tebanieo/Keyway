@@ -29,6 +29,7 @@ function itemSnippet(base: IndexSpec) {
     label: "item",
     detail: "new base item, Tab at the end to add keys/attrs",
     type: "keyword",
+    boost: 2, // the most common thing to start a line with
   });
 }
 /** Inserts one declared GSI's key attributes to add to the current item. */
@@ -119,11 +120,11 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
     const { entities } = liveModel(ctx.state.doc.toString());
     return {
       from: ctx.pos - typeVal[1].length,
-      options: entities.map((e) => ({
-        label: e.type,
-        detail: `${e.count}×`,
-        type: "constant",
-      })),
+      // Not the value already typed: offering `user` for `_type=user` would
+      // make Enter "accept" it instead of ending the line.
+      options: entities
+        .filter((e) => e.type !== typeVal[1])
+        .map((e) => ({ label: e.type, detail: `${e.count}×`, type: "constant" })),
     };
   }
 

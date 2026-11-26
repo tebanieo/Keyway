@@ -7,10 +7,13 @@ import {
   acceptCompletion,
   autocompletion,
   completionKeymap,
+  completionStatus,
   hasNextSnippetField,
   hasPrevSnippetField,
   nextSnippetField,
   prevSnippetField,
+  selectedCompletion,
+  setSelectedCompletion,
   startCompletion,
 } from "@codemirror/autocomplete";
 import { forceLinting, linter, lintGutter } from "@codemirror/lint";
@@ -71,7 +74,22 @@ const tabBackward: Command = (view) => {
   return false;
 };
 
-// Tab: accept a completion, else advance a snippet field, else the field jump.
+// Tab with the menu open: accept the highlighted option, or the top one once
+// you've typed a prefix (`item`<Tab>). The menu never preselects, so Enter
+// stays a newline unless you deliberately arrowed into the menu.
+const acceptTop: Command = (view) => {
+  if (completionStatus(view.state) !== "active") return false;
+  if (!selectedCompletion(view.state)) {
+    const head = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(head);
+    const typed = /[\w@-]+$/.test(view.state.sliceDoc(line.from, head));
+    if (!typed) return false; // nothing typed: don't guess
+    view.dispatch({ effects: setSelectedCompletion(0) });
+  }
+  return acceptCompletion(view);
+};
+
+// Tab: advance a snippet field, else accept a completion, else the field jump.
 // Shift-Tab goes back. Escape is the explicit way out of the editor.
 const authoringKeys = Prec.highest(
   keymap.of([
@@ -81,9 +99,7 @@ const authoringKeys = Prec.highest(
       // open autocomplete popup can't hijack Tab. Otherwise accept a completion
       // if the popup is open, else jump to the next attribute on the line.
       run: (v) =>
-        (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
-        acceptCompletion(v) ||
-        tabForward(v),
+        (hasNextSnippetField(v.state) && nextSnippetField(v)) || acceptTop(v) || tabForward(v),
       shift: (v) => (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v),
     },
     {
@@ -214,7 +230,9 @@ export const Editor = forwardRef<
           authoringKeys, // Tab/Shift-Tab/Escape: must win over defaults
           basicSetup,
           keymap.of(completionKeymap),
-          autocompletion({ override: [completeDsl] }),
+          // Never preselect: an auto-opened menu must not turn Enter (a newline,
+          // e.g. a blank line between groups) into "insert the first option".
+          autocompletion({ override: [completeDsl], selectOnOpen: false }),
           dslLinter,
           lintGutter(),
           placeholder("item<Tab> to scaffold a row…"),

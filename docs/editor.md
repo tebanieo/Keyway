@@ -8,8 +8,11 @@ problems inline as you type. This page describes what
 ## The empty-line completion menu
 
 Land on a blank line (for example by pressing Enter) and the menu pops up on
-its own to answer _"what can I do here?"_. At the **start of a line** it offers
-everything you can begin a line with:
+its own to answer _"what can I do here?"_. It never preselects anything, so
+**Enter is always a newline** (a blank line between groups stays blank). To take
+an option, type a few letters and press **Tab** (the top match), or arrow down
+to it and press Enter. At the **start of a line** it offers everything you can
+begin a line with, `item` first:
 
 - **`item`**: scaffold a whole new row using the base table's keys (the
   possibly-custom `pk`/`sk`), leaving `${label}` and each key value as tab stops.
@@ -58,8 +61,8 @@ defaults:
   snippet slot. You pick a GSI key, `_type`, or an attribute to add.
 - **Shift-Tab** jumps **back** to the previous value on the line.
 - Inside an active snippet, Tab advances the snippet field first (so an open
-  popup can't hijack it), then accepts a completion, then falls back to the
-  attribute jump.
+  popup can't hijack it), then accepts a completion (the highlighted one, or the
+  top match once you've typed a prefix), then falls back to the attribute jump.
 - **Escape** blurs the editor: the explicit way out.
 
 On a non-item line Tab falls through to its normal behavior.

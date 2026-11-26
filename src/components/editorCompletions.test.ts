@@ -72,4 +72,14 @@ u2: PK=U2  SK=P  _type=`;
     expect(labels(res)).toContain("order"); // entityScaffold for the order type
     expect(labels(res)).toContain("item");
   });
+
+  it("doesn't offer the type already typed after _type=, so Enter ends the line", () => {
+    const doc = "u1: PK=U1  SK=P  _type=user\nu2: PK=U2  SK=P  _type=user";
+    expect(labels(complete(doc))).not.toContain("user");
+  });
+
+  it("puts item first at line start", () => {
+    const item = complete("\n")?.options.find((o) => o.label === "item");
+    expect(item?.boost).toBeGreaterThan(0);
+  });
 });

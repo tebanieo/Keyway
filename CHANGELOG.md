@@ -7,6 +7,14 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Enter is always a newline in the editor.** The suggestion menu that opens on
+  a blank line no longer preselects its first option, so pressing Enter twice
+  to leave a blank line no longer inserts an `@ap` template, and Enter after
+  `_type=user` no longer swallows the newline. Tab still takes the top match
+  once you've typed a prefix (`item`, `@g`), and `item` now leads the menu.
+
 ### Changed
 
 - **Expressions are written exactly as the DynamoDB API takes them**: the
