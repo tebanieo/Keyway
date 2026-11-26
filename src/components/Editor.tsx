@@ -193,8 +193,14 @@ export interface EditorHandle {
 
 export const Editor = forwardRef<
   EditorHandle,
-  { initialDoc: string; onChange: (text: string) => void; activeLine?: number | null }
->(function Editor({ initialDoc, onChange, activeLine }, ref) {
+  {
+    initialDoc: string;
+    onChange: (text: string) => void;
+    activeLine?: number | null;
+    /** Focus on mount with the caret at the end, ready to type. */
+    autoFocus?: boolean;
+  }
+>(function Editor({ initialDoc, onChange, activeLine, autoFocus }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Keep the latest onChange without re-creating the editor.
@@ -274,6 +280,12 @@ export const Editor = forwardRef<
       }),
     });
     viewRef.current = view;
+    if (autoFocus) {
+      // Ready to type: caret at the end of the model. preventScroll, so landing
+      // in the editor never scrolls the page.
+      view.dispatch({ selection: EditorSelection.cursor(view.state.doc.length) });
+      view.contentDOM.focus({ preventScroll: true });
+    }
     // Follow theme switches (the system setting, or the toggle).
     const observer = new MutationObserver(() =>
       view.dispatch({ effects: themeSlot.reconfigure(themeFor(isDark())) }),

@@ -27,6 +27,10 @@ hand-curated summary. It follows
   editor's suggestion popup follows the theme instead of staying dark.
 - **Motion respects the system's reduced-motion setting**, and the rail's
   attention pulse runs three times instead of forever. "1 items" reads "1 item".
+- **You can type the moment Keyway opens.** It starts in the editor with the
+  cursor at the end of the model (it used to open on the table view with
+  nothing focused, about 11 keystrokes from typing), and a shared link no
+  longer opens with the page scrolled under the toolbar.
 
 ### Changed
 

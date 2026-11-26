@@ -70,6 +70,7 @@ export const EditorPane = forwardRef<
           initialDoc={initialDoc}
           onChange={onChange}
           activeLine={activeLine}
+          autoFocus={!collapsed}
         />
       </div>
     </div>

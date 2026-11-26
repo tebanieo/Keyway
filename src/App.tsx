@@ -64,7 +64,8 @@ export function App() {
     apUnserved,
   } = useModel();
 
-  const [mode, setMode] = useState<Mode>("canvas");
+  // Type-first: the app opens in the editor (focused, caret at the end).
+  const [mode, setMode] = useState<Mode>("editor");
   const { theme, toggle: toggleTheme } = useTheme();
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
