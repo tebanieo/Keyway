@@ -17,8 +17,8 @@ For each `@ap … -> Index [op] [key]`:
 1. The named index is looked up.
 2. The key becomes the real request for that index (`buildSpec`):
    - `scan` needs nothing.
-   - `get` maps the `attr=value` pairs onto the index's key attributes (the
-     `Key`).
+   - `get` takes `key={…}`, the API's typed `Key`, which must name exactly
+     the index's key attributes.
    - `query` takes the `KeyConditionExpression`, which
      [ExtendDB](https://github.com/ExtendDB/extenddb) validates against the
      index's key schema: equality on every partition key, at most a range on
@@ -48,16 +48,16 @@ Only `served` counts as truly covered (`isServed`). Each result also reports
 ## Examples
 
 ```text
-@ap Look up a user by email -> GSI1 GSI1PK = :e  :e=EMAIL#ada@analytical.io
+@ap Look up a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada@analytical.io"}}
 #   -> served: the GSI1 partition holds the profile row.
 
-@ap List pending orders -> GSI1 GSI1PK = :s  :s=STATUS#pending
+@ap List pending orders -> GSI1 GSI1PK = :s  values={":s": {"S": "STATUS#pending"}}
 #   -> served while pending orders exist; becomes empty once they all ship.
 
 @ap Get a user's notification settings by type
 #   -> unassigned: no `-> Index` yet, a coverage gap the app highlights.
 
-@ap Open orders -> ByRegion tenant = :t AND #s = :s  #s=status :t=acme :s=open
+@ap Open orders -> ByRegion tenant = :t AND #s = :s  names={"#s": "status"}  values={":t": {"S": "acme"}, ":s": {"S": "open"}}
 #   -> invalid: ByRegion's partition key is (tenant, region), and region has no
 #      equality. DynamoDB's message names the missing attribute.
 ```

@@ -114,7 +114,7 @@ columns. When you _query_ one:
 ```text
 @gsi ByRegion pk=tenant,region sk=status,date
 
-@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  #r=region #s=status :t=acme :r=us :s=open
+@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  names={"#r": "region", "#s": "status"}  values={":t": {"S": "acme"}, ":r": {"S": "us"}, ":s": {"S": "open"}}
 #   tenant and region are equality (both partition attrs); status is the first
 #   sort attr as equality; add `#d BETWEEN :a AND :b` on date as the last,
 #   rangeable one. (region, status, date are reserved words, hence the #names.)

@@ -79,25 +79,26 @@ are auto-numbered (AP1, AP2, …) in declaration order.
 - `-> <Index>` names the index that should serve it.
 - The read op defaults to `query`; you can write `get` or `scan` explicitly.
 - The **key** makes the pattern a _real, runnable read_:
-  - **query**: a real DynamoDB `KeyConditionExpression`, followed by its
-    `#name=attr` / `:value=literal` pairs, the same form as [`@if`](#if-a-conditional-write).
-    Equality on the partition key; optionally a sort-key condition with
-    `= < <= > >= BETWEEN begins_with`.
-  - **get**: the `Key`, as `attr=value` pairs for every key attribute.
+  - **query**: a real DynamoDB `KeyConditionExpression`, then `names={…}` and
+    `values={…}`, written as the API takes them (the same form as
+    [`@if`](#if-a-conditional-write)). Equality on the partition key; optionally
+    a sort-key condition with `= < <= > >= BETWEEN begins_with`.
+  - **get**: `key={…}`, the API's typed `Key`, with every key attribute.
   - **scan**: nothing.
 
 ```text
-@ap Get a user's profile and orders -> AppTable PK = :u  :u=USER#1
-@ap Look up a user by email        -> GSI1 GSI1PK = :e  :e=EMAIL#ada
-@ap List a tenant's users          -> SaasTable PK = :t AND begins_with(SK, :u)  :t=TENANT#acme :u=USER#
-@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  #r=region #s=status :t=acme :r=us :s=open
-@ap Get an event                   -> EventsTable get PK=EVENT#reinvent SK=META
+@ap Get a user's profile and orders -> AppTable PK = :u  values={":u": {"S": "USER#1"}}
+@ap Look up a user by email        -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada"}}
+@ap List a tenant's users          -> SaasTable PK = :t AND begins_with(SK, :u)  values={":t": {"S": "TENANT#acme"}, ":u": {"S": "USER#"}}
+@ap Open orders for a tenant+region -> ByRegion tenant = :t AND #r = :r AND #s = :s  names={"#r": "region", "#s": "status"}  values={":t": {"S": "acme"}, ":r": {"S": "us"}, ":s": {"S": "open"}}
+@ap Get an event                   -> EventsTable get key={"PK": {"S": "EVENT#reinvent"}, "SK": {"S": "META"}}
 @ap Get a user's notification settings by type
 ```
 
 The key condition is checked by ExtendDB against the index's keys when the
-pattern runs, so a broken rule shows DynamoDB's own error. The old compact form
-(`PK=USER#1 SK begins_with ORDER#`) is no longer read; the editor points you at
+pattern runs, so a broken rule shows DynamoDB's own error. The old forms
+(`PK=USER#1 SK begins_with ORDER#`, or `:u=USER#1` pairs) are no longer read; the
+editor points you at
 the new one.
 
 The last line declares a pattern with **no index yet**: a coverage gap that the
@@ -166,20 +167,19 @@ billed (see [The cost model](/cost)).
 
 ```text
 u1: PK=USER#1  SK=PROFILE  name=Ada  @if attribute_not_exists(PK)
-o1: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  #s=status :p=pending
-delete o1  @if #s = :s  #s=status :s=shipped
+o1: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
+delete o1  @if #s = :s  names={"#s": "status"}  values={":s": {"S": "shipped"}}
 ```
 
 As in the API, names and values live outside the expression. After the
-expression, list them as pairs:
+expression, give them as JSON, exactly as you'd pass them to the CLI or an SDK:
 
-- `#name=attr` is an `ExpressionAttributeNames` entry. You need one for an
-  attribute whose name is a reserved word (`status`, `name`, `date`, …) or has
-  special characters.
-- `:value=literal` is an `ExpressionAttributeValues` entry. A bare number
-  (`:n=3`, `:p=-1.5`) is a Number (`N`); anything else, including `007`, is a
-  String (`S`). Quote it to force a String or include spaces: `:c="42"`,
-  `:who="Ada Lovelace"`.
+- `names={"#s": "status"}` is `ExpressionAttributeNames`. You need a `#name`
+  for an attribute whose name is a reserved word (`status`, `name`, `date`, …)
+  or has special characters.
+- `values={":p": {"S": "pending"}}` is `ExpressionAttributeValues`. Every value
+  is typed: `{"S": "…"}` for a String, `{"N": "42"}` for a Number. Types matter:
+  DynamoDB compares by type, so `{"S": "42"}` never matches the Number `42`.
 
 The expression is parsed, validated, and evaluated by
 [ExtendDB](https://github.com/ExtendDB/extenddb)'s `extenddb-core`, compiled to
@@ -190,7 +190,8 @@ never used, bad syntax. A line with an invalid condition is a
 
 ::: tip `status = pending` compares two attributes
 In DynamoDB, a bare word on the right of a comparison is an attribute name, not
-a value. The editor warns when it sees one; use a placeholder (`:p=pending`).
+a value. The editor warns when it sees one; use a placeholder,
+`#s = :p  values={":p": {"S": "pending"}}`.
 :::
 
 ## Comments and narration
