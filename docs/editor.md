@@ -73,6 +73,16 @@ defaults:
   panel: its index, operation, key condition and values are written into the
   request, and the result (with the returned items) shows right away.
 
+## Keyboard across the app
+
+- **Ctrl/Cmd+K** opens the command palette from anywhere (the editor
+  included): type a few words to find any action, an example, or a tour, and
+  Enter runs it.
+- **?** shows every shortcut. Single keys act only when you're not typing:
+  `i` script, `q` Query panel, `e` Examples, `l` Learn, `a` Access patterns,
+  `p` play/pause, `]`/`[` step, `t` theme. The cheatsheet has a switch to turn
+  them off (remembered in this browser).
+
 ## Live diagnostics (linting)
 
 The editor runs the **same `parseDoc` parser** the app uses and surfaces its

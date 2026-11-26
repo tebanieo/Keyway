@@ -7,15 +7,17 @@ export function AppHint({ editing }: { editing: boolean }) {
     <p className="hint">
       {editing ? (
         <>
-          Type in the script above. <code>item</code>+Tab scaffolds a row; Escape leaves the editor.
-          Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane appears.
-          Each <code>@gsi</code> sets its own projection (<code>all</code>/<code>keys</code>
-          /comma-list). Panes reparse live.
+          Type in the script. <code>item</code>+Tab scaffolds a row; Escape then Tab leaves the
+          editor. Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane
+          appears. Each <code>@gsi</code> sets its own projection (<code>all</code>/
+          <code>keys</code>
+          /comma-list). Panes reparse live. <kbd>Ctrl/⌘ K</kbd> finds any action; <kbd>?</kbd> lists
+          the shortcuts.
         </>
       ) : (
         <>
           Double-click a base cell to edit; click a row to pin and follow it. Switch to{" "}
-          <b>editor</b> to author the same model as text.
+          <b>editor</b> to author the same model as text. <kbd>Ctrl/⌘ K</kbd> finds any action.
         </>
       )}
     </p>

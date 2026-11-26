@@ -277,6 +277,8 @@ export interface EditorHandle {
   patchItems: (patches: { label: string; append: string }[]) => void;
   /** Open the problems list (the same as Ctrl+Shift+M in the editor). */
   openProblems: () => void;
+  /** Put the keyboard in the script, caret where it was. */
+  focus: () => void;
   /** Scroll a 0-based line into view and put the caret there (no focus). */
   revealLine: (line: number) => void;
 }
@@ -337,6 +339,7 @@ export const Editor = forwardRef<
         const view = viewRef.current;
         if (view) openLintPanel(view);
       },
+      focus: () => viewRef.current?.focus(),
       revealLine: (line: number) => {
         const view = viewRef.current;
         if (!view || line < 0 || line >= view.state.doc.lines) return;

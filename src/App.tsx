@@ -33,6 +33,13 @@ import { PanesBar } from "./components/PanesBar";
 import { PanesGrid } from "./components/PanesGrid";
 import type { ShownPane } from "./components/PanesGrid";
 import { AppHint, AppFooter, CopiedToast, ResetToast } from "./components/AppChrome";
+import { CommandPalette } from "./components/CommandPalette";
+import type { Command } from "./components/CommandPalette";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
+import { useShortcuts } from "./hooks/useShortcuts";
+import type { Shortcut } from "./hooks/useShortcuts";
+import { EXAMPLES } from "./model/examples";
+import { TOURS } from "./model/tours";
 
 export function App() {
   // The data model (op log + DSL structure + projections) lives in one hook;
@@ -311,8 +318,89 @@ export function App() {
 
   const step1 = (delta: number) => {
     setPlaying(false);
-    setStep(curStep + delta);
+    setStep(Math.max(0, Math.min(ops.length, curStep + delta)));
   };
+
+  // Keyboard: the command palette (Ctrl/Cmd+K) holds every action; the most
+  // common also have a single key, listed in the `?` cheatsheet.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+  const goToScript = () => {
+    if (!editing) enterEditor();
+    setEditorCollapsed(false);
+    setNarrowView("script");
+    requestAnimationFrame(() => editorRef.current?.focus());
+  };
+  const shortcuts: Shortcut[] = [
+    { key: "i", label: "Go to the script", run: goToScript },
+    { key: "q", label: "Read / Query panel", run: () => toggleDrawer("query") },
+    { key: "e", label: "Examples", run: () => toggleDrawer("examples") },
+    { key: "l", label: "Learn (guided tours)", run: () => toggleDrawer("learn") },
+    ...(aps.length
+      ? [{ key: "a", label: "Access patterns", run: () => toggleDrawer("patterns") }]
+      : []),
+    { key: "p", label: "Play / pause", run: togglePlay },
+    { key: "]", label: "Step forward", run: () => step1(1) },
+    { key: "[", label: "Step back", run: () => step1(-1) },
+    { key: "t", label: "Switch light / dark theme", run: toggleTheme },
+    { key: "?", label: "Keyboard shortcuts", run: () => setKeysOpen(true) },
+  ];
+  const { enabled: keysOn, setEnabled: setKeysOn } = useShortcuts(shortcuts, () =>
+    setPaletteOpen((o) => !o),
+  );
+  const keyOf = (label: string) =>
+    keysOn ? shortcuts.find((s) => s.label === label)?.key : undefined;
+  const commands: Command[] = [
+    ...shortcuts.map((s) => ({
+      id: `k:${s.key}`,
+      label: s.label,
+      keys: keyOf(s.label),
+      run: s.run,
+    })),
+    {
+      id: "mode",
+      label: editing ? "Switch to Canvas (edit in the tables)" : "Switch to Editor (the script)",
+      run: () => (editing ? setMode("canvas") : enterEditor()),
+    },
+    ...(editing
+      ? [
+          {
+            id: "collapse",
+            label: editorCollapsed ? "Expand the script" : "Collapse the script",
+            run: () => setEditorCollapsed((v) => !v),
+          },
+        ]
+      : []),
+    {
+      id: "diff",
+      label: diffOn ? "Hide the diff" : "Show the diff",
+      run: () => setDiffOn(!diffOn),
+    },
+    {
+      id: "compact",
+      label: compact ? "Comfortable rows" : "Compact rows",
+      run: () => setCompact(!compact),
+    },
+    { id: "share", label: "Share a link to this model", run: () => openShare(currentDoc()) },
+    ...(dirty ? [{ id: "reset", label: "Reset to an empty model", run: reset }] : []),
+    {
+      id: "single-keys",
+      label: keysOn ? "Turn off single-key shortcuts" : "Turn on single-key shortcuts",
+      run: () => setKeysOn(!keysOn),
+    },
+    ...EXAMPLES.map((x) => ({
+      id: `ex:${x.name}`,
+      label: x.name,
+      group: "Example",
+      run: () => playExample(x.dsl),
+    })),
+    ...TOURS.map((t) => ({
+      id: `tour:${t.name}`,
+      label: t.name,
+      group: "Tour",
+      run: () => playTour(t),
+    })),
+  ];
 
   return (
     // The workbench: a fixed-height frame (no page scroll) with the script and
@@ -470,6 +558,20 @@ export function App() {
       />
 
       <AppFooter />
+
+      <CommandPalette
+        open={paletteOpen}
+        commands={commands}
+        onClose={() => setPaletteOpen(false)}
+      />
+
+      <ShortcutsDialog
+        open={keysOpen}
+        keys={shortcuts}
+        enabled={keysOn}
+        onToggle={setKeysOn}
+        onClose={() => setKeysOpen(false)}
+      />
 
       <ShareDialog
         open={shareUrlValue !== null}
