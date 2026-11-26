@@ -56,12 +56,12 @@ describe("ResetToast", () => {
 });
 
 describe("StepNote", () => {
-  it("shows the whole narration, announced, and nothing without one", () => {
+  it("shows the whole narration, and what the step does when it has none", () => {
     const long = "A settings item carries NO GSI1 key, so it never reaches GSI1. ".repeat(3);
-    const { container, rerender } = render(<StepNote text={long} step={3} />);
-    expect(screen.getByRole("status")).toHaveTextContent(long.trim());
-    expect(screen.getByText("Step 3")).toBeInTheDocument();
-    rerender(<StepNote step={0} />);
-    expect(container).toBeEmptyDOMElement();
+    const { rerender } = render(<StepNote text={long} step={3} total={8} fallback="put u1" />);
+    expect(screen.getByText(long.trim())).toBeInTheDocument();
+    expect(screen.getByText("Step 3/8")).toBeInTheDocument();
+    rerender(<StepNote step={4} total={8} fallback="put u2" />);
+    expect(screen.getByText("put u2")).toBeInTheDocument();
   });
 });

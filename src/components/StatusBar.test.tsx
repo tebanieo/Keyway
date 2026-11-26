@@ -40,6 +40,12 @@ describe("StatusBar", () => {
     expect(screen.getAllByText("WCU").length).toBeGreaterThan(0);
   });
 
+  it("announces each step through one permanent live region", () => {
+    setup({ announce: "Step 1 of 3: put u1. 1 WCU." });
+    const live = document.querySelector('[aria-live="polite"]');
+    expect(live).toHaveTextContent("Step 1 of 3: put u1. 1 WCU.");
+  });
+
   it("disables prev at the start and next at the end", () => {
     const a = setup({ curStep: 0, opsLength: 3 });
     expect(screen.getByRole("button", { name: "Step back" })).toBeDisabled();

@@ -2766,6 +2766,10 @@ body {
   font-size: 14px;
   line-height: 1.5;
 }
+.step-note.quiet {
+  border-left-color: var(--line);
+  color: var(--muted);
+}
 .step-note-n {
   flex-shrink: 0;
   color: var(--accent);

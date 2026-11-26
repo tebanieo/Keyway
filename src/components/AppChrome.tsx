@@ -5,13 +5,27 @@
 /**
  * The current step's narration, in full, above the tables: it's what the step
  * is teaching, so it sits where you're looking and wraps instead of being cut.
+ * Always there while a model has steps (a step without a note shows what it
+ * does), so the tables don't jump as notes come and go. Screen readers hear
+ * steps through the status bar's announcement, not from here.
  */
-export function StepNote({ text, step }: { text?: string; step: number }) {
-  if (!text) return null;
+export function StepNote({
+  text,
+  step,
+  total,
+  fallback,
+}: {
+  text?: string;
+  step: number;
+  total: number;
+  fallback: string;
+}) {
   return (
-    <p className="step-note" role="status">
-      <span className="step-note-n">Step {step}</span>
-      {text}
+    <p className={text ? "step-note" : "step-note quiet"}>
+      <span className="step-note-n">
+        Step {step}/{total}
+      </span>
+      <span>{text ?? fallback}</span>
     </p>
   );
 }

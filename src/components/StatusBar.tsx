@@ -9,6 +9,7 @@ import type { OpCost } from "../engine/cost";
  * in full above the tables, where the eye is: see StepNote.)
  */
 export function StatusBar({
+  announce = "",
   curStep,
   opsLength,
   op,
@@ -22,6 +23,8 @@ export function StatusBar({
   opBytes,
   totalWcu,
 }: {
+  /** What a screen reader hears on each step: number, write, cost and note. */
+  announce?: string;
   curStep: number;
   opsLength: number;
   op: { verb: string; detail: string };
@@ -48,6 +51,11 @@ export function StatusBar({
   };
   return (
     <section className="statusbar" aria-label="Playback and cost">
+      {/* One permanent live region, so every step is announced (a region
+          inserted already filled is read unreliably). */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announce}
+      </div>
       <div className="stepper" role="group" aria-label="Playback">
         <button disabled={curStep === 0} onClick={onPrev} title="step back" aria-label="Step back">
           <Icon name="prev" />
@@ -71,7 +79,7 @@ export function StatusBar({
         </button>
         <button
           className="speed"
-          onClick={() => onSpeed(speed === 0.5 ? 1 : speed === 1 ? 2 : 0.5)}
+          onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 0.5 : 1)}
           title="playback speed (click to cycle)"
           aria-label={`Playback speed ${speed}×`}
         >

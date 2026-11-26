@@ -68,6 +68,8 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **Playback reads at your pace.** Each step is held long enough to read its note, the default speed is labelled 1× (0.5× and 2× around it), and the step banner above the tables is always there (a step without a note shows what it does), so the tables no longer jump. Screen readers hear every step (number, write, cost and note) through one live region.
+- **Examples keep the script open** beside the tables on wide screens, with the running step lit, and the keyboard lands on Play/Pause after loading an example or a tour.
 - **Step narration sits above the tables, in full.** It was cut off with an ellipsis in the status bar; now it wraps at the top of the tables, where you're looking, on every screen size including phones.
 - **Phone layout.** Below 700px wide the script and the tables take turns behind a Script | Tables switch, the rail is a row of buttons, panels open as bottom sheets, and the status bar keeps playback, the step and its cost.
 - Tables: the sort-key column and diff gutter stay in place while a wide item scrolls sideways (the partition header no longer scrolls away), pane titles stay visible while scrolling, and the pin/delete buttons are larger, faintly visible at rest, and shown on keyboard focus.

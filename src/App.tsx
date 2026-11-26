@@ -17,7 +17,7 @@ import { usePlayback } from "./hooks/usePlayback";
 import { useModel } from "./hooks/useModel";
 import { useSelection } from "./hooks/useSelection";
 import { useShare } from "./hooks/useShare";
-import { useDrawers } from "./hooks/useDrawers";
+import { DOCKED, useDrawers } from "./hooks/useDrawers";
 import { usePaneVisibility } from "./hooks/usePaneVisibility";
 import { describe, editToOps } from "./model/actions";
 import { modelFromLocation } from "./model/share";
@@ -124,6 +124,8 @@ export function App() {
     curStep,
     ops.length,
     setStep,
+    // hold each step long enough to read its note
+    (curStep >= 1 ? notes[curStep - 1] : undefined)?.length ?? 0,
   );
 
   // Load a whole model (a shared link, or an example): the hook resets the model
@@ -140,6 +142,13 @@ export function App() {
   // Play a guided tour: load its curated model, then collapse the editor and
   // auto-play from step 0 so the tables are the focus and the narration reads
   // like a lesson. These setters batch, so the net effect is one clean start.
+  // After loading something to play, the keyboard lands on Play/Pause, not on
+  // the page (the control you used may have just closed).
+  const focusPlay = () =>
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(".statusbar .play")?.focus({ preventScroll: true }),
+    );
+
   const playTour = useCallback(
     (tour: Tour) => {
       loadModel(tour.dsl);
@@ -150,20 +159,23 @@ export function App() {
       setNarrowView(tour.focus === "editor" ? "script" : "tables");
       setPlaying(true);
       setDrawer(null);
+      focusPlay();
     },
     [loadModel, setStep, setPlaying, setDrawer],
   );
 
-  // Load an example and play it like a tour: rewind to step 0, hand the screen
-  // to the tables, and auto-play from the start (loadModel jumps to the end of
-  // the script, so the batched setStep(0) rewinds it before playback begins).
+  // Load an example and play it from step 0 (loadModel jumps to the end of the
+  // script, so the batched setStep(0) rewinds it before playback begins). On a
+  // wide screen the script stays open beside the tables, its step line lit, so
+  // you see how the model is written; narrower, the tables get the room.
   const playExample = useCallback(
     (dsl: string) => {
       loadModel(dsl);
       setStep(0);
-      setEditorCollapsed(true);
+      setEditorCollapsed(!window.matchMedia?.(DOCKED).matches);
       setNarrowView("tables"); // on a phone: show what's playing
       setPlaying(true);
+      focusPlay();
     },
     [loadModel, setStep, setPlaying],
   );
@@ -484,7 +496,18 @@ export function App() {
         )}
 
         <section className="wb-tables" aria-label="Tables">
-          <StepNote text={narration} step={curStep} />
+          {ops.length > 0 && (
+            <StepNote
+              text={narration}
+              step={curStep}
+              total={ops.length}
+              fallback={
+                curStep === 0
+                  ? "Before any writes. Press Play, or ] to step."
+                  : `${op.verb} ${op.detail}`
+              }
+            />
+          )}
           {showBackfill && backfill && (
             <BackfillBanner
               backfill={backfill}
@@ -556,6 +579,11 @@ export function App() {
       />
 
       <StatusBar
+        announce={
+          curStep === 0
+            ? ""
+            : `Step ${curStep} of ${ops.length}: ${op.verb} ${op.detail}.${cost ? ` ${cost.totalWrites} WCU.` : ""}${narration ? ` ${narration}` : ""}`
+        }
         curStep={curStep}
         opsLength={ops.length}
         op={op}
