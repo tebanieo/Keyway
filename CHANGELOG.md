@@ -63,6 +63,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- Panels (Query, Examples, Learn, Access Patterns) dock beside the tables on wide screens instead of covering them, and stay open while you click around; the rail is a fixed column. On narrower screens a panel opens as a bottom sheet.
 - **A workbench layout: the script and the tables side by side.** The page is a
   fixed-height frame with no page scroll; the script sits on the left and the
   tables on the right, each scrolling on its own. At 1440x900 you see about 9

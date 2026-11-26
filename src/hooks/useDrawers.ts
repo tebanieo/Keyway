@@ -3,6 +3,9 @@ import type { QueryHighlight } from "../components/QueryPanel";
 
 export type DrawerName = "patterns" | "examples" | "query" | "learn";
 
+/** Wide enough that drawers dock beside the tables (matches styles.css). */
+export const DOCKED = "(min-width: 1100px)";
+
 const NO_HIGHLIGHT: QueryHighlight = { matched: new Set(), scanned: new Set() };
 
 // The right-rail drawers: only one opens at a time (they share the edge), plus
@@ -23,10 +26,13 @@ export function useDrawers(modelEmpty: boolean) {
     if (drawer !== "query") setHighlight(NO_HIGHLIGHT);
   }, [drawer]);
 
-  // Click anywhere outside the rail/drawer dismisses the open drawer.
+  // On a narrow screen the open drawer overlays the content, so a click
+  // outside it dismisses it. On a wide one it's docked beside the tables:
+  // clicking the tables (e.g. while querying) leaves it open.
   useEffect(() => {
     if (!drawer) return;
     const onDown = (e: MouseEvent) => {
+      if (window.matchMedia?.(DOCKED).matches) return;
       const t = e.target as Element | null;
       if (t && !t.closest(".rail") && !t.closest(".drawer")) setDrawer(null);
     };

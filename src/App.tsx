@@ -292,7 +292,7 @@ export function App() {
         onUnpin={() => setPinnedId(null)}
       />
 
-      <main className="wb-main">
+      <main className={drawer ? "wb-main dock-open" : "wb-main"}>
         {editing && (
           <section className="wb-script" aria-label="Script">
             <EditorPane
@@ -348,16 +348,33 @@ export function App() {
 
           <AppHint editing={editing} />
         </section>
-      </main>
+        {/* Panels dock beside the tables instead of covering them. */}
+        <aside className="wb-dock" aria-label="Panels">
+          <QueryPanel
+            open={drawer === "query"}
+            base={base}
+            gsis={gsis}
+            state={state}
+            onHighlight={setQhl}
+            onClose={closeDrawer}
+          />
 
-      <QueryPanel
-        open={drawer === "query"}
-        base={base}
-        gsis={gsis}
-        state={state}
-        onHighlight={setQhl}
-        onClose={closeDrawer}
-      />
+          <ExamplesDrawer open={drawer === "examples"} onClose={closeDrawer} onLoad={playExample} />
+
+          <LearnDrawer open={drawer === "learn"} onClose={closeDrawer} onPlay={playTour} />
+
+          {aps.length > 0 && (
+            <AccessPatterns
+              open={drawer === "patterns"}
+              aps={aps}
+              base={base}
+              gsis={gsis}
+              state={fullState}
+              onClose={closeDrawer}
+            />
+          )}
+        </aside>
+      </main>
 
       <AppRail
         reveal={ops.length === 0}
@@ -367,21 +384,6 @@ export function App() {
         apCount={aps.length}
         apUnserved={apUnserved}
       />
-
-      <ExamplesDrawer open={drawer === "examples"} onClose={closeDrawer} onLoad={playExample} />
-
-      <LearnDrawer open={drawer === "learn"} onClose={closeDrawer} onPlay={playTour} />
-
-      {aps.length > 0 && (
-        <AccessPatterns
-          open={drawer === "patterns"}
-          aps={aps}
-          base={base}
-          gsis={gsis}
-          state={fullState}
-          onClose={closeDrawer}
-        />
-      )}
 
       <StatusBar
         curStep={curStep}

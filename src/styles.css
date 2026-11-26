@@ -2151,12 +2151,31 @@ body {
   box-sizing: border-box;
   height: 100dvh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "top top"
+    "main rail"
+    "status status"
+    "foot foot";
   gap: var(--s3);
   padding: var(--s3) var(--s4);
-  /* room for the rail on the right edge */
-  padding-right: calc(var(--s4) + 56px);
   overflow: hidden;
+}
+.app.wb > .toolbar {
+  grid-area: top;
+}
+.app.wb > .wb-main {
+  grid-area: main;
+}
+.app.wb > .rail {
+  grid-area: rail;
+}
+.app.wb > .statusbar {
+  grid-area: status;
+}
+.app.wb > .app-footer {
+  grid-area: foot;
 }
 .app.wb > .toolbar {
   position: static;
@@ -2269,4 +2288,90 @@ body {
 .sb-sigma {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Docked panels: a third column beside the tables, so a query's highlighted
+   rows stay in view instead of under the panel. Only the open one shows. */
+.wb-dock {
+  display: none;
+  min-height: 0;
+  min-width: 0;
+}
+.wb-main.dock-open {
+  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr) minmax(340px, 30%);
+}
+.app.no-script .wb-main.dock-open {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 30%);
+}
+.app.script-collapsed .wb-main.dock-open {
+  grid-template-columns: 40px minmax(0, 1fr) minmax(340px, 30%);
+}
+.wb-main.dock-open .wb-dock {
+  display: block;
+}
+.wb-dock .drawer {
+  position: static;
+  width: auto;
+  height: 100%;
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: none;
+  overflow: hidden;
+}
+.wb-dock .drawer:not(.open) {
+  display: none;
+}
+.wb-dock .query-panel {
+  overflow-y: auto;
+}
+
+/* The rail is a column of its own: always visible, never over the content. */
+.app.wb > .rail {
+  position: static;
+  align-self: start;
+  transform: none;
+  border-right: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+.app.wb > .rail::before {
+  display: none;
+}
+/* The first-run labels would sit over an open panel's header. */
+.wb-main.dock-open ~ .rail.hint .rail-label {
+  opacity: 0;
+}
+.wb-main.dock-open ~ .rail.hint .rail-btn:hover .rail-label {
+  opacity: 1;
+}
+
+/* Narrow screens: the open panel is a bottom sheet over the content. */
+@media (max-width: 1099px) {
+  .wb-main.dock-open {
+    grid-template-columns: minmax(300px, 40%) minmax(0, 1fr);
+  }
+  .app.no-script .wb-main.dock-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app.script-collapsed .wb-main.dock-open {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .wb-main.dock-open .wb-dock {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 60;
+    height: min(75dvh, 680px);
+  }
+  .wb-dock .drawer {
+    box-shadow: var(--shadow-2);
+  }
 }
