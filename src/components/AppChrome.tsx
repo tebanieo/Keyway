@@ -7,9 +7,9 @@ export function AppHint({ editing }: { editing: boolean }) {
     <p className="hint">
       {editing ? (
         <>
-          Type in the script above. <code>item</code>+Tab scaffolds a row. Add{" "}
-          <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane appears. Each{" "}
-          <code>@gsi</code> sets its own projection (<code>all</code>/<code>keys</code>
+          Type in the script above. <code>item</code>+Tab scaffolds a row; Escape leaves the editor.
+          Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane appears.
+          Each <code>@gsi</code> sets its own projection (<code>all</code>/<code>keys</code>
           /comma-list). Panes reparse live.
         </>
       ) : (

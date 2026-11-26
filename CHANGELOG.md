@@ -31,6 +31,11 @@ hand-curated summary. It follows
   cursor at the end of the model (it used to open on the table view with
   nothing focused, about 11 keystrokes from typing), and a shared link no
   longer opens with the page scrolled under the toolbar.
+- **Tab and Escape in the editor are predictable.** Tab never leaves the editor
+  (on a blank line it opens suggestions), and `item`+Tab works however fast you
+  type. Escape closes the menu, then ends the snippet, then lets you out: the
+  next Tab moves on, Shift+Tab goes back, shown by a hint on the editor. It used
+  to drop focus onto nothing.
 
 ### Changed
 

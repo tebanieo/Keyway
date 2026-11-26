@@ -13,7 +13,10 @@ import { basicSetup } from "codemirror";
 import {
   acceptCompletion,
   autocompletion,
+  clearSnippet,
+  closeCompletion,
   completionKeymap,
+  CompletionContext,
   completionStatus,
   hasNextSnippetField,
   hasPrevSnippetField,
@@ -85,37 +88,113 @@ const tabBackward: Command = (view) => {
 // you've typed a prefix (`item`<Tab>). The menu never preselects, so Enter
 // stays a newline unless you deliberately arrowed into the menu.
 const acceptTop: Command = (view) => {
-  if (completionStatus(view.state) !== "active") return false;
-  if (!selectedCompletion(view.state)) {
-    const head = view.state.selection.main.head;
-    const line = view.state.doc.lineAt(head);
-    const typed = /[\w@-]+$/.test(view.state.sliceDoc(line.from, head));
-    if (!typed) return false; // nothing typed: don't guess
-    view.dispatch({ effects: setSelectedCompletion(0) });
+  const head = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(head);
+  const typed = /[\w@-]+$/.exec(view.state.sliceDoc(line.from, head))?.[0] ?? "";
+  if (completionStatus(view.state) === "active") {
+    if (!selectedCompletion(view.state)) {
+      if (!typed) return false; // nothing typed: don't guess
+      view.dispatch({ effects: setSelectedCompletion(0) });
+    }
+    if (acceptCompletion(view)) return true;
+    // CodeMirror refuses to accept for ~75 ms after the menu updates (a
+    // misclick guard), which a fast typist hits: complete directly instead.
+    if (!typed) return false;
+    closeCompletion(view);
+    return completeNow(view, typed);
   }
-  return acceptCompletion(view);
+  // Typed faster than the menu opens (`item` then Tab within ~100 ms): ask the
+  // same completion source now, and apply its top match for what was typed.
+  return typed ? completeNow(view, typed) : false;
 };
 
-// Tab: advance a snippet field, else accept a completion, else the field jump.
-// Shift-Tab goes back. Escape is the explicit way out of the editor.
+/** Apply the best completion for `typed` at the caret, without the menu. */
+function completeNow(view: EditorView, typed: string): boolean {
+  const pos = view.state.selection.main.head;
+  const result = completeDsl(new CompletionContext(view.state, pos, true));
+  if (!result || result.from !== pos - typed.length) return false;
+  const best = result.options
+    .filter((o) => o.label.startsWith(typed))
+    .sort((a, b) => (b.boost ?? 0) - (a.boost ?? 0))[0];
+  if (!best) return false;
+  if (typeof best.apply === "function") best.apply(view, best, result.from, pos);
+  else {
+    const text = best.apply ?? best.label;
+    view.dispatch({
+      changes: { from: result.from, to: pos, insert: text },
+      selection: EditorSelection.cursor(result.from + text.length),
+    });
+  }
+  return true;
+}
+
+// Tab never leaves the editor (a keyboard user leaves with Escape, then Tab):
+// advance a snippet field, else accept a completion, else jump to the next
+// value; on a blank line it opens the suggestions; anywhere else it's a no-op.
+const tabElsewhere: Command = (view) => {
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+  if (line.text.trim() === "") startCompletion(view);
+  return true;
+};
+
+// Escape walks back one step at a time: close the menu, then end the snippet,
+// then "arm" the editor so the very next Tab / Shift-Tab moves focus out
+// (forward to the tables, or back to the toolbar): CodeMirror's Esc-then-Tab
+// convention. Any other key disarms it.
+const exitArmed = new WeakSet<EditorView>();
+const arm = (view: EditorView, on: boolean) => {
+  if (on) exitArmed.add(view);
+  else exitArmed.delete(view);
+  view.dom.classList.toggle("exit-armed", on);
+};
+const escapeChain: Command = (view) => {
+  if (completionStatus(view.state) === "active") return closeCompletion(view);
+  if (hasNextSnippetField(view.state) || hasPrevSnippetField(view.state)) {
+    return clearSnippet(view);
+  }
+  arm(view, true);
+  return true;
+};
+const disarmOnOtherKeys = EditorView.domEventHandlers({
+  keydown: (e, view) => {
+    if (e.key !== "Tab" && e.key !== "Escape" && e.key !== "Shift") arm(view, false);
+    return false;
+  },
+  blur: (_e, view) => {
+    arm(view, false);
+    return false;
+  },
+});
+
 const authoringKeys = Prec.highest(
   keymap.of([
     {
       key: "Tab",
-      // Inside a snippet with another field, advance the field first: so the
-      // open autocomplete popup can't hijack Tab. Otherwise accept a completion
-      // if the popup is open, else jump to the next attribute on the line.
-      run: (v) =>
-        (hasNextSnippetField(v.state) && nextSnippetField(v)) || acceptTop(v) || tabForward(v),
-      shift: (v) => (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v),
-    },
-    {
-      key: "Escape",
+      // Armed by Escape: report "not handled", so the browser's Tab moves focus
+      // out. Otherwise: inside a snippet, advance its field first (so the open
+      // menu can't hijack Tab); then accept a completion; then jump to the
+      // next value; never leave the editor.
       run: (v) => {
-        v.contentDOM.blur();
-        return true;
+        if (exitArmed.has(v)) {
+          arm(v, false);
+          return false;
+        }
+        return (
+          (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
+          acceptTop(v) ||
+          tabForward(v) ||
+          tabElsewhere(v)
+        );
+      },
+      shift: (v) => {
+        if (exitArmed.has(v)) {
+          arm(v, false);
+          return false;
+        }
+        return (hasPrevSnippetField(v.state) && prevSnippetField(v)) || tabBackward(v) || true;
       },
     },
+    { key: "Escape", run: escapeChain },
   ]),
 );
 
@@ -248,6 +327,7 @@ export const Editor = forwardRef<
         doc: initialDoc,
         extensions: [
           authoringKeys, // Tab/Shift-Tab/Escape: must win over defaults
+          disarmOnOtherKeys,
           basicSetup,
           keymap.of(completionKeymap),
           // Never preselect: an auto-opened menu must not turn Enter (a newline,

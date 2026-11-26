@@ -63,9 +63,12 @@ defaults:
 - Inside an active snippet, Tab advances the snippet field first (so an open
   popup can't hijack it), then accepts a completion (the highlighted one, or the
   top match once you've typed a prefix), then falls back to the attribute jump.
-- **Escape** blurs the editor: the explicit way out.
-
-On a non-item line Tab falls through to its normal behavior.
+- **Tab never leaves the editor.** On a blank line it opens the suggestions;
+  on a comment or `delete` line it does nothing.
+- **Escape** walks back one step at a time: it closes the suggestion menu, then
+  ends the snippet you're filling in, then gets the editor ready to let you
+  out: the very next **Tab** moves on to the tables, **Shift+Tab** back to the
+  toolbar. Any other key keeps you typing.
 
 ## Live diagnostics (linting)
 
