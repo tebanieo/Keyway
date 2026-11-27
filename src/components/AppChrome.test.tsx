@@ -4,15 +4,16 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { AppHint, AppFooter, CopiedToast, ResetToast, StepNote } from "./AppChrome";
 
 describe("AppHint", () => {
-  it("shows editor guidance in editing mode", () => {
-    render(<AppHint editing={true} />);
+  it("guides a first model in full while the model is empty", () => {
+    render(<AppHint empty />);
     expect(screen.getByText(/scaffolds a row/)).toBeInTheDocument();
     expect(screen.getByText(/GSI2PK/)).toBeInTheDocument();
   });
 
-  it("shows canvas guidance otherwise", () => {
-    render(<AppHint editing={false} />);
-    expect(screen.getByText(/Double-click a base cell/)).toBeInTheDocument();
+  it("is one line once there's a model", () => {
+    render(<AppHint empty={false} />);
+    expect(screen.getByText(/Double-click a cell to edit it/)).toBeInTheDocument();
+    expect(screen.queryByText(/scaffolds a row/)).toBeNull();
   });
 });
 

@@ -5,8 +5,6 @@ import { Toolbar } from "./Toolbar";
 
 function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
   const props = {
-    mode: "canvas" as const,
-    onMode: vi.fn(),
     theme: "dark" as const,
     onToggleTheme: vi.fn(),
     onShare: vi.fn(),
@@ -21,22 +19,12 @@ function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
 }
 
 describe("Toolbar", () => {
-  it("renders the brand and the mode toggle", () => {
-    setup();
-    expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Canvas" })).toHaveClass("active");
-    // state is exposed, not only shown by colour
-    expect(screen.getByRole("button", { name: "Canvas" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Editor" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: "Editor" })).not.toHaveClass("active");
-  });
-
-  it("wires mode, theme, and share", () => {
+  it("renders the brand, and wires theme and share", () => {
     const p = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Editor" }));
+    expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Canvas" })).toBeNull(); // one interface
     fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
-    expect(p.onMode).toHaveBeenCalledWith("editor");
     expect(p.onToggleTheme).toHaveBeenCalledOnce();
     expect(p.onShare).toHaveBeenCalledOnce();
   });

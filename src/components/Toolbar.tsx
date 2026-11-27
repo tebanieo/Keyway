@@ -1,18 +1,10 @@
 import { Icon, Logo } from "./icons";
 import type { Theme } from "../hooks/useTheme";
 
-export type Mode = "canvas" | "editor";
-
-/** Title-case a single-word action label (identifiers are shown verbatim). */
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
 /**
- * The top command bar: brand, mode toggle, theme/share/reset, the pinned chip,
- * and the step transport. Purely presentational; all behavior is passed in.
+ * The top command bar: brand, theme/share/reset and the pinned chip. Purely presentational; all behavior is passed in.
  */
 export function Toolbar({
-  mode,
-  onMode,
   theme,
   onToggleTheme,
   onShare,
@@ -21,8 +13,6 @@ export function Toolbar({
   pinnedId,
   onUnpin,
 }: {
-  mode: Mode;
-  onMode: (m: Mode) => void;
   theme: Theme;
   onToggleTheme: () => void;
   onShare: () => void;
@@ -37,19 +27,6 @@ export function Toolbar({
         <Logo />
         <span className="brand-name">Keyway</span>
       </h1>
-
-      <div className="seg" role="group" aria-label="View">
-        {(["canvas", "editor"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            className={m === mode ? "active" : ""}
-            aria-pressed={m === mode}
-            onClick={() => onMode(m)}
-          >
-            {cap(m)}
-          </button>
-        ))}
-      </div>
 
       <button
         className="icon-btn"

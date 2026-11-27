@@ -2894,3 +2894,12 @@ h2.q-title {
 .wb-split.dragging {
   background-clip: content-box;
 }
+
+/* The empty-state guide: a few keyed lines, not a paragraph. */
+.hint-start {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}

@@ -30,25 +30,32 @@ export function StepNote({
   );
 }
 
-export function AppHint({ editing }: { editing: boolean }) {
+/**
+ * How to drive the app. In full while the model is empty (the moment it's
+ * needed); once there's something on screen, one line of where to look.
+ */
+export function AppHint({ empty }: { empty: boolean }) {
+  if (!empty) {
+    return (
+      <p className="hint">
+        Double-click a cell to edit it (written into the script) · <kbd>Ctrl/⌘ K</kbd> any action ·{" "}
+        <kbd>?</kbd> shortcuts
+      </p>
+    );
+  }
   return (
-    <p className="hint">
-      {editing ? (
-        <>
-          Type in the script. <code>item</code>+Tab scaffolds a row; Escape then Tab leaves the
-          editor. Add <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK projection=keys</code> and a new pane
-          appears. Each <code>@gsi</code> sets its own projection (<code>all</code>/
-          <code>keys</code>
-          /comma-list). Panes reparse live. <kbd>Ctrl/⌘ K</kbd> finds any action; <kbd>?</kbd> lists
-          the shortcuts.
-        </>
-      ) : (
-        <>
-          Double-click a base cell to edit; click a row to pin and follow it. Switch to{" "}
-          <b>editor</b> to author the same model as text. <kbd>Ctrl/⌘ K</kbd> finds any action.
-        </>
-      )}
-    </p>
+    <ul className="hint hint-start">
+      <li>
+        Type in the script: <code>item</code> then <kbd>Tab</kbd> scaffolds a row.
+      </li>
+      <li>
+        <code>@gsi GSI2 pk=GSI2PK sk=GSI2SK</code> adds an index, and a pane for it.
+      </li>
+      <li>
+        <kbd>Esc</kbd> then <kbd>Tab</kbd> leaves the script · <kbd>Ctrl/⌘ K</kbd> any action ·{" "}
+        <kbd>?</kbd> shortcuts
+      </li>
+    </ul>
   );
 }
 

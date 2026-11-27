@@ -70,6 +70,8 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **One interface: the script.** The Canvas/Editor switch is gone. The base table is still editable in place (double-click or Enter on a cell, delete a row, "+ item"), and every change is written into the script as a line, as if typed, so the text stays the single source of truth.
+- **The hint under the tables** is a short keyed guide while the model is empty, and a single line after that.
 - **Polish from the second review:**
   - **Reset:** "Undo" stays for 30 s and is in the command palette ("Undo reset"). Toasts sit above the status bar.
   - **Error count:** the editor's count no longer flashes "1 error" for the line you're still typing, and it matches the problems list.

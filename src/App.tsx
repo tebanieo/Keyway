@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { parseDoc } from "./model/dsl";
+import { parseDoc, serializeOps } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 import { itemSize } from "./engine/itemsize";
 import { Toolbar } from "./components/Toolbar";
-import type { Mode } from "./components/Toolbar";
 import { projLabel } from "./components/Panel";
 import type { EditProps } from "./components/Panel";
 import { ExamplesDrawer } from "./components/ExamplesDrawer";
@@ -19,7 +18,8 @@ import { useSelection } from "./hooks/useSelection";
 import { useShare } from "./hooks/useShare";
 import { DOCKED, useDrawers } from "./hooks/useDrawers";
 import { usePaneVisibility } from "./hooks/usePaneVisibility";
-import { describe, editToOps } from "./model/actions";
+import { describe, editToOps, nextItemLabel } from "./model/actions";
+import type { Op } from "./engine/types";
 import { modelFromLocation } from "./model/share";
 import { ShareDialog } from "./components/ShareDialog";
 import { putItemOf } from "./model/backfill";
@@ -60,11 +60,9 @@ export function App() {
     curStep,
     setStep,
     dirty,
-    commit,
     onDoc,
     load,
     reset: resetModel,
-    addItem,
     state,
     fullState,
     baseView,
@@ -76,8 +74,6 @@ export function App() {
     apUnserved,
   } = useModel();
 
-  // Type-first: the app opens in the editor (focused, caret at the end).
-  const [mode, setMode] = useState<Mode>("editor");
   const { theme, toggle: toggleTheme } = useTheme();
   // The editor is the hero; collapsing its header hands the screen to the tables
   // (authors work up top, viewers focus on the panes below).
@@ -117,7 +113,6 @@ export function App() {
     allVisible,
   } = usePaneVisibility(paneNames);
 
-  const editing = mode === "editor";
   const { playing, setPlaying, speed, setSpeed, togglePlay } = usePlayback(
     curStep,
     ops.length,
@@ -132,7 +127,6 @@ export function App() {
     (text: string) => {
       load(text);
       setPinnedId(null);
-      setMode("editor");
     },
     [load, setPinnedId],
   );
@@ -196,21 +190,24 @@ export function App() {
     return { errors, warnings: diagnostics.length - errors };
   }, [docText, caretLine]);
 
-  const enterEditor = () => {
-    setMode("editor");
+  // The script is the one interface. Editing a cell, deleting a row or adding
+  // an item in the tables writes the matching line into the script (appended,
+  // as if typed), so the text stays the single source of truth.
+  const writeLines = (added: Op[]) => {
+    if (added.length) editorRef.current?.appendLines(serializeOps(added, base));
   };
-
   const edit: EditProps = {
     onEdit: (item, key, value) => {
       if ((item.attrs[key] ?? "") === value) return;
-      commit(editToOps(item, key, value, base));
+      writeLines(editToOps(item, key, value, base));
     },
-    onDelete: (id) => commit([{ kind: "delete", id }]),
-    // Add the item to the table AND open the editor: the table is for viewing,
-    // the editor is where you author from here.
+    onDelete: (id) => writeLines([{ kind: "delete", id }]),
     onAddItem: (pkValue) => {
-      const id = addItem(pkValue);
-      setMode("editor");
+      const id = nextItemLabel(ops);
+      const attrs: Record<string, string> = { [base.pk]: pkValue };
+      if (base.sk) attrs[base.sk] = `ITEM#${id}`;
+      writeLines([{ kind: "put", item: { id, attrs } }]);
+      setEditorCollapsed(false);
       setPinnedId(id);
     },
   };
@@ -228,10 +225,9 @@ export function App() {
     resetModel();
     setPinnedId(null);
     setPlaying(false);
-    setMode("editor");
   };
 
-  // The model as text: the script is the one source in both modes.
+  // The model as text: the script is the one source.
   const currentDoc = () => docText;
 
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
@@ -239,22 +235,13 @@ export function App() {
 
   const applyBackfill = () => {
     if (!backfill) return;
-    if (editing) {
-      // edit each target's line in place: no duplicate rows appended
-      editorRef.current?.patchItems(
-        backfill.targets.map((t) => ({
-          label: t.id,
-          append: `${backfill.attr}=${backfill.value}`,
-        })),
-      );
-    } else {
-      commit(
-        backfill.targets.map((it) => ({
-          kind: "put",
-          item: { id: it.id, attrs: { ...it.attrs, [backfill.attr]: backfill.value } },
-        })),
-      );
-    }
+    // edit each target's line in place: no duplicate rows appended
+    editorRef.current?.patchItems(
+      backfill.targets.map((t) => ({
+        label: t.id,
+        append: `${backfill.attr}=${backfill.value}`,
+      })),
+    );
   };
 
   // Write units of every step up to the current one (the status bar's total).
@@ -278,7 +265,7 @@ export function App() {
     }
   };
   useEffect(() => {
-    if (!pinnedId || !editing) return;
+    if (!pinnedId) return;
     for (let i = ops.length - 1; i >= 0; i--) {
       if (opIdAt(i) === pinnedId) return editorRef.current?.revealLine(opLines[i]);
     }
@@ -316,17 +303,14 @@ export function App() {
   // Spotlight the touched item only while auto-playing (no standalone toggle).
   const focusId = playing ? affectedId : null;
 
-  // Editing lives on the base pane, and only in canvas mode.
-  const baseEdit = editing ? undefined : edit;
-
   // The panes to render, in index order, filtered to the visible set.
   const shownPanes: ShownPane[] = [
     {
       name: base.name,
       view: baseView,
       prev: prevBaseView,
-      edit: baseEdit,
-      subtitle: editing ? "you write here · via script" : "you write here",
+      edit,
+      subtitle: "editable · writes to the script",
     },
     ...gsiViews.map((gv) => ({
       name: gv.index.name,
@@ -347,7 +331,6 @@ export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
   const goToScript = () => {
-    if (!editing) enterEditor();
     setEditorCollapsed(false);
     setNarrowView("script");
     requestAnimationFrame(() => editorRef.current?.focus());
@@ -384,19 +367,10 @@ export function App() {
       run: s.run,
     })),
     {
-      id: "mode",
-      label: editing ? "Switch to Canvas (edit in the tables)" : "Switch to Editor (the script)",
-      run: () => (editing ? setMode("canvas") : enterEditor()),
+      id: "collapse",
+      label: editorCollapsed ? "Expand the script" : "Collapse the script",
+      run: () => setEditorCollapsed((v) => !v),
     },
-    ...(editing
-      ? [
-          {
-            id: "collapse",
-            label: editorCollapsed ? "Expand the script" : "Collapse the script",
-            run: () => setEditorCollapsed((v) => !v),
-          },
-        ]
-      : []),
     {
       id: "diff",
       label: diffOn ? "Hide the diff" : "Show the diff",
@@ -443,12 +417,8 @@ export function App() {
   return (
     // The workbench: a fixed-height frame (no page scroll) with the script and
     // the tables side by side, each scrolling on its own.
-    <div
-      className={`app wb${editing ? "" : " no-script"}${editing && editorCollapsed ? " script-collapsed" : ""}`}
-    >
+    <div className={`app wb${editorCollapsed ? " script-collapsed" : ""}`}>
       <Toolbar
-        mode={mode}
-        onMode={(m) => (m === "editor" ? enterEditor() : setMode("canvas"))}
         theme={theme}
         onToggleTheme={toggleTheme}
         onShare={() => openShare(currentDoc())}
@@ -458,57 +428,53 @@ export function App() {
         onUnpin={() => setPinnedId(null)}
       />
 
-      {editing && (
-        <section className="wb-switch" aria-label="Show the script or the tables">
-          <button
-            aria-pressed={narrowView === "script"}
-            className={narrowView === "script" ? "active" : ""}
-            onClick={() => {
-              setNarrowView("script");
-              setEditorCollapsed(false);
-            }}
-          >
-            Script
-          </button>
-          <button
-            aria-pressed={narrowView === "tables"}
-            className={narrowView === "tables" ? "active" : ""}
-            onClick={() => setNarrowView("tables")}
-          >
-            Tables
-          </button>
-        </section>
-      )}
+      <section className="wb-switch" aria-label="Show the script or the tables">
+        <button
+          aria-pressed={narrowView === "script"}
+          className={narrowView === "script" ? "active" : ""}
+          onClick={() => {
+            setNarrowView("script");
+            setEditorCollapsed(false);
+          }}
+        >
+          Script
+        </button>
+        <button
+          aria-pressed={narrowView === "tables"}
+          className={narrowView === "tables" ? "active" : ""}
+          onClick={() => setNarrowView("tables")}
+        >
+          Tables
+        </button>
+      </section>
 
       <main
         className={drawer ? "wb-main dock-open" : "wb-main"}
-        data-view={editing ? narrowView : "tables"}
+        data-view={narrowView}
         style={{ "--script-w": `${scriptPct}%` } as CSSProperties}
       >
-        {editing && (
-          <section className="wb-script" aria-label="Script">
-            <EditorPane
-              ref={editorRef}
-              collapsed={editorCollapsed}
-              problems={problems}
-              onOpenProblems={() => {
-                setEditorCollapsed(false);
-                editorRef.current?.openProblems();
-              }}
-              onToggleCollapse={() => setEditorCollapsed((v) => !v)}
-              itemCount={fullState.size}
-              gsiCount={gsis.length}
-              apCount={aps.length}
-              editorKey={docVersion}
-              initialDoc={docText}
-              onChange={onDoc}
-              activeLine={activeLine}
-              onCaretLine={onCaretLine}
-              onRunLine={onRunLine}
-            />
-            <Splitter pct={scriptPct} onChange={setScriptPct} />
-          </section>
-        )}
+        <section className="wb-script" aria-label="Script">
+          <EditorPane
+            ref={editorRef}
+            collapsed={editorCollapsed}
+            problems={problems}
+            onOpenProblems={() => {
+              setEditorCollapsed(false);
+              editorRef.current?.openProblems();
+            }}
+            onToggleCollapse={() => setEditorCollapsed((v) => !v)}
+            itemCount={fullState.size}
+            gsiCount={gsis.length}
+            apCount={aps.length}
+            editorKey={docVersion}
+            initialDoc={docText}
+            onChange={onDoc}
+            activeLine={activeLine}
+            onCaretLine={onCaretLine}
+            onRunLine={onRunLine}
+          />
+          <Splitter pct={scriptPct} onChange={setScriptPct} />
+        </section>
 
         <section className="wb-tables" aria-label="Tables">
           <span id="grid-keys-help" className="sr-only">
@@ -556,7 +522,7 @@ export function App() {
             focusId={focusId}
           />
 
-          <AppHint editing={editing} />
+          <AppHint empty={ops.length === 0} />
         </section>
         {/* Panels dock beside the tables instead of covering them. */}
         <aside className="wb-dock" aria-label="Panels">
