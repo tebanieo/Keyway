@@ -30,7 +30,7 @@ import { forceLinting, linter, lintGutter, openLintPanel } from "@codemirror/lin
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "../model/dsl";
 import { apLineNotes } from "../model/coverage";
-import { expandGen, GEN_LINE } from "../model/sample/generate";
+import { expandGen, GEN_LINE, parseGen } from "../model/sample/generate";
 import { BASE_INDEX } from "../model/seed";
 import { completeDsl } from "./editorCompletions";
 import { dslHighlighting } from "./dslLanguage";
@@ -149,7 +149,7 @@ const replaceWithRows = (view: EditorView, lineNo: number, rows: string[]) => {
 };
 const genExpand: Command = (view) => {
   const line = view.state.doc.lineAt(view.state.selection.main.head);
-  if (!GEN_LINE.test(line.text)) return false;
+  if (!GEN_LINE.test(line.text) || typeof parseGen(line.text) === "string") return false;
   const r = expandGen(view.state.doc.toString(), line.number - 1);
   if ("lines" in r) replaceWithRows(view, line.number, r.lines);
   return true;
@@ -205,8 +205,9 @@ const authoringKeys = Prec.highest(
         }
         return (
           (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
+          // a complete @gen line expands, unless you're picking a suggestion
+          (completionStatus(v.state) !== "active" && genExpand(v)) ||
           acceptTop(v) ||
-          genExpand(v) ||
           tabForward(v) ||
           tabElsewhere(v)
         );

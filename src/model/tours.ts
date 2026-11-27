@@ -171,6 +171,43 @@ o1: PK=USER#1  SK=ORDER#1  total=42  status=shipped  _type=order  @if #s = :p  n
 o1: PK=USER#1  SK=ORDER#1  total=42  status=cancelled  _type=order  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
 `;
 
+// Sample data: one @gen line becomes rows shaped like yours. Keeps the editor
+// open so the script, the rows and the tables are watched together.
+const SAMPLE_DATA = `# Sample Data: typing every row by hand gets old. Write ONE row of each type
+# yourself, then ask for more with @gen: Keyway copies that row's shape (its
+# attributes, how its keys are built, the values it uses) and writes the rows
+# into the script for you.
+@table AppTable pk=PK sk=SK
+@gsi GSI1 pk=GSI1PK sk=GSI1SK
+
+# One tenant and one of its projects, by hand. This is the shape @gen learns:
+# a tenant is TENANT#<name> + META; a project lives in its tenant's partition
+# and is indexed by STATUS#<status> on GSI1.
+t1: PK=TENANT#acme  SK=META  name=Acme Corp  plan=enterprise  _type=tenant
+p1: PK=TENANT#acme  SK=PROJECT#apollo  name=Apollo  status=active  GSI1PK=STATUS#active  GSI1SK=2024-03-01  _type=project
+
+# We typed "@gen tenant 2" and pressed Tab, and the line became these two rows:
+# new names, PKs built like TENANT#acme, and a plan picked from a few usual ones.
+t2: PK=TENANT#wonka  SK=META  name=Wonka  plan=pro  _type=tenant
+t3: PK=TENANT#initech  SK=META  name=Initech  plan=enterprise  _type=tenant
+
+# Then "@gen project 2 per tenant  status=new|active|done" and Tab: two projects
+# for EACH tenant, inside that tenant's partition (they share its PK), with a
+# status from the list, and GSI1PK=STATUS#<status> built the way p1 builds it.
+# Watch every tenant's item collection fill in, and GSI1 regroup them by status.
+p2: PK=TENANT#acme  SK=PROJECT#delta  name=Delta  status=active  GSI1PK=STATUS#active  GSI1SK=2024-08-06  _type=project
+p3: PK=TENANT#acme  SK=PROJECT#polaris  name=Polaris  status=active  GSI1PK=STATUS#active  GSI1SK=2024-11-23  _type=project
+p4: PK=TENANT#wonka  SK=PROJECT#vega  name=Vega  status=new  GSI1PK=STATUS#new  GSI1SK=2024-05-19  _type=project
+p5: PK=TENANT#wonka  SK=PROJECT#titan  name=Titan  status=done  GSI1PK=STATUS#done  GSI1SK=2024-08-28  _type=project
+p6: PK=TENANT#initech  SK=PROJECT#falcon  name=Falcon  status=done  GSI1PK=STATUS#done  GSI1SK=2024-05-14  _type=project
+p7: PK=TENANT#initech  SK=PROJECT#harbor  name=Harbor  status=done  GSI1PK=STATUS#done  GSI1SK=2024-08-01  _type=project
+
+# Your turn: click at the end of the @gen line below and press Tab. One more
+# project per tenant appears. Ctrl/Cmd+Z puts the line back. Try your own too:
+# "@gen user 2 per tenant", or a range like "budget=1000..50000".
+@gen project 1 per tenant
+`;
+
 export const TOURS: Tour[] = [
   {
     name: "Getting Started",
@@ -183,6 +220,13 @@ export const TOURS: Tour[] = [
     blurb:
       "the workflow: declare access patterns, then add the @table and @gsi keys that serve them",
     dsl: MODELING,
+    focus: "editor",
+  },
+  {
+    name: "Sample Data",
+    blurb:
+      "fill a model fast: write one row per type, then @gen the rest (per parent, from a list)",
+    dsl: SAMPLE_DATA,
     focus: "editor",
   },
   {
