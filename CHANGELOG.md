@@ -70,6 +70,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **Columns line up across partitions.** Every partition in a pane shares one set of columns and widths, so an attribute sits at the same place in each item collection and can be compared down the page.
 - **One interface: the script.** The Canvas/Editor switch is gone. The base table is still editable in place (double-click or Enter on a cell, delete a row, "+ item"), and every change is written into the script as a line, as if typed, so the text stays the single source of truth.
 - **The hint under the tables** is a short keyed guide while the model is empty, and a single line after that.
 - **Polish from the second review:**

@@ -62,6 +62,22 @@ function isKeyAttr(k: string, index: IndexSpec): boolean {
   return pkAttrs(index).includes(k) || skAttrs(index).includes(k);
 }
 
+// Fixed parts of a row: cell padding (both sides), the diff gutter, the
+// pin/delete column. Must match .ptable td / th.gutter / th.actions.
+const CELL_PAD = 28;
+const GUTTER_W = 20;
+const ACTIONS_W = 52;
+/** Longest value shown (in ch) before an ellipsis; matches .ptable td. */
+const MAX_CH = 36;
+
+/** A column's width in ch: its widest value (capped), or its header. The
+ *  header is set smaller in a proportional face, so it needs fewer ch. */
+function columnWidth(k: string, rows: DiffRow[]): number {
+  let w = Math.ceil(k.length * 0.8);
+  for (const r of rows) w = Math.max(w, (r.item.attrs[k] ?? "").length);
+  return Math.min(Math.max(w, 2), MAX_CH);
+}
+
 /** One index pane: title + a partition card per partition key. */
 export function Panel({
   view,
@@ -90,6 +106,12 @@ export function Panel({
         rows: p.items.map((it): DiffRow => ({ item: it, status: "same" })),
       }));
   const total = view.partitions.reduce((n, p) => n + p.items.length, 0);
+  // One column set and one set of widths for the whole pane, so every
+  // partition's columns line up under each other and can be compared down
+  // the page (an attribute an item lacks shows as a blank cell).
+  const allRows = parts.flatMap((p) => p.rows);
+  const cols = unionKeys(allRows, index);
+  const widths = cols.map((k) => columnWidth(k, allRows));
 
   return (
     <div className="panel">
@@ -136,6 +158,8 @@ export function Panel({
               gutter={diffOn}
               query={query}
               focusId={focusId}
+              cols={cols}
+              widths={widths}
             />
           </div>
         ))}
@@ -153,7 +177,12 @@ function GridRows({
   gutter,
   query,
   focusId,
+  cols,
+  widths,
 }: {
+  /** The pane's columns and their widths (in ch), shared by its partitions. */
+  cols: string[];
+  widths: number[];
   /** Names the table for assistive tech: the index and the partition. */
   label: string;
   rows: DiffRow[];
@@ -164,7 +193,6 @@ function GridRows({
   query?: QueryHighlight;
   focusId?: string | null;
 }) {
-  const cols = unionKeys(rows, index);
   // The last key column (the sort key, else the partition key) stays put
   // while a wide item scrolls sideways, so each row keeps its name.
   const lead = cols.filter((k) => isKeyAttr(k, index));
@@ -183,7 +211,17 @@ function GridRows({
         aria-describedby={edit ? "grid-keys-help" : undefined}
         onKeyDown={edit ? moveInGrid : undefined}
         onFocus={edit ? rove : undefined}
+        style={{
+          width: `calc(${widths.reduce((a, b) => a + b, 0)}ch + ${cols.length * CELL_PAD + (gutter ? GUTTER_W : 0) + ACTIONS_W}px)`,
+        }}
       >
+        <colgroup>
+          {gutter && <col style={{ width: GUTTER_W }} />}
+          {cols.map((k, i) => (
+            <col key={k} style={{ width: `calc(${widths[i]}ch + ${CELL_PAD}px)` }} />
+          ))}
+          <col style={{ width: ACTIONS_W }} />
+        </colgroup>
         <thead>
           <tr>
             {gutter && (

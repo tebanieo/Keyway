@@ -1634,7 +1634,10 @@ body {
 
 /* Grid layout: aligned columns per partition (union of item attributes). */
 .ptable {
-  width: 100%;
+  /* fixed layout: widths come from the pane-wide <colgroup>, so partitions
+     line up; a narrow pane still fills its card */
+  table-layout: fixed;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: 13px;
