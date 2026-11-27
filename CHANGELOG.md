@@ -9,6 +9,7 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- **A key change is now truly all-or-nothing.** If the new item's `@if` failed, the old item used to be deleted anyway; now the whole transaction is cancelled.
 - **Screen readers:** Canvas tables are an ARIA grid (each cell says whether it's editable, the edit field is named "<attribute> of <item>", and the keys are described); diff marks read as "added / removed / modified"; the change and action columns have header text; the phone view switch sits in a labelled region. axe reports no issues in the example, playback, Canvas, editing, Query and phone states, apart from one false positive on the editor's scroller.
 - **Switching Canvas → Editor no longer wipes the script's comments.** Canvas edits now write into the script itself: an edited or added item is appended as a line, a delete as `delete label`, and everything you wrote (comments, directives, layout) is kept.
 - **Phone: loading an example shows the tables** instead of a blank script tab while it plays.
@@ -155,6 +156,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Transactions: `@transact … @end`.** Group puts, deletes and `check label @if …` (a ConditionCheck) into one `TransactWriteItems`: one step, all or nothing. Every condition is checked against the table before the transaction; if any fails, it's cancelled and nothing is written (still billed). Each action costs the transactional rate (a check included). DynamoDB's rules are enforced: no two actions on one item, at most 100 actions, no nesting. The editor completes `@transact` and offers `check` inside a block.
 - **"In real DynamoDB" notes for schema changes.** Changing a key in `@table` or `@gsi` (or adding a GSI) on a model with data still rebuilds the tables instantly, and now a note says what that would be in production: a new table plus a data copy for a primary-key change, delete-and-re-create plus a backfill for a GSI's keys, and a billed backfill for a new GSI.
 - **Resize the script:** drag its right edge, or focus it and use the arrow keys (Shift for bigger steps); the width is remembered. Keys `1`–`9` show or hide the panes, and pane titles are larger.
 - **Canvas tables work from the keyboard:** each table is one tab stop, the arrow keys (and Home/End) move between cells, Enter or F2 edits a cell, and Enter/Escape bring you back to it.

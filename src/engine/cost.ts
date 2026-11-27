@@ -218,6 +218,11 @@ export function writeCost(
       }
       // transactional 2×, by the larger of old and new, as a plain put
       baseWrites += wcu(Math.max(itemSize(action.item), prev ? itemSize(prev) : 0), true);
+    } else if (action.kind === "check") {
+      // A ConditionCheck reads the item and writes nothing, but in a
+      // transaction it is billed as a transactional write of the item's size.
+      const prev = findById(running, action.id);
+      baseWrites += wcu(prev ? itemSize(prev) : 0, true);
     } else {
       const prev = findById(running, action.id);
       for (const g of gsis) {

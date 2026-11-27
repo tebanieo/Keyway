@@ -68,7 +68,10 @@ export type Condition = Expression;
 /** A single write against the table. The atoms a transaction is built from. */
 export type WriteAction =
   | { kind: "put"; item: Item; condition?: Condition }
-  | { kind: "delete"; id: string; condition?: Condition };
+  | { kind: "delete"; id: string; condition?: Condition }
+  /** A ConditionCheck: only inside a transaction. It writes nothing; its
+   *  condition must hold for the whole transaction to go through. */
+  | { kind: "check"; id: string; condition: Condition };
 
 /**
  * The op log. Folding it left-to-right yields the current table state.
@@ -78,7 +81,15 @@ export type WriteAction =
  * do in place) as an atomic delete-old + put-new, rather than two separate
  * (and briefly inconsistent) writes.
  */
-export type Op = WriteAction | { kind: "transact"; actions: WriteAction[] };
+export type Op =
+  | Exclude<WriteAction, { kind: "check" }>
+  | {
+      kind: "transact";
+      actions: WriteAction[];
+      /** Written as an `@transact … @end` block (vs. the implicit delete + put
+       *  of a key change), so it serializes back as a block. */
+      explicit?: boolean;
+    };
 
 /** One partition (all items sharing a partition-key value) under some index. */
 export interface Partition {

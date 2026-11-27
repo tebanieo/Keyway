@@ -17,7 +17,7 @@ export function token(stream: StringStream, state: LineState): string | null {
   if (stream.sol()) {
     if (stream.match(/^\s*#.*/)) return "comment";
     if (stream.match(/^@[\w-]+/)) return "keyword";
-    if (stream.match(/^delete\b/)) return "keyword";
+    if (stream.match(/^(?:delete|check)\b/)) return "keyword";
     if (stream.match(/^[^\s:=@#][^\s:=]*:(?=\s|$)/)) return "labelName";
   }
   if (stream.eatSpace()) {

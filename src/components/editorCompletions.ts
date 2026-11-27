@@ -48,6 +48,12 @@ const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   type: "keyword",
 });
 
+const CHECK_SNIPPET = snippetCompletion(`check ${ph("label")}  @if ${ph("condition")}`, {
+  label: "check",
+  detail: "ConditionCheck: must hold for the transaction to go through",
+  type: "keyword",
+});
+
 // `@` directive completions: makes declaring indexes discoverable, including
 // the multi-key comma-list form (the thing that isn't obvious).
 const DIRECTIVES = [
@@ -64,6 +70,11 @@ const DIRECTIVES = [
       type: "keyword",
     },
   ),
+  snippetCompletion(`@transact\n${ph("writes")}\n@end`, {
+    label: "@transact",
+    detail: "TransactWriteItems: several writes, all or nothing",
+    type: "keyword",
+  }),
   snippetCompletion(`@table ${ph("Name")} pk=${ph("pk")} sk=${ph("sk")}`, {
     label: "@table",
     detail: "name the base table + its keys",
@@ -232,7 +243,18 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
   } else {
     // line start: everything you can begin a line with, scaffold an item
     // (blank or from an entity template), delete, or an @ directive.
-    options = [itemSnippet(base), DELETE_SNIPPET, ...DIRECTIVES, ...entities.map(entityScaffold)];
+    // inside an open @transact block, a ConditionCheck is one more thing
+    const lines = ctx.state.doc.sliceString(0, line.from).split("\n");
+    const opens = lines.filter((l) => /^\s*@transact\s*$/i.test(l)).length;
+    const closes = lines.filter((l) => /^\s*@end\s*$/i.test(l)).length;
+    const inTx = opens > closes;
+    options = [
+      itemSnippet(base),
+      DELETE_SNIPPET,
+      ...(inTx ? [CHECK_SNIPPET] : []),
+      ...DIRECTIVES,
+      ...entities.map(entityScaffold),
+    ];
   }
 
   return { from: word.from, options };

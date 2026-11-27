@@ -44,6 +44,13 @@ u1: PK=U#1  SK=A  email=a@x  name=Ada
     expect(list).toContain("name");
   });
 
+  it("offers @transact, and check only inside an open block", () => {
+    expect(labels(complete("@t"))).toContain("@transact");
+    expect(labels(complete(M))).not.toContain("check");
+    expect(labels(complete(M + "@transact\n"))).toContain("check");
+    expect(labels(complete(M + "@transact\ndelete u1\n@end\n"))).not.toContain("check");
+  });
+
   it("offers existing item labels after delete", () => {
     const res = complete(M + "delete ");
     expect(labels(res)).toEqual(["u1"]);
