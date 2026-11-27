@@ -52,6 +52,12 @@ every entry must be used by one of them. Under the form, the panel shows the
 matching `aws dynamodb query` / `scan` / `get-item` command, live, with a copy
 button.
 
+**Run** (or Ctrl/Cmd+Enter in any field) shows what the read cost (items read,
+bytes, RCU) and **lists the items it returned**, keys first; the matching rows
+are also highlighted in the tables. **Strongly consistent** switches the read
+mode (1 RCU per 4 KB instead of 0.5). Ctrl/Cmd+Enter on an `@ap` line in the
+script fills this panel with that pattern and runs it.
+
 `#names` are needed for reserved words (`status`, `name`, `date`, …) and special
 characters. Values are typed: `{"S": "…"}` for a String, `{"N": "…"}` for a
 Number.

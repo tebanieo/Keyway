@@ -13,7 +13,7 @@ https://your-host/keyway/#m=N4Ig…            (compressed DSL)
 
 - The DSL text is compressed with **lz-string**
   (`compressToEncodedURIComponent`) into a URL-safe payload and placed after
-  `#m=` (see [`src/model/share.ts`](https://github.com/)).
+  `#m=` (see [`src/model/share.ts`](https://github.com/tebanieo/Keyway/blob/main/src/model/share.ts)).
 - The link is built from the current origin + path, so it works identically on
   `localhost` and on GitHub Pages (any base path is preserved).
 - Opening a link reads the model back out of the fragment

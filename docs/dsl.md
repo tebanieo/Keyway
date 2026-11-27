@@ -3,7 +3,7 @@
 The model is a tiny text format. **One line = one op = one step.** It's meant to
 be written and read by hand: skim it cold in a PR, or edit it in vim. No special
 editor required. This page is the grammar, faithful to
-[`src/model/dsl.ts`](https://github.com/).
+[`src/model/dsl.ts`](https://github.com/tebanieo/Keyway/blob/main/src/model/dsl.ts).
 
 A document has two kinds of lines:
 
@@ -305,5 +305,5 @@ u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user-profile
 o1: PK=USER#1  SK=ORDER#1  total=42  status=pending  _type=order
 ```
 
-Defined in [`src/model/entities.ts`](https://github.com/); the tag name is
+Defined in [`src/model/entities.ts`](https://github.com/tebanieo/Keyway/blob/main/src/model/entities.ts); the tag name is
 `_type`.

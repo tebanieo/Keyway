@@ -7,6 +7,10 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Reference docs brought up to date:** the home page and Quick start match the app as it is (an empty script to start, `@key`, `@gen`, the ✓ on `@ap` lines, the Query panel's returned items); the editor page covers the new completions, Tab on `@gen`, the design-slip and template warnings, and the script/tables linking; the cost page covers `@transact` blocks, `check` and cancelled transactions; source links point at the real files.
+
 ### Added
 
 - **Sample data: `@gen project 3 per tenant`, then Tab.** One line becomes ordinary item lines shaped like the rows you already have: the same attributes, the few values a status-like field uses (or the ones you list, `status=new|active|done`, or a range, `total=10..500`), dates, numbers and emails in the same format, and keys that follow your existing pattern or the type's `@key` template. `per <type>` adds rows for each item of the other type, in its partition, so item collections fill in. No library and no network: a small built-in word bank.

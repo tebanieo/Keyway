@@ -6,6 +6,12 @@ the real question (_"can my design serve all of its access patterns?"_) by
 model**, then grading the result. The logic is in
 [`src/model/coverage.ts`](https://github.com/tebanieo/Keyway/blob/main/src/model/coverage.ts).
 
+You see the verdict in two places: as a mark in the gutter of every `@ap`
+line in the script (✓ when served, a warning with the reason otherwise), and in
+the **Access patterns** panel, which lists them all with a served count (and a
+badge on its rail button for the unserved ones). **Ctrl/Cmd+Enter** on an `@ap`
+line runs it in the Read / Query panel, so you can see exactly what it returns.
+
 This is stronger than "does the named index exist?". Because the query actually
 runs, an unserved pattern tells you _why_, and an invalid one surfaces the exact
 key rule it broke.
