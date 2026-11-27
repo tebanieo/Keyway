@@ -7,22 +7,23 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2026-11-27
+
+Sample data and clearer reads. One line (`@gen project 3 per tenant`, then Tab)
+fills a model with rows shaped like yours, a new Learn tour shows how, and a
+Query or Scan now shows what was read separately from what was returned, so a
+filter's cost is visible. The docs and the demo recording are up to date.
+
 ### Added
 
 - **Read vs returned, at a glance.** After a Query or Scan, the index you read shows returned rows in teal, rows read but dropped by the filter in amber stripes (you paid for them), and rows not read muted. A legend in the Query panel uses the same colours ("2 returned · 3 read, filtered out · you pay for all 5 read"), and each row says it to screen readers too. Other indexes no longer light up for a read they weren't part of.
-
-### Changed
-
-- **Reference docs brought up to date:** the home page and Quick start match the app as it is (an empty script to start, `@key`, `@gen`, the ✓ on `@ap` lines, the Query panel's returned items); the editor page covers the new completions, Tab on `@gen`, the design-slip and template warnings, and the script/tables linking; the cost page covers `@transact` blocks, `check` and cancelled transactions; source links point at the real files.
-- **A new demo recording**, at a human typing pace, with captions (the current word highlighted) and key badges for Enter and Tab, in Compact mode. The scripts that make it (`scripts/record-demo.cjs`, `scripts/make-gif.py`) are in the repo, so it can be re-recorded when the UI changes.
-
-### Added
-
 - **Sample data: `@gen project 3 per tenant`, then Tab.** One line becomes ordinary item lines shaped like the rows you already have: the same attributes, the few values a status-like field uses (or the ones you list, `status=new|active|done`, or a range, `total=10..500`), dates, numbers and emails in the same format, and keys that follow your existing pattern or the type's `@key` template. `per <type>` adds rows for each item of the other type, in its partition, so item collections fill in. No library and no network: a small built-in word bank.
 - **A "Sample Data" tour in Learn.** One hand-written tenant and project, then the rows `@gen tenant 2` and `@gen project 2 per tenant` produce, step by step, ending with a live `@gen` line to Tab yourself.
 
 ### Changed
 
+- **Reference docs brought up to date:** the home page and Quick start match the app as it is (an empty script to start, `@key`, `@gen`, the ✓ on `@ap` lines, the Query panel's returned items); the editor page covers the new completions, Tab on `@gen`, the design-slip and template warnings, and the script/tables linking; the cost page covers `@transact` blocks, `check` and cancelled transactions; source links point at the real files.
+- **A new demo recording**, at a human typing pace, with captions (the current word highlighted) and key badges for Enter and Tab, in Compact mode. The scripts that make it (`scripts/record-demo.cjs`, `scripts/make-gif.py`) are in the repo, so it can be re-recorded when the UI changes.
 - README: covers key templates, sample data, transactions, in-script coverage and the keyboard workflow, and a new demo recording of the current app.
 
 ### Fixed
