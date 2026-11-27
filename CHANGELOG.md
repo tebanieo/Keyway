@@ -158,6 +158,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Guided Add: "+ Index" and "+ Entity"** (on the pane bar, and in the command palette). A short form for a new GSI or a new entity type that writes ordinary script lines, previewed live as you fill it in, so the form teaches the syntax rather than hiding it. An entity's keys can use `{attribute}` and become a `@key` template, with a first item to fill in.
 - **Key templates: `@key order  SK=ORDER#{date}#{id}  GSI1SK={date}`.** Every item tagged `_type=order` gets those keys filled in from its own attributes (in any order on the line), so a key redesign is one edit. Missing attributes and explicit keys that disagree are flagged. When existing items already follow a pattern, the editor offers the template as a one-click fix and flags an item that alone breaks it. Suggestions offer the attributes a template needs, and changing a template on a model with data explains that it's a migration in DynamoDB.
 - **Access-pattern status in the script.** Every `@ap` line gets a gutter mark: a green ✓ when the pattern is served, a warning with the reason when it isn't (no index, invalid, empty), so coverage is visible while you type, without opening the Access patterns panel.
 - **Warnings for design slips that parse fine:** a key attribute name one typo away from a declared key (`GS1PK` vs `GSI1PK`, so the item silently misses that index), an item with only part of an index's key (it won't appear in that index), and a value holding `name=` (two pairs run together).

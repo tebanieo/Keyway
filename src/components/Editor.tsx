@@ -325,6 +325,9 @@ export interface EditorHandle {
   openProblems: () => void;
   /** Put the keyboard in the script, caret where it was. */
   focus: () => void;
+  /** Insert lines before 0-based `line` (at the end when past it), then put
+   *  the caret on the last inserted line and focus the script. */
+  insertLines: (line: number, text: string) => void;
   /** Replace one 0-based line's text (an edit made in the tables). */
   replaceLine: (line: number, text: string) => void;
   /** Scroll a 0-based line into view and put the caret there (no focus). */
@@ -388,6 +391,23 @@ export const Editor = forwardRef<
         if (view) openLintPanel(view);
       },
       focus: () => viewRef.current?.focus(),
+      insertLines: (line: number, text: string) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const { doc } = view.state;
+        const atEnd = line >= doc.lines;
+        const from = atEnd ? doc.length : doc.line(line + 1).from;
+        const insert = atEnd
+          ? (doc.length && doc.sliceString(doc.length - 1) !== "\n" ? "\n" : "") + text
+          : `${text}\n`;
+        const caret = atEnd ? from + insert.length : from + insert.length - 1;
+        view.dispatch({
+          changes: { from, insert },
+          selection: EditorSelection.cursor(caret),
+          effects: EditorView.scrollIntoView(caret, { y: "center" }),
+        });
+        view.focus();
+      },
       replaceLine: (line: number, text: string) => {
         const view = viewRef.current;
         if (!view || !Number.isInteger(line) || line < 0 || line >= view.state.doc.lines) return;
