@@ -161,6 +161,9 @@ const fs = require("fs");
   for (let i = 0; i < 12; i++) await p.keyboard.press("[");
   await p.waitForTimeout(400);
   // the caption introduces the replay, then gets out of the way
+  // fold the script away: the tables get the width, base table and GSI side by side
+  await p.click(".editor-head");
+  await p.waitForTimeout(400);
   await cap("Now replay every write, and see what it costs", -1, null);
   await shot(2600);
   await cap("", 0, null);
