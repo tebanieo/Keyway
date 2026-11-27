@@ -47,7 +47,7 @@ describe("EditorPane", () => {
     expect(container.querySelector(".editor-wrap")).toHaveClass("collapsed");
     // a zero-height editor must not take focus
     expect(container.querySelector(".editor-body")).toHaveAttribute("inert");
-    fireEvent.click(screen.getByRole("button", { name: /Editor/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Script/ }));
     expect(onToggleCollapse).toHaveBeenCalledOnce();
   });
 });

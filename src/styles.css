@@ -141,14 +141,15 @@
   --editor-step: rgba(37, 99, 235, 0.12);
 }
 
-/* A couple of bespoke rules that need per-theme values (not pure token swaps). */
+/* Share is a secondary action in both themes: accent outline, not a fill
+   (solid accent is kept for Play and Run). */
 [data-theme="paper"] .share {
-  background: var(--accent);
+  background: transparent;
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--accent);
 }
 [data-theme="paper"] .share:hover {
-  background: var(--accent-fill-hover);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 /* Diff tints are pale on white: strengthen so added/removed rows read clearly. */
 [data-theme="paper"] .ptable tr.row-added td {
@@ -300,13 +301,15 @@ body {
   transform: scale(0.96);
 }
 
+/* A segmented control picks ONE option: the chosen one is raised, not filled
+   with accent (solid accent is for Play and Run). */
 .seg button.active {
-  background: var(--accent-fill);
-  color: var(--on-accent);
+  background: var(--panel);
+  color: var(--accent);
   font-weight: 600;
   box-shadow:
-    var(--accent-glow),
-    inset 0 1px 0 var(--btn-hi);
+    0 0 0 1px var(--field-line),
+    0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .seg-label {
@@ -2905,4 +2908,60 @@ h2.q-title {
   display: grid;
   gap: 6px;
   font-size: 13px;
+}
+
+/* Toggle chips: each one switches on or off by itself (panes, diff,
+   compact). On = tinted with a check, off = a quiet outline. */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.chip:hover {
+  color: var(--text);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.chip[aria-pressed="true"]::before {
+  background: currentColor;
+}
+.chip-link {
+  padding: 4px 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.panes-bar .chips + .chips {
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
 }

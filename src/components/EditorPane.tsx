@@ -53,7 +53,7 @@ export const EditorPane = forwardRef<
         <span className="chev" aria-hidden>
           ▸
         </span>
-        <span className="eh-title">Editor</span>
+        <span className="eh-title">Script</span>
         <span className="eh-stats">
           {itemCount === 0 ? (
             "empty - load an example or start typing"

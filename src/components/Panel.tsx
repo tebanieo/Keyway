@@ -124,13 +124,13 @@ export function Panel({
         {parts.length === 0 &&
           (edit ? (
             <div className="empty">
-              <span>empty table - add an item, author in the editor, or load an example</span>
+              <span>nothing written yet: type in the script, press Play, or</span>
               <button className="add-item" onClick={() => edit.onAddItem("ITEM#1")}>
                 + add an item
               </button>
             </div>
           ) : (
-            <div className="empty">no items under this index</div>
+            <div className="empty">no items in this index yet</div>
           ))}
         {parts.map((part) => (
           <div className="partition" key={`${index.name}:${part.pk}`}>
