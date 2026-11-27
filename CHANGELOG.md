@@ -158,6 +158,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Access-pattern status in the script.** Every `@ap` line gets a gutter mark: a green ✓ when the pattern is served, a warning with the reason when it isn't (no index, invalid, empty), so coverage is visible while you type, without opening the Access patterns panel.
 - **Warnings for design slips that parse fine:** a key attribute name one typo away from a declared key (`GS1PK` vs `GSI1PK`, so the item silently misses that index), an item with only part of an index's key (it won't appear in that index), and a value holding `name=` (two pairs run together).
 - **Transactions: `@transact … @end`.** Group puts, deletes and `check label @if …` (a ConditionCheck) into one `TransactWriteItems`: one step, all or nothing. Every condition is checked against the table before the transaction; if any fails, it's cancelled and nothing is written (still billed). Each action costs the transactional rate (a check included). DynamoDB's rules are enforced: no two actions on one item, at most 100 actions, no nesting. The editor completes `@transact` and offers `check` inside a block.
 - **"In real DynamoDB" notes for schema changes.** Changing a key in `@table` or `@gsi` (or adding a GSI) on a model with data still rebuilds the tables instantly, and now a note says what that would be in production: a new table plus a data copy for a primary-key change, delete-and-re-create plus a backfill for a GSI's keys, and a billed backfill for a new GSI.

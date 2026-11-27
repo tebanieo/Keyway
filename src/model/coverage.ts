@@ -4,8 +4,9 @@ import { attributeTypes, typeMismatches } from "../engine/keyhelp";
 import { runQuery } from "../engine/query";
 import type { QuerySpec } from "../engine/query";
 import type { IndexSpec, Item } from "../engine/types";
+import { fold } from "../engine/engine";
 import { parseGetKey } from "./dsl";
-import type { AccessPattern } from "./dsl";
+import type { AccessPattern, ParseResult } from "./dsl";
 
 /**
  * v2 access-pattern coverage: instead of "does the named index exist?", we build
@@ -121,4 +122,28 @@ export function apCoverage(
     returned: r.items.length,
     scanned: r.scanned,
   };
+}
+
+/**
+ * Each `@ap`'s coverage as a note on its own line, for the editor: served
+ * patterns get an info mark, the rest a warning with the reason. Runs every
+ * pattern against the finished model, as the Access patterns panel does.
+ */
+export function apLineNotes(
+  parsed: Pick<ParseResult, "aps" | "ops" | "base" | "gsis">,
+): { line: number; severity: "info" | "warning"; message: string }[] {
+  if (parsed.aps.length === 0) return [];
+  const state = fold(parsed.ops, parsed.base);
+  const indexes = [parsed.base, ...parsed.gsis];
+  return parsed.aps
+    .filter((ap) => ap.line !== undefined)
+    .map((ap) => {
+      const cov = apCoverage(ap, indexes, state);
+      const served = cov.status === "served";
+      return {
+        line: ap.line!,
+        severity: served ? "info" : "warning",
+        message: `AP${ap.n} ${served ? "served" : cov.status}: ${cov.message}`,
+      };
+    });
 }

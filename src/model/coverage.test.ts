@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apCoverage } from "./coverage";
+import { apCoverage, apLineNotes } from "./coverage";
 import { parseDoc } from "./dsl";
 import { fold } from "../engine/engine";
 import type { IndexSpec } from "../engine/types";
@@ -121,5 +121,21 @@ describe("apCoverage (v2: runs the declared query)", () => {
     const c = grade(MODEL + "\n@ap Everything -> AppTable scan");
     expect(c.status).toBe("served");
     expect(c.returned).toBe(3);
+  });
+});
+
+describe("apLineNotes", () => {
+  it("puts each @ap's coverage on its own line: served is info, a gap a warning", () => {
+    const parsed = parseDoc(
+      `@table T pk=PK sk=SK
+u1: PK=USER#1  SK=A
+@ap Get a user -> T PK = :u  values={":u": {"S": "USER#1"}}
+@ap By email (no index yet)`,
+      BASE,
+    );
+    expect(apLineNotes(parsed)).toEqual([
+      { line: 2, severity: "info", message: expect.stringMatching(/^AP1 served: /) },
+      { line: 3, severity: "warning", message: expect.stringMatching(/^AP2 unassigned: /) },
+    ]);
   });
 });
