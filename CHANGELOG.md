@@ -12,6 +12,11 @@ hand-curated summary. It follows
 - **Sample data: `@gen project 3 per tenant`, then Tab.** One line becomes ordinary item lines shaped like the rows you already have: the same attributes, the few values a status-like field uses (or the ones you list, `status=new|active|done`, or a range, `total=10..500`), dates, numbers and emails in the same format, and keys that follow your existing pattern or the type's `@key` template. `per <type>` adds rows for each item of the other type, in its partition, so item collections fill in. No library and no network: a small built-in word bank.
 - **A "Sample Data" tour in Learn.** One hand-written tenant and project, then the rows `@gen tenant 2` and `@gen project 2 per tenant` produce, step by step, ending with a live `@gen` line to Tab yourself.
 
+### Fixed
+
+- `@gen … per <type>` with a `@key`-templated sort key kept each row in its parent's partition (it used to change the PK on a clash).
+- The page no longer grows a scrollbar with many table partitions (hidden screen-reader labels were escaping the table area).
+
 ## [0.2.0-beta.1] - 2026-11-27
 
 First beta. Keyway becomes a one-interface, type-it-and-watch tool for learning
