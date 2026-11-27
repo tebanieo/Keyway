@@ -61,7 +61,9 @@ const tabForward: Command = (view) => {
     selectValue(view, line.from + eqRel);
     return true;
   }
-  if (line.text.includes("=")) {
+  // At the end of an ITEM line, open room for the next key=value. Not on a
+  // directive (`@gsi … sk=X` would get two stray spaces and the line-start menu).
+  if (/^\s*[A-Za-z0-9_]+\s*:/.test(line.text) && line.text.includes("=")) {
     view.dispatch({
       changes: { from: line.to, insert: SEP2 },
       selection: EditorSelection.cursor(line.to + SEP2.length),
@@ -279,6 +281,8 @@ export interface EditorHandle {
   openProblems: () => void;
   /** Put the keyboard in the script, caret where it was. */
   focus: () => void;
+  /** Replace one 0-based line's text (an edit made in the tables). */
+  replaceLine: (line: number, text: string) => void;
   /** Scroll a 0-based line into view and put the caret there (no focus). */
   revealLine: (line: number) => void;
 }
@@ -340,6 +344,12 @@ export const Editor = forwardRef<
         if (view) openLintPanel(view);
       },
       focus: () => viewRef.current?.focus(),
+      replaceLine: (line: number, text: string) => {
+        const view = viewRef.current;
+        if (!view || !Number.isInteger(line) || line < 0 || line >= view.state.doc.lines) return;
+        const l = view.state.doc.line(line + 1);
+        view.dispatch({ changes: { from: l.from, to: l.to, insert: text } });
+      },
       revealLine: (line: number) => {
         const view = viewRef.current;
         // Not a line of this doc (e.g. pinned from Canvas before the script

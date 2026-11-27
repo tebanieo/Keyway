@@ -9,6 +9,7 @@ hand-curated summary. It follows
 
 ### Fixed
 
+- Tab at the end of a `@gsi` or other directive line no longer adds two spaces and opens the line-start menu (that's for item lines).
 - **A key change is now truly all-or-nothing.** If the new item's `@if` failed, the old item used to be deleted anyway; now the whole transaction is cancelled.
 - **Screen readers:** Canvas tables are an ARIA grid (each cell says whether it's editable, the edit field is named "<attribute> of <item>", and the keys are described); diff marks read as "added / removed / modified"; the change and action columns have header text; the phone view switch sits in a labelled region. axe reports no issues in the example, playback, Canvas, editing, Query and phone states, apart from one false positive on the editor's scroller.
 - **Switching Canvas → Editor no longer wipes the script's comments.** Canvas edits now write into the script itself: an edited or added item is appended as a line, a delete as `delete label`, and everything you wrote (comments, directives, layout) is kept.
@@ -71,6 +72,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- **Editing a cell changes its line.** A table edit now rewrites the attribute on the script line that wrote the item (as of the step you're on), so a correction stays a correction instead of becoming a new step. Rows written inside a `@transact` block still get a new line.
 - **Calmer controls, one meaning each.** Panes and Diff/Compact are toggle chips (on is tinted with a filled dot), "Show all" is a link that appears only when a pane is hidden, segmented choices like Get/Query/Scan raise the chosen option instead of filling it, and Share is an outlined secondary button. Solid accent now marks only Play and Run. The script's tab reads "Script", and the empty table says how to start.
 - **Columns line up across partitions.** Every partition in a pane shares one set of columns and widths, so an attribute sits at the same place in each item collection and can be compared down the page.
 - **One interface: the script.** The Canvas/Editor switch is gone. The base table is still editable in place (double-click or Enter on a cell, delete a row, "+ item"), and every change is written into the script as a line, as if typed, so the text stays the single source of truth.
@@ -156,6 +158,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Warnings for design slips that parse fine:** a key attribute name one typo away from a declared key (`GS1PK` vs `GSI1PK`, so the item silently misses that index), an item with only part of an index's key (it won't appear in that index), and a value holding `name=` (two pairs run together).
 - **Transactions: `@transact … @end`.** Group puts, deletes and `check label @if …` (a ConditionCheck) into one `TransactWriteItems`: one step, all or nothing. Every condition is checked against the table before the transaction; if any fails, it's cancelled and nothing is written (still billed). Each action costs the transactional rate (a check included). DynamoDB's rules are enforced: no two actions on one item, at most 100 actions, no nesting. The editor completes `@transact` and offers `check` inside a block.
 - **"In real DynamoDB" notes for schema changes.** Changing a key in `@table` or `@gsi` (or adding a GSI) on a model with data still rebuilds the tables instantly, and now a note says what that would be in production: a new table plus a data copy for a primary-key change, delete-and-re-create plus a backfill for a GSI's keys, and a billed backfill for a new GSI.
 - **Resize the script:** drag its right edge, or focus it and use the arrow keys (Shift for bigger steps); the width is remembered. Keys `1`–`9` show or hide the panes, and pane titles are larger.

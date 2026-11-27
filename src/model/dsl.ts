@@ -1,4 +1,4 @@
-import { keyOf } from "../engine/engine";
+import { keyOf, pkAttrs, skAttrs } from "../engine/engine";
 import { parseExpression, splitClauses } from "../engine/expression";
 import type { AttributeValue } from "../engine/extenddb";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec, WriteAction } from "../engine/types";
@@ -140,6 +140,33 @@ function parseAttrs(body: string): Record<string, string> {
 
 const SP = String.fromCharCode(32); // avoid literal spaces in string sources
 
+/**
+ * Set one attribute on an item line, in place: replace `key=old` with
+ * `key=value`, add `  key=value` before any `@if` when it isn't there, or drop
+ * the pair when `value` is empty. Everything else on the line (other pairs,
+ * spacing, the guard) is left as written.
+ */
+export function setAttrInLine(line: string, key: string, value: string): string {
+  const ifAt = line.search(/\s@if\s/);
+  const head = ifAt >= 0 ? line.slice(0, ifAt).replace(/\s+$/, "") : line;
+  const tail = ifAt >= 0 ? `${SP}${SP}${line.slice(ifAt).trimStart()}` : "";
+  const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pair = new RegExp(`(^|\\s)${esc}=(.*?)(?=\\s+\\w+=|\\s*$)`);
+  const m = pair.exec(head);
+  let next: string;
+  if (m) {
+    const start = m.index + m[1].length;
+    const end = m.index + m[0].length;
+    next =
+      value === ""
+        ? head.slice(0, m.index).replace(/\s+$/, "") + head.slice(end)
+        : head.slice(0, start) + `${key}=${value}` + head.slice(end);
+  } else {
+    next = value === "" ? head : `${head.replace(/\s+$/, "")}${SP}${SP}${key}=${value}`;
+  }
+  return next + tail;
+}
+
 /** Render one item as a DSL line: `label: PK=..  SK=..  attr=..`. */
 function itemLine(item: Item, baseIndex: IndexSpec): string {
   const lead = [baseIndex.pk, baseIndex.sk]
@@ -217,6 +244,59 @@ export function serializeTable(base: IndexSpec): string {
 
 const DIRECTIVE = /^@(\w+)\s+(.*)$/;
 const GSI_NAME = /^(\S+)\s*(.*)$/;
+
+/** Edit distance, capped: is `a` one typo away from `b`? */
+function oneTypo(a: string, b: string): boolean {
+  if (a === b) return false;
+  if (a.toLowerCase() === b.toLowerCase()) return true;
+  if (Math.abs(a.length - b.length) > 1 || Math.min(a.length, b.length) < 4) return false;
+  let i = 0;
+  while (i < a.length && a[i] === b[i]) i++;
+  let j = 0;
+  while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++;
+  return a.length - i - j <= 1 && b.length - i - j <= 1;
+}
+
+/**
+ * Likely design slips on an item line that parse fine but quietly change the
+ * picture: a key attribute name one typo off (the item silently misses that
+ * index), half of an index's key (no index entry), and a value holding a
+ * `name=` (two pairs run together).
+ */
+function slips(attrs: Record<string, string>, base: IndexSpec, gsis: IndexSpec[]): string[] {
+  const out: string[] = [];
+  const indexes = [base, ...gsis];
+  const keyNames = new Set(indexes.flatMap((ix) => [...pkAttrs(ix), ...skAttrs(ix)]));
+  for (const name of Object.keys(attrs)) {
+    if (keyNames.has(name)) continue;
+    const near = [...keyNames].find((k) => oneTypo(name, k));
+    if (near) {
+      const ix = indexes.find((i) => [...pkAttrs(i), ...skAttrs(i)].includes(near))!;
+      out.push(
+        `"${name}" looks like "${near}" (a key of ${ix.name}): as written, this item isn't in ${ix.name}`,
+      );
+    }
+  }
+  for (const g of gsis) {
+    const keys = [...pkAttrs(g), ...skAttrs(g)];
+    const has = keys.filter((k) => attrs[k] !== undefined);
+    if (has.length > 0 && has.length < keys.length) {
+      const missing = keys.filter((k) => attrs[k] === undefined);
+      out.push(
+        `has ${has.join(", ")} but no ${missing.join(", ")}: it won't appear in ${g.name} (an index entry needs all of its key attributes)`,
+      );
+    }
+  }
+  for (const [name, value] of Object.entries(attrs)) {
+    const run = /(?:^|[^\w])([A-Za-z_]\w*)=/.exec(value);
+    if (run) {
+      out.push(
+        `${name}=${value} holds "${run[1]}=": two pairs run together? Separate them with two spaces`,
+      );
+    }
+  }
+  return out;
+}
 
 export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const ops: Op[] = [];
@@ -512,6 +592,10 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         message: `item "${label}" is missing its key (${need}); it won't appear`,
         severity: "warning",
       });
+    }
+
+    for (const message of slips(attrs, base, gsis)) {
+      diagnostics.push({ line, message, severity: "warning" });
     }
 
     const prevKey = lastKey.get(label);
