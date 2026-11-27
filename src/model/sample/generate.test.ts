@@ -103,3 +103,25 @@ describe("@gen sample rows", () => {
     expect(r).toEqual({ error: expect.stringMatching(/no order items .*`@gen order 3`/) });
   });
 });
+
+describe("the Sample Data tour", () => {
+  it("shows exactly the rows its @gen lines produce, and its last @gen still expands", async () => {
+    const { TOURS } = await import("../tours");
+    const tour = TOURS.find((t) => t.name === "Sample Data")!.dsl;
+    const lines = tour.split("\n");
+    const rows = (prefix: string) => lines.filter((l) => l.startsWith(prefix));
+    // rebuild: the hand-written rows, then each @gen in turn
+    const head = lines.filter((l) => l.startsWith("@table") || l.startsWith("@gsi"));
+    let doc = [...head, ...rows("t1:"), ...rows("p1:"), "@gen tenant 2"].join("\n");
+    const tenants = gen(doc);
+    expect(tenants.rows).toEqual(rows("t").filter((l) => !l.startsWith("t1:")));
+    doc = `${tenants.next}\n@gen project 2 per tenant  status=new|active|done`;
+    expect(gen(doc).rows).toEqual(
+      rows("p").filter((l) => /^p\d+:/.test(l) && !l.startsWith("p1:")),
+    );
+    // the closing "your turn" line works on the tour as written
+    const last = gen(tour);
+    expect(last.rows).toHaveLength(3);
+    expect(last.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+});

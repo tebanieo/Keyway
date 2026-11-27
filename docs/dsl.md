@@ -117,7 +117,8 @@ in the gutter): the line becomes ordinary item lines you can edit.
 - Keys follow the pattern of your existing rows of that type
   (`GSI1PK=STATUS#{status}`, `SK=PROJECT#<name>`, a key that repeats another),
   or the type's `@key` template.
-- The same line on the same model gives the same rows; **Ctrl/Cmd+Z** brings
+- The same line on the same data gives the same rows (comments and spacing
+  don't change them); **Ctrl/Cmd+Z** brings
   the `@gen` line back.
 
 ## `@ap`: a declared access pattern

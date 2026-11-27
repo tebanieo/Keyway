@@ -402,7 +402,9 @@ export function expandGen(doc: string, lineIdx: number): { lines: string[] } | {
   };
 
   const usedKeys = new Set(items.map((it) => `${it.attrs[basePk]}\u0000${it.attrs[baseSk] ?? ""}`));
-  const r = rng(hash(`${lines[lineIdx]}\u0000${rest.length}\u0000${items.length}`));
+  // Seeded by the line and the model's items (not comments or spacing), so the
+  // same request on the same data gives the same rows.
+  const r = rng(hash(`${lines[lineIdx].trim()}\u0000${items.map((it) => it.id).join(",")}`));
   const usedNames = new Set(same.map((it) => it.attrs.name).filter(Boolean));
   // slugs already in keys (TENANT#acme → acme), so a new "Acme" isn't a clash
   const usedSlugs = new Set(
