@@ -77,6 +77,11 @@ const DIRECTIVES = [
     detail: "key template for an entity type: SK=ORDER#{date}#{id}",
     type: "keyword",
   }),
+  snippetCompletion(`@gen ${ph("type")} ${ph("3")}`, {
+    label: "@gen",
+    detail: "sample rows: @gen project 3 per tenant, then Tab",
+    type: "keyword",
+  }),
   snippetCompletion(`@transact\n${ph("writes")}\n@end`, {
     label: "@transact",
     detail: "TransactWriteItems: several writes, all or nothing",
@@ -136,6 +141,35 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
   const dir = /^@([\w-]*)$/.exec(before);
   if (dir) {
     return { from: ctx.pos - dir[1].length - 1, options: DIRECTIVES };
+  }
+
+  // `@gen ` → the entity types to make rows of; `@gen order 3 ` → `per <type>`.
+  const genType = /^\s*@gen\s+([\w-]*)$/.exec(before);
+  const genPer = /^\s*@gen\s+([\w-]+)\s+\d+\s+(?:per\s+)?([\w-]*)$/.exec(before);
+  if (genType || genPer) {
+    const { entities } = liveModel(ctx.state.doc.toString());
+    if (genType) {
+      return {
+        from: ctx.pos - genType[1].length,
+        options: entities.map((e) => ({
+          label: e.type,
+          detail: `${e.count}× so far`,
+          type: "class",
+        })),
+      };
+    }
+    const word = genPer![2];
+    const hasPer = /\sper\s+[\w-]*$/.test(before);
+    return {
+      from: ctx.pos - word.length - (hasPer ? 0 : 0),
+      options: entities
+        .filter((e) => e.type !== genPer![1])
+        .map((e) => ({
+          label: hasPer ? e.type : `per ${e.type}`,
+          detail: `rows for each ${e.type}, sharing its partition`,
+          type: "class",
+        })),
+    };
   }
 
   // `@ap … -> ` → the indexes the pattern can be served by.

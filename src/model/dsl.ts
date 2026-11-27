@@ -136,7 +136,7 @@ const TX_MAX = 100;
 // values may contain spaces (name=Ada Lovelace) without needing quotes.
 const PAIR = /(\w+)=(.*?)(?=\s+\w+=|\s*$)/g;
 
-function parseAttrs(body: string): Record<string, string> {
+export function parseAttrs(body: string): Record<string, string> {
   const attrs: Record<string, string> = {};
   for (const m of body.matchAll(PAIR)) {
     const value = m[2].trim();
@@ -324,6 +324,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     const s = raw.trim();
     if (!s.startsWith("@")) return;
     if (TX_OPEN.test(s) || TX_END.test(s)) return; // read with the writes
+    if (/^@gen\b/i.test(s)) return; // sample-data request: expanded by the editor
     const d = DIRECTIVE.exec(s);
     if (!d) {
       diagnostics.push({ line, message: "malformed directive", severity: "error" });

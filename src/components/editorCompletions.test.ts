@@ -51,6 +51,13 @@ u1: PK=U#1  SK=A  email=a@x  name=Ada
     expect(labels(complete(M + "@transact\ndelete u1\n@end\n"))).not.toContain("check");
   });
 
+  it("completes @gen: the directive, then a type, then per <type>", () => {
+    const T = M + "t1: PK=T#1  SK=A  _type=tenant\np1: PK=T#1  SK=B  _type=project\n";
+    expect(labels(complete("@g"))).toContain("@gen");
+    expect(labels(complete(T + "@gen "))).toEqual(expect.arrayContaining(["tenant", "project"]));
+    expect(labels(complete(T + "@gen project 3 "))).toEqual(["per tenant"]);
+  });
+
   it("offers existing item labels after delete", () => {
     const res = complete(M + "delete ");
     expect(labels(res)).toEqual(["u1"]);
