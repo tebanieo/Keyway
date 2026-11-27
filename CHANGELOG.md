@@ -72,6 +72,7 @@ hand-curated summary. It follows
 
 ### Changed
 
+- README: the tagline and intro now match the repository description ("Learn AWS DynamoDB data modelling by typing it").
 - **Editing a cell changes its line.** A table edit now rewrites the attribute on the script line that wrote the item (as of the step you're on), so a correction stays a correction instead of becoming a new step. Rows written inside a `@transact` block still get a new line.
 - **Calmer controls, one meaning each.** Panes and Diff/Compact are toggle chips (on is tinted with a filled dot), "Show all" is a link that appears only when a pane is hidden, segmented choices like Get/Query/Scan raise the chosen option instead of filling it, and Share is an outlined secondary button. Solid accent now marks only Play and Run. The script's tab reads "Script", and the empty table says how to start.
 - **Columns line up across partitions.** Every partition in a pane shares one set of columns and widths, so an attribute sits at the same place in each item collection and can be compared down the page.
