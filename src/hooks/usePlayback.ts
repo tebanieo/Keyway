@@ -1,46 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
+/** Base time on a step at 1×, before any time to read its note. */
+export const STEP_MS = 2600;
+/** Reading time per character of the step's note (about 25 chars a second). */
+export const READ_MS_PER_CHAR = 40;
+
 /**
- * The step scrubber's playback: auto-advance on a timer while `playing`, stop at
- * the end, and drive the transient cost HUD (`costPulse`) whenever a step lands
- * (via playback or a manual prev/next calling `pulseCost`).
+ * The step scrubber's playback: auto-advance on a timer while `playing`, and
+ * stop at the end. Each step is held long enough to read its note: a long
+ * note gets more time than a bare write (`noteLength`).
  */
 export function usePlayback(
   curStep: number,
   opsLength: number,
   setStep: Dispatch<SetStateAction<number>>,
+  noteLength = 0,
 ) {
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(0.5);
-  const [costPulse, setCostPulse] = useState(false);
-  const costTimer = useRef<number | undefined>(undefined);
-
-  // Cost is about a transition: surface the HUD when the user steps or plays,
-  // then auto-hide (so it isn't "just sitting there" while editing).
-  const pulseCost = useCallback(() => {
-    setCostPulse(true);
-    window.clearTimeout(costTimer.current);
-    costTimer.current = window.setTimeout(() => setCostPulse(false), 2600);
-  }, []);
-
+  const [speed, setSpeed] = useState(1);
   useEffect(() => {
     if (!playing) return;
     if (curStep >= opsLength) {
       setPlaying(false);
       return;
     }
-    const id = window.setTimeout(() => {
-      setStep((s) => s + 1);
-      pulseCost();
-    }, 1300 / speed);
+    const hold = (STEP_MS + noteLength * READ_MS_PER_CHAR) / speed;
+    const id = window.setTimeout(() => setStep((s) => s + 1), hold);
     return () => window.clearTimeout(id);
-  }, [playing, curStep, opsLength, speed, pulseCost, setStep]);
+  }, [playing, curStep, opsLength, speed, setStep, noteLength]);
 
   const togglePlay = useCallback(() => {
     if (curStep >= opsLength) setStep(0); // replay from the top
     setPlaying((p) => !p);
   }, [curStep, opsLength, setStep]);
 
-  return { playing, setPlaying, speed, setSpeed, togglePlay, costPulse, pulseCost };
+  return { playing, setPlaying, speed, setSpeed, togglePlay };
 }

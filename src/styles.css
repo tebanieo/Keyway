@@ -1,9 +1,13 @@
 :root {
+  /* native controls and scrollbars follow the theme */
+  color-scheme: dark;
   /* palette: lifted off pure-black, faint cool tint (data-instrument) */
   --bg: #0f1217;
   --panel: #161a21;
   --panel-2: #1d222b;
   --line: #2b313d;
+  /* form-field borders: 3:1 against the panels (WCAG 1.4.11) */
+  --field-line: #646d7f;
   --hairline: #232935;
   --text: #e6e9ef;
   --muted: #8b93a7;
@@ -32,7 +36,7 @@
   /* editor (CodeMirror) surface: themable via custom props */
   --editor-bg: #12151c;
   --editor-fg: #e6e9ef;
-  --editor-gutter: #5b6172;
+  --editor-gutter: #7a8294;
   --editor-sel: rgba(91, 157, 255, 0.25);
   --editor-step: rgba(91, 157, 255, 0.16);
 
@@ -86,19 +90,23 @@
 /* Paper theme: flat, printed-page minimal. No gloss: glass goes opaque and
    blur turns off; overlays flip dark; semantic colors darken for white. */
 [data-theme="paper"] {
+  color-scheme: light;
   --bg: #fcfdfe;
   --panel: #ffffff;
   --panel-2: #eef1f6;
   --line: #d5dbe4;
+  --field-line: #858e9e;
   --hairline: #e4e8ee;
   --text: #11141a;
   --muted: #5b6474;
-  --accent: #2f6bff;
+  /* Semantic colours darkened to reach WCAG AA (4.5:1) on white and on the
+     grey panels, since they carry meaning (keys, errors, served/unserved). */
+  --accent: #2457d6;
   --accent-2: #6d5cf0;
-  --enter: #12a150;
-  --key: #e58600;
-  --danger: #e5352b;
-  --warn: #e07407;
+  --enter: #067a35;
+  --key: #9a5500;
+  --danger: #b42318;
+  --warn: #9a4f00;
 
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.07);
   --shadow-2: 0 12px 32px rgba(16, 24, 40, 0.14);
@@ -114,7 +122,7 @@
   --on-accent: #ffffff;
   --on-warn: #ffffff;
   --accent-fill: var(--accent);
-  --accent-fill-hover: #1d4ed8;
+  --accent-fill-hover: #1a45b8;
 
   --glass-bg: #ffffff;
   --glass-bg-2: #f2f4f7;
@@ -128,19 +136,20 @@
 
   --editor-bg: #ffffff;
   --editor-fg: #1a1d24;
-  --editor-gutter: #9aa2af;
+  --editor-gutter: #646b78;
   --editor-sel: rgba(37, 99, 235, 0.16);
   --editor-step: rgba(37, 99, 235, 0.12);
 }
 
-/* A couple of bespoke rules that need per-theme values (not pure token swaps). */
+/* Share is a secondary action in both themes: accent outline, not a fill
+   (solid accent is kept for Play and Run). */
 [data-theme="paper"] .share {
-  background: var(--accent);
+  background: transparent;
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--accent);
 }
 [data-theme="paper"] .share:hover {
-  background: var(--accent-fill-hover);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 /* Diff tints are pale on white: strengthen so added/removed rows read clearly. */
 [data-theme="paper"] .ptable tr.row-added td {
@@ -153,6 +162,24 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Form controls don't inherit the page font by default (they'd render in the
+   UA font, e.g. Arial); components still set mono where they want it. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+/* ...but keep the size buttons had under the UA default, so labels and icons
+   that rely on it don't grow. */
+button {
+  font-size: 13.333px;
 }
 
 body {
@@ -274,13 +301,15 @@ body {
   transform: scale(0.96);
 }
 
+/* A segmented control picks ONE option: the chosen one is raised, not filled
+   with accent (solid accent is for Play and Run). */
 .seg button.active {
-  background: var(--accent-fill);
-  color: var(--on-accent);
+  background: var(--panel);
+  color: var(--accent);
   font-weight: 600;
   box-shadow:
-    var(--accent-glow),
-    inset 0 1px 0 var(--btn-hi);
+    0 0 0 1px var(--field-line),
+    0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .seg-label {
@@ -403,67 +432,12 @@ body {
   transform: scale(0.94);
 }
 
-/* Focus mode: dim everything except the item the current step touches. */
-.ptable tr.dimmed td {
-  opacity: 0.28;
+/* Rows the step didn't touch recede to the muted text colour (still 4.5:1 in
+   both themes, unlike fading them out), so the touched row leads. */
+.ptable tr.dimmed td,
+.ptable tr.dimmed td.iskey {
+  color: var(--muted);
   transition: opacity 0.2s ease;
-}
-
-/* Narration callout: a floating caption for the current step. Fixed (not in
-   the flow) so appearing/disappearing never shifts the page; pointer-events off
-   so it doesn't block the content it hovers over. */
-.narration {
-  position: fixed;
-  top: 76px;
-  left: 50%;
-  z-index: 55;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: max-content;
-  max-width: min(720px, 92vw);
-  padding: 12px 18px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-line);
-  border-radius: var(--r-pill);
-  box-shadow:
-    var(--shadow-2),
-    inset 0 1px 0 var(--glass-hi);
-  animation: narr-drop 0.3s var(--ease);
-}
-/* Keyframes keep translate(-50%) so centering survives the animation. */
-@keyframes narr-drop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -12px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-.narration {
-  transform: translate(-50%, 0);
-}
-.narr-step {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 700;
-}
-.narr-text {
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.4;
 }
 
 /* Access-patterns panel: the spec + coverage. */
@@ -551,9 +525,14 @@ body {
   line-height: 1.45;
   color: var(--muted);
 }
+.ap-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
 .ap-count {
   font-size: 12px;
-  color: #ffb020;
+  color: var(--warn);
   font-weight: 600;
 }
 .ap-count.all {
@@ -561,7 +540,7 @@ body {
 }
 .ap-gaps {
   font-size: 12px;
-  color: #ff7a7a;
+  color: var(--danger);
   font-weight: 600;
 }
 .ap-list {
@@ -628,10 +607,10 @@ body {
   color: var(--enter);
 }
 .ap-msg.warn {
-  color: #ffb020;
+  color: var(--warn);
 }
 .ap-msg.bad {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 .ap-foot {
   padding: 12px 16px;
@@ -669,6 +648,7 @@ body {
   transition: transform 0.3s var(--ease);
 }
 .rail:hover,
+.rail:focus-within,
 .rail.revealed {
   transform: translate(0, -50%);
 }
@@ -687,6 +667,7 @@ body {
   transition: opacity var(--tf);
 }
 .rail:hover::before,
+.rail:focus-within::before,
 .rail.revealed::before {
   opacity: 0;
 }
@@ -738,7 +719,8 @@ body {
     border-color 0.2s var(--ease);
 }
 .rail.revealed .rail-btn.warn {
-  animation: rail-pulse 2.2s var(--ease) infinite;
+  /* a few pulses to draw the eye, not forever (WCAG 2.2.2) */
+  animation: rail-pulse 2.2s var(--ease) 3;
 }
 @keyframes rail-pulse {
   0%,
@@ -785,18 +767,16 @@ body {
   pointer-events: none;
   transition: opacity var(--tf);
 }
-.rail-btn:hover .rail-label {
+.rail-btn:hover .rail-label,
+.rail-btn:focus-visible .rail-label {
   opacity: 1;
 }
 
 /* Empty-canvas hint: reveal the labels and pulse so a new user knows to click. */
-.rail.hint .rail-label {
-  opacity: 1;
-}
 .rail.hint .rail-btn {
   color: var(--accent);
   border-color: rgba(91, 157, 255, 0.5);
-  animation: rail-hint 2s var(--ease) infinite;
+  animation: rail-hint 2s var(--ease) 3;
 }
 @keyframes rail-hint {
   0%,
@@ -864,7 +844,7 @@ body {
 .query-panel input,
 .query-panel select {
   padding: 6px 9px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--field-line);
   border-radius: var(--r-sm);
   background: var(--input-bg);
   color: var(--text);
@@ -980,7 +960,7 @@ body {
 }
 .query-panel textarea {
   padding: 6px 9px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--field-line);
   border-radius: var(--r-sm);
   background: var(--input-bg);
   color: var(--text);
@@ -1044,6 +1024,42 @@ body {
   background: var(--fill-1);
   font-size: var(--fs-sm);
 }
+.q-items {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--s2) var(--s4) var(--s3);
+  list-style: none;
+  max-height: 260px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  border-bottom: 1px solid var(--glass-line);
+}
+.q-items.empty {
+  color: var(--muted);
+  font-family: var(--font-ui);
+}
+.q-items li {
+  display: flex;
+  gap: var(--s3);
+  padding: 3px 0;
+  white-space: nowrap;
+  border-top: 1px solid var(--glass-line);
+}
+.q-items li:first-child {
+  border-top: 0;
+}
+.q-item-key {
+  color: var(--key);
+}
+.q-item-rest {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-more {
+  color: var(--muted);
+}
 .query-result.err {
   background: rgba(255, 122, 122, 0.08);
 }
@@ -1055,10 +1071,10 @@ body {
   color: var(--accent);
 }
 .q-note {
-  color: #ffb020;
+  color: var(--warn);
 }
 .q-err {
-  color: #ff7a7a;
+  color: var(--danger);
 }
 
 /* Query result highlights: teal for "returned by a read" (distinct from the
@@ -1078,6 +1094,7 @@ body {
 /* The editor is the hero: an unbounded surface (no boxed card), collapsible by
    its header so the tables below take the whole screen. */
 .editor-wrap {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
   margin-bottom: var(--s5);
@@ -1109,6 +1126,34 @@ body {
   transition:
     background var(--tf),
     border-color var(--tf);
+}
+/* The problems count, at the right end of the editor's header row. */
+.editor-problems {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.editor-problems.err {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.editor-problems kbd {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.8;
 }
 .editor-head:hover {
   background: var(--fill-1);
@@ -1215,7 +1260,8 @@ body {
   transform: scale(0.97);
 }
 
-.backfill .ghost {
+.backfill .ghost,
+.schema-note .ghost {
   padding: 6px 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
@@ -1228,23 +1274,10 @@ body {
     color var(--tf);
 }
 
-.backfill .ghost:hover {
+.backfill .ghost:hover,
+.schema-note .ghost:hover {
   color: var(--text);
   background: var(--fill-3);
-}
-
-/* Cost is a transient HUD now: floats up on a step/playback, auto-hides. */
-.cost-hud {
-  position: fixed;
-  bottom: 26px;
-  left: 50%;
-  transform: translate(-50%, 0);
-  z-index: 60;
-  animation: toast-rise 0.24s var(--ease);
-}
-.cost-hud .costbar {
-  margin-bottom: 0;
-  box-shadow: var(--shadow-2);
 }
 
 .costbar {
@@ -1309,9 +1342,6 @@ body {
 .reject-note {
   font-size: var(--fs-xs);
   color: var(--muted);
-}
-.narration.rejected .narr-step {
-  background: var(--danger);
 }
 
 .seg-cost {
@@ -1434,7 +1464,7 @@ body {
 }
 
 .panel-title .idx {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--accent);
 }
@@ -1456,7 +1486,8 @@ body {
   gap: 14px;
 }
 
-.panel .partition {
+/* Only the rows scroll sideways; the partition header stays in place. */
+.ptable-scroll {
   overflow-x: auto;
 }
 
@@ -1563,7 +1594,6 @@ body {
   margin: 20px 0 8px;
   font-size: 11px;
   color: var(--muted);
-  opacity: 0.8;
 }
 .app-footer .disclaimer {
   grid-column: 2;
@@ -1609,7 +1639,10 @@ body {
 
 /* Grid layout: aligned columns per partition (union of item attributes). */
 .ptable {
-  width: 100%;
+  /* fixed layout: widths come from the pane-wide <colgroup>, so partitions
+     line up; a narrow pane still fills its card */
+  table-layout: fixed;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -1673,7 +1706,7 @@ body {
   text-decoration-color: rgba(255, 122, 122, 0.5);
 }
 .ptable tr.row-removed td.gutter {
-  color: #ff7a7a;
+  color: var(--danger);
   text-decoration: none;
 }
 
@@ -1681,7 +1714,7 @@ body {
   background: rgba(255, 176, 32, 0.08);
 }
 .ptable tr.row-modified td.gutter {
-  color: #ffb020;
+  color: var(--warn);
 }
 
 /* Rows are clickable (click to pin). */
@@ -1788,6 +1821,24 @@ body {
 
 /* Share modal: a centered, opaque card (a surface you read from) over a dimmed
    backdrop, carrying a scannable QR of the model link plus a copy fallback. */
+/* The native <dialog> is only the modal shell (top layer, focus trap); the
+   overlay inside it keeps drawing the backdrop and centering the card. */
+.share-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.share-dialog::backdrop {
+  background: transparent;
+}
 .share-overlay {
   position: fixed;
   inset: 0;
@@ -1997,7 +2048,7 @@ body {
 
 .ptable th.actions,
 .ptable td.actions {
-  width: 24px;
+  width: 52px;
   padding: 0 6px;
   text-align: center;
 }
@@ -2015,22 +2066,39 @@ body {
 }
 
 /* Pin toggle: a hollow dot on row hover, filled accent when pinned. */
+/* A 24px target around an 11px dot. */
 .pin-btn {
-  width: 11px;
-  height: 11px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border: 1px solid var(--muted);
+  border: 0;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.75;
   vertical-align: middle;
+  display: inline-grid;
+  place-items: center;
 }
-.ptable tbody tr:hover .pin-btn {
-  opacity: 0.55;
+.pin-btn::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.ptable tbody tr:hover .pin-btn,
+.ptable tbody tr:focus-within .pin-btn {
+  opacity: 0.8;
+}
+.pin-btn:hover {
+  background: var(--panel-2);
 }
 .pin-btn.on {
   opacity: 1;
+}
+.pin-btn.on::after {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -2073,19 +2141,856 @@ body {
 }
 
 .del-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
   background: transparent;
-  color: var(--line);
+  color: var(--muted);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  margin-left: 6px;
+  margin-left: 2px;
+  vertical-align: middle;
 }
-.ptable tr:hover .del-btn {
+.del-btn:focus-visible {
+  opacity: 1;
+}
+.ptable tr:hover .del-btn,
+.ptable tr:focus-within .del-btn {
   opacity: 1;
   color: var(--muted);
 }
 .del-btn:hover {
-  color: #ff7a7a;
+  color: var(--danger);
+}
+
+/* Respect the system's reduced-motion setting: no animation, near-instant
+   transitions (state changes still happen, just without movement). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* After Escape, the editor is "armed": the next Tab / Shift+Tab leaves it. Say
+   so, right where the focus is. */
+.cm-editor.exit-armed {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.cm-editor.exit-armed::after {
+  content: "Tab: next · Shift+Tab: back · any key: keep typing";
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.reset-toast {
+  border-color: var(--line);
+  color: var(--text);
+}
+.reset-undo {
+  padding: 2px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---- Workbench layout ------------------------------------------------------
+   A fixed-height frame (no page scroll): toolbar on top, then the script and
+   the tables side by side, each scrolling on its own, then the footer. Writing
+   the model and seeing its effect always share the screen. */
+.app.wb {
+  box-sizing: border-box;
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "top top"
+    "main rail"
+    "status status"
+    "foot foot";
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  overflow: hidden;
+}
+.app.wb > .toolbar {
+  grid-area: top;
+}
+.app.wb > .wb-main {
+  grid-area: main;
+}
+.app.wb > .rail {
+  grid-area: rail;
+}
+.app.wb > .statusbar {
+  grid-area: status;
+}
+.app.wb > .app-footer {
+  grid-area: foot;
+}
+.app.wb > .toolbar {
+  position: static;
+  margin: 0;
+}
+.wb-main {
+  display: grid;
+  grid-template-columns: minmax(300px, var(--script-w, 40%)) minmax(0, 1fr);
+  gap: var(--s4);
+  min-height: 0;
+}
+.app.no-script .wb-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+.app.script-collapsed .wb-main {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+.wb-script {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.wb-script .editor-wrap {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+}
+.wb-script .editor-body,
+.wb-script .editor {
+  height: 100%;
+}
+.wb-script .editor .cm-editor {
+  height: 100%;
+  max-height: none;
+}
+.wb-tables {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  /* keep focus rings and row edges clear of the scroll edge */
+  padding: 2px 4px 2px 2px;
+}
+.app.wb .app-footer {
+  margin: 0;
+}
+/* Collapsed (tours, examples): the script folds to a slim vertical tab. */
+.app.script-collapsed .editor-head {
+  writing-mode: vertical-rl;
+  height: 100%;
+  padding: 14px 10px;
+  border-bottom: 0;
+}
+.app.script-collapsed .editor-head .eh-stats,
+.app.script-collapsed .editor-problems {
+  display: none;
+}
+
+/* The status strip: playback, the step and its narration, its cost, and the
+   running total. Always there, never over the tables. */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  min-height: 48px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+.statusbar .costbar {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+}
+.sb-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  max-width: 34%;
+}
+.sb-step.rejected .op-label b {
+  color: var(--danger);
+}
+.sb-total {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sb-total b {
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+.sb-sigma {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Docked panels: a third column beside the tables, so a query's highlighted
+   rows stay in view instead of under the panel. Only the open one shows. */
+.wb-dock {
+  display: none;
+  min-height: 0;
+  min-width: 0;
+}
+.wb-main.dock-open {
+  /* the tables keep the most room: the script gives up a share, the panel
+     takes a fixed reading width */
+  grid-template-columns:
+    minmax(280px, calc(var(--script-w, 40%) * 0.65)) minmax(0, 1fr)
+    360px;
+}
+.app.no-script .wb-main.dock-open {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+.app.script-collapsed .wb-main.dock-open {
+  grid-template-columns: 40px minmax(0, 1fr) 360px;
+}
+.wb-main.dock-open .wb-dock {
+  display: block;
+}
+.wb-dock .drawer {
+  position: static;
+  width: auto;
+  height: 100%;
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: none;
+  overflow: hidden;
+}
+.wb-dock .drawer:not(.open) {
+  display: none;
+}
+.wb-dock .query-panel {
+  overflow-y: auto;
+}
+
+/* The rail is a column of its own: always visible, never over the content. */
+.app.wb > .rail {
+  position: static;
+  align-self: start;
+  transform: none;
+  border-right: 1px solid var(--glass-line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+}
+.app.wb > .rail::before {
+  display: none;
+}
+/* The first-run labels would sit over an open panel's header. */
+/* No hover label on the button whose panel is open: it would sit on the
+   panel's header (its title already says what it is). */
+.rail-btn.active .rail-label {
+  display: none;
+}
+
+/* Narrow screens: the open panel sits BELOW the script and tables, sized to
+   its content (at most about half the height), never over them: matched rows
+   stay visible while you query, and nothing behind it holds hidden focus. */
+@media (max-width: 1099px) {
+  .wb-main.dock-open {
+    grid-template-columns: minmax(300px, var(--script-w, 40%)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .app.no-script .wb-main.dock-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app.script-collapsed .wb-main.dock-open {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .wb-main.dock-open .wb-dock {
+    grid-column: 1 / -1;
+  }
+  .wb-dock .drawer {
+    height: auto;
+    max-height: min(40dvh, 440px);
+    overflow: auto;
+  }
+}
+
+/* Wide items scroll sideways; the gutter and the sort-key column stay put.
+   Their fill must be opaque, so the diff tints are layered over the panel colour
+   (the hover/pin/query tints are inset shadows and layer on top as usual). */
+.ptable th.gutter,
+.ptable td.gutter,
+.ptable th.stick,
+.ptable td.stick {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
+}
+.ptable:has(th.gutter) .stick {
+  left: 20px;
+}
+.ptable td.stick {
+  box-shadow: 1px 0 0 var(--glass-line);
+}
+.ptable td.gutter {
+  min-width: 20px;
+}
+.ptable tr.row-added td.stick,
+.ptable tr.row-added td.gutter {
+  background: linear-gradient(rgba(55, 214, 122, 0.12), rgba(55, 214, 122, 0.12)), var(--panel);
+}
+.ptable tr.row-removed td.stick,
+.ptable tr.row-removed td.gutter {
+  background: linear-gradient(rgba(255, 122, 122, 0.1), rgba(255, 122, 122, 0.1)), var(--panel);
+}
+.ptable tr.row-modified td.stick,
+.ptable tr.row-modified td.gutter {
+  background: linear-gradient(rgba(255, 176, 32, 0.08), rgba(255, 176, 32, 0.08)), var(--panel);
+}
+[data-theme="paper"] .ptable tr.row-added td.stick,
+[data-theme="paper"] .ptable tr.row-added td.gutter {
+  background: linear-gradient(rgba(22, 163, 74, 0.11), rgba(22, 163, 74, 0.11)), var(--panel);
+}
+[data-theme="paper"] .ptable tr.row-removed td.stick,
+[data-theme="paper"] .ptable tr.row-removed td.gutter {
+  background: linear-gradient(rgba(229, 53, 43, 0.09), rgba(229, 53, 43, 0.09)), var(--panel);
+}
+
+/* Each pane's title stays visible while its rows scroll by. */
+.wb-tables .panel-title {
+  position: sticky;
+  top: -2px;
+  z-index: 2;
+  margin-bottom: 8px;
+  padding: 6px 2px;
+  background: var(--bg);
+}
+
+/* The Script | Tables switch only exists at phone width. */
+.wb-switch {
+  display: none;
+}
+
+/* Phone: one column. The script and the tables take turns (the switch), the
+   rail is a row of buttons under them, and the playback bar tightens up. */
+@media (max-width: 699px) {
+  .app.wb {
+    padding: 8px;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+    /* the Script/Tables switch and the rail share one bottom bar */
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "top top"
+      "main main"
+      "switch rail"
+      "status status"
+      "foot foot";
+  }
+  .app.wb.no-script {
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "top top"
+      "main main"
+      "rail rail"
+      "status status"
+      "foot foot";
+  }
+  .wb-switch {
+    grid-area: switch;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    background: var(--panel-2);
+  }
+  .wb-switch button {
+    flex: 1;
+    min-height: 36px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .wb-switch button.active {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .wb-main,
+  .app.no-script .wb-main,
+  .app.script-collapsed .wb-main,
+  .wb-main.dock-open,
+  .app.no-script .wb-main.dock-open,
+  .app.script-collapsed .wb-main.dock-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wb-main[data-view="tables"] .wb-script,
+  .wb-main[data-view="script"] .wb-tables {
+    display: none;
+  }
+  .app.wb > .rail {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-self: stretch;
+    padding: 6px;
+  }
+  .app.wb > .rail .rail-label {
+    display: none;
+  }
+  .app.wb > .app-footer {
+    font-size: 11px;
+    grid-template-columns: 1fr;
+    gap: 2px;
+    text-align: center;
+  }
+  .app.wb > .app-footer .disclaimer,
+  .app.wb > .app-footer .copyright {
+    grid-column: 1;
+    justify-self: center;
+  }
+  /* one-row toolbar: the logo stands in for the wordmark */
+  .toolbar .brand-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .toolbar .seg button,
+  .toolbar .share,
+  .toolbar .reset {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+  .toolbar h1 svg {
+    width: 30px;
+    height: 30px;
+  }
+  /* Playback and the step's total cost; the per-index breakdown and the
+     narration wait for a wider screen. */
+  .statusbar {
+    gap: 6px 10px;
+  }
+  .statusbar .sb-step {
+    order: -1;
+    flex: 1 0 100%;
+  }
+  .statusbar .sb-total {
+    margin-left: auto;
+  }
+  .statusbar .seg-cost,
+  .statusbar .item-bytes,
+  .statusbar .reject-note,
+  .statusbar .costbar .idle {
+    display: none;
+  }
+}
+
+/* Command palette and the shortcuts cheatsheet: native modal dialogs. */
+.kw-dialog {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  max-width: none;
+  max-height: none;
+  margin: 12vh auto auto;
+}
+.kw-dialog::backdrop {
+  background: rgba(6, 9, 14, 0.45);
+  backdrop-filter: blur(2px);
+}
+.palette-card {
+  width: min(92vw, 560px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+.palette-input {
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+}
+.palette-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: min(56vh, 420px);
+  overflow: auto;
+}
+.palette-card li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.palette-card li.active {
+  background: var(--fill-1);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.palette-label {
+  flex: 1;
+}
+.palette-group {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.palette-none {
+  color: var(--muted);
+  cursor: default;
+}
+.kw-dialog kbd,
+.palette-card kbd {
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--panel-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+}
+.shortcuts-card {
+  padding: 4px 16px 16px;
+  max-height: 80vh;
+  overflow: auto;
+}
+.shortcuts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.shortcuts-head h2 {
+  margin: 12px 0;
+  font-size: 15px;
+}
+.shortcuts-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.shortcuts-list > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+.shortcuts-list dd {
+  margin: 0;
+  color: var(--muted);
+}
+.shortcuts-list.off {
+  opacity: 0.45;
+}
+.shortcuts-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+/* Canvas keyboard grid: the focused cell is outlined in place. */
+.ptable td[data-cell]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.hint kbd {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--panel-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Drag (or arrow-key) the script's right edge to resize it. */
+.wb-script {
+  position: relative;
+}
+.wb-split {
+  position: absolute;
+  top: 0;
+  right: -11px;
+  bottom: 0;
+  width: 8px;
+  z-index: 3;
+  border-radius: 4px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.wb-split:hover,
+.wb-split:focus-visible,
+.wb-split.dragging {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  outline: none;
+}
+.wb-split:focus-visible {
+  background: var(--accent);
+}
+.app.script-collapsed .wb-split {
+  display: none;
+}
+@media (max-width: 699px) {
+  .wb-split {
+    display: none;
+  }
+}
+
+/* The step's narration, in full, at the top of the tables. */
+.step-note {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.step-note.quiet {
+  border-left-color: var(--line);
+  color: var(--muted);
+}
+.step-note-n {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Focus that reads at 3:1: the "strong" checkbox and other bare checkboxes. */
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A focused Canvas cell is never hidden under the sticky key column. */
+.ptable-scroll {
+  scroll-padding-left: 180px;
+}
+/* Screen-reader-only text. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Wide items: a soft shade at the right edge says there's more to scroll to;
+   it slides away (the "local" cover) once you reach the end. Long values are
+   cut with an ellipsis (hover or copy for the whole value). */
+.ptable-scroll {
+  background:
+    linear-gradient(to left, var(--panel) 40%, transparent) right / 48px 100% no-repeat local,
+    linear-gradient(to left, rgba(0, 0, 0, 0.16), transparent) right / 16px 100% no-repeat scroll;
+}
+.ptable td {
+  max-width: 36ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* High zoom or a short window: let the page scroll instead of squeezing the
+   tables to nothing (WCAG 1.4.10). */
+@media (max-height: 520px) {
+  .app.wb {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .app.wb > .wb-main {
+    min-height: 320px;
+  }
+}
+
+/* Toasts sit above the status bar, never on it. */
+.app.wb ~ .copied-toast,
+.app.wb .copied-toast {
+  bottom: 96px;
+}
+/* Headings that look like the labels they replace. */
+h2.drawer-title,
+h2.q-title {
+  margin: 0;
+  line-height: inherit;
+}
+/* Column headers and units: 11px, the smallest size in use. */
+.ptable th,
+.statusbar .unit {
+  font-size: 11px;
+}
+/* The splitter's hit area is 24px wide; the visible bar stays slim. */
+.wb-split {
+  width: 24px;
+  right: -19px;
+  background-clip: content-box;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.palette-card p.palette-none {
+  margin: 0;
+  padding: 0 16px;
+}
+.palette-card p.palette-none:not(:empty) {
+  padding: 4px 16px 14px;
+}
+.wb-split,
+.wb-split:hover,
+.wb-split:focus-visible,
+.wb-split.dragging {
+  background-clip: content-box;
+}
+
+/* The empty-state guide: a few keyed lines, not a paragraph. */
+.hint-start {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Toggle chips: each one switches on or off by itself (panes, diff,
+   compact). On = tinted with a check, off = a quiet outline. */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.chip:hover {
+  color: var(--text);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.chip[aria-pressed="true"]::before {
+  background: currentColor;
+}
+.chip-link {
+  padding: 4px 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.panes-bar .chips + .chips {
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+/* "In real DynamoDB": what a key change here would be in production. */
+.schema-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--warn);
+  border-left-width: 3px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--warn) 8%, var(--panel));
+  font-size: 13px;
+  line-height: 1.5;
+}
+.schema-note-body {
+  flex: 1;
+}
+.schema-note-body b {
+  color: var(--warn);
+}
+.schema-note-body p {
+  margin: 4px 0 0;
+}
+.schema-note .ghost {
+  flex-shrink: 0;
 }

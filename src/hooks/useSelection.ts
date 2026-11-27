@@ -17,7 +17,9 @@ export function useSelection() {
     onPin: (id) => setPinnedId((cur) => (cur === id ? null : id)),
     onCopy: (value) => {
       if (value === "") return;
-      void navigator.clipboard?.writeText(value);
+      // Denied clipboard (a sandboxed frame, an old browser): the toast still
+      // shows the value, so nothing to report.
+      navigator.clipboard?.writeText(value).catch(() => {});
       setCopied(value);
       window.setTimeout(() => setCopied((c) => (c === value ? null : c)), 1400);
     },

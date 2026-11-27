@@ -8,8 +8,11 @@ problems inline as you type. This page describes what
 ## The empty-line completion menu
 
 Land on a blank line (for example by pressing Enter) and the menu pops up on
-its own to answer _"what can I do here?"_. At the **start of a line** it offers
-everything you can begin a line with:
+its own to answer _"what can I do here?"_. It never preselects anything, so
+**Enter is always a newline** (a blank line between groups stays blank). To take
+an option, type a few letters and press **Tab** (the top match), or arrow down
+to it and press Enter. At the **start of a line** it offers everything you can
+begin a line with, `item` first:
 
 - **`item`**: scaffold a whole new row using the base table's keys (the
   possibly-custom `pk`/`sk`), leaving `${label}` and each key value as tab stops.
@@ -58,11 +61,27 @@ defaults:
   snippet slot. You pick a GSI key, `_type`, or an attribute to add.
 - **Shift-Tab** jumps **back** to the previous value on the line.
 - Inside an active snippet, Tab advances the snippet field first (so an open
-  popup can't hijack it), then accepts a completion, then falls back to the
-  attribute jump.
-- **Escape** blurs the editor: the explicit way out.
+  popup can't hijack it), then accepts a completion (the highlighted one, or the
+  top match once you've typed a prefix), then falls back to the attribute jump.
+- **Tab never leaves the editor.** On a blank line it opens the suggestions;
+  on a comment or `delete` line it does nothing.
+- **Escape** walks back one step at a time: it closes the suggestion menu, then
+  ends the snippet you're filling in, then gets the editor ready to let you
+  out: the very next **Tab** moves on to the tables, **Shift+Tab** back to the
+  toolbar. Any other key keeps you typing.
+- **Ctrl/Cmd+Enter** on an `@ap` line runs that access pattern in the Query
+  panel: its index, operation, key condition and values are written into the
+  request, and the result (with the returned items) shows right away.
 
-On a non-item line Tab falls through to its normal behavior.
+## Keyboard across the app
+
+- **Ctrl/Cmd+K** opens the command palette from anywhere (the editor
+  included): type a few words to find any action, an example, or a tour, and
+  Enter runs it.
+- **?** shows every shortcut. Single keys act only when you're not typing:
+  `i` script, `q` Query panel, `e` Examples, `l` Learn, `a` Access patterns,
+  `p` play/pause, `]`/`[` step, `t` theme, `1`–`9` show/hide panes. The cheatsheet has a switch to turn
+  them off (remembered in this browser).
 
 ## Live diagnostics (linting)
 

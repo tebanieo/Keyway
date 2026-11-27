@@ -194,6 +194,33 @@ a value. The editor warns when it sees one; use a placeholder,
 `#s = :p  values={":p": {"S": "pending"}}`.
 :::
 
+## `@transact … @end`: several writes, all or nothing
+
+Wrap writes in `@transact` and `@end` to send them as one `TransactWriteItems`.
+The block is **one step**: every write lands together, or none does.
+
+```text
+# place an order: create it, check the stock, empty the cart
+@transact
+o1: PK=USER#1  SK=ORDER#1  status=new  @if attribute_not_exists(PK)
+check p1  @if stock >= :n  values={":n": {"N": "1"}}
+delete cart1
+@end
+```
+
+- Inside a block you can put items, `delete` them, and `check` them. A
+  `check label @if …` is a `ConditionCheck`: it writes nothing, but its
+  condition must hold.
+- Every `@if` in the block is checked against the table **before** the
+  transaction. If any one fails, the whole transaction is cancelled
+  (`TransactionCanceledException`): nothing is written, and the attempt is
+  still billed.
+- Each action is billed at the transactional rate, 2 WCU per KB, a `check`
+  included. GSI maintenance is billed as usual. See [The cost model](/cost).
+- As in DynamoDB, a transaction can't touch the same item twice
+  (`ValidationException`) and holds at most 100 actions. Blocks don't nest.
+- A comment directly above `@transact` narrates the step.
+
 ## Comments and narration
 
 - Lines starting with `#` or `//` are comments. Blank lines are ignored.

@@ -22,7 +22,11 @@ export function CostBar({ cost, bytes }: { cost: OpCost | null; bytes: number })
     // attempt. Show that plainly, since "it still cost you" is the whole lesson.
     return (
       <div className="costbar rejected">
-        <span className="reject-tag">✗ condition not met · write rejected</span>
+        <span className="reject-tag">
+          {cost.base === "transact"
+            ? "✗ a condition failed · transaction cancelled, nothing written"
+            : "✗ condition not met · write rejected"}
+        </span>
         <span className="total">
           <b>{cost.totalWrites}</b>
           <span className="unit">WCU</span>

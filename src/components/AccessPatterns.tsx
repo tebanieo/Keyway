@@ -44,15 +44,15 @@ export function AccessPatterns({
   return (
     <Drawer
       open={open}
-      title="Access Patterns"
+      title="Access patterns"
       onClose={onClose}
       head={
-        <>
+        <span role="status" className="ap-status">
           <span className={served === aps.length ? "ap-count all" : "ap-count"}>
             {served}/{aps.length} served
           </span>
           {gaps > 0 && <span className="ap-gaps">{gaps} unserved</span>}
-        </>
+        </span>
       }
     >
       <div className="ap-list">

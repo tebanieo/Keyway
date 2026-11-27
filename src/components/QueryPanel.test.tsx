@@ -34,6 +34,8 @@ describe("QueryPanel", () => {
     const { container, rerender } = setup({ open: false });
     expect(container.querySelector(".query-panel")).not.toHaveClass("open");
     expect(container.querySelector(".query-panel")).toHaveAttribute("aria-hidden", "true");
+    // closed and off-screen: inert, so none of its fields are tab stops
+    expect(container.querySelector(".query-panel")).toHaveAttribute("inert");
     // reopen
     const parsed = parseDoc(DSL, BASE_INDEX);
     rerender(
@@ -47,12 +49,13 @@ describe("QueryPanel", () => {
       />,
     );
     expect(container.querySelector(".query-panel")).toHaveClass("open");
+    expect(container.querySelector(".query-panel")).not.toHaveAttribute("inert");
   });
 
   const field = (name: string) => screen.getByLabelText(name) as HTMLInputElement;
   const type = (name: string, value: string) =>
     fireEvent.change(field(name), { target: { value } });
-  const run = () => fireEvent.click(screen.getByRole("button", { name: "run" }));
+  const run = () => fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
   it("runs a scan over the whole table and reports + highlights the reads", () => {
     const p = setup();
@@ -64,10 +67,36 @@ describe("QueryPanel", () => {
     expect(last.matched.size).toBe(2); // both items returned
   });
 
+  it("lists the returned items in the panel, keys first", () => {
+    setup();
+    type("ExpressionAttributeValues", '{":pk": {"S": "U#1"}}');
+    run();
+    const list = screen.getByRole("list", { name: "Returned items" });
+    expect(list.querySelectorAll("li")).toHaveLength(1);
+    expect(list).toHaveTextContent("U#1 / A");
+    expect(list).toHaveTextContent("GSI1PK=E#a");
+  });
+
+  it("loads and runs an @ap sent from the editor", () => {
+    const ap = {
+      n: 1,
+      description: "by email",
+      index: "GSI1",
+      readOp: "query" as const,
+      keyText: 'GSI1PK = :e  values={":e": {"S": "E#b"}}',
+    };
+    const p = setup({ request: { seq: 1, ap } });
+    expect(field("KeyConditionExpression").value).toBe("GSI1PK = :e");
+    expect((screen.getByLabelText("index") as HTMLSelectElement).value).toBe("GSI1");
+    const last = p.onHighlight.mock.calls.at(-1)![0];
+    expect([...last.matched]).toEqual(["u2"]);
+  });
+
   it("starts from a typed request template for the chosen index", () => {
     setup();
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");
-    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "" } });
+    // pre-filled from a real item, so it runs as-is the first time
+    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "U#1" } });
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "GSI1" } });
     expect(field("KeyConditionExpression").value).toBe("GSI1PK = :pk");
   });
@@ -104,8 +133,32 @@ describe("QueryPanel", () => {
     expect(field("KeyConditionExpression").value).toBe("PK = :pk");
   });
 
-  it("asks for a value the template left empty", () => {
+  it("pre-fills on open when the panel mounted before the model had data", () => {
+    const empty = parseDoc("@table T pk=PK sk=SK", BASE_INDEX);
+    const full = parseDoc(DSL, BASE_INDEX);
+    const props = { base: full.base, gsis: full.gsis, onHighlight: vi.fn(), onClose: vi.fn() };
+    const { rerender } = render(
+      <QueryPanel {...props} open={false} state={fold(empty.ops, empty.base)} />,
+    );
+    rerender(<QueryPanel {...props} open state={fold(full.ops, full.base)} />);
+    expect(JSON.parse(field("ExpressionAttributeValues").value)).toEqual({ ":pk": { S: "U#1" } });
+  });
+
+  it("runs the pre-filled template as-is", () => {
+    const p = setup();
+    run();
+    expect(p.onHighlight.mock.calls.at(-1)![0].matched.size).toBe(1);
+  });
+
+  it("runs with Ctrl/Cmd+Enter from any field, the JSON ones included", () => {
+    const p = setup();
+    fireEvent.keyDown(field("ExpressionAttributeValues"), { key: "Enter", ctrlKey: true });
+    expect(p.onHighlight).toHaveBeenCalled();
+  });
+
+  it("asks for a value left empty", () => {
     setup();
+    type("ExpressionAttributeValues", '{":pk": {"S": ""}}');
     run();
     expect(screen.getByText(/:pk is empty/)).toBeInTheDocument();
   });
@@ -217,7 +270,7 @@ describe("QueryPanel", () => {
     const p = setup();
     fireEvent.click(screen.getByRole("button", { name: "Scan" }));
     run();
-    fireEvent.click(screen.getByRole("button", { name: "clear" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(document.querySelector(".query-result")).toBeNull();
     expect(p.onHighlight.mock.calls.at(-1)![0].matched.size).toBe(0);
   });

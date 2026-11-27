@@ -56,6 +56,10 @@ export function keyLabel(attrs: Record<string, string>, base: IndexSpec): string
 export function describe(op: Op | undefined, base: IndexSpec): { verb: string; detail: string } {
   if (!op) return { verb: "start", detail: "empty table" };
   if (op.kind === "delete") return { verb: "delete", detail: op.id };
+  if (op.kind === "transact" && op.explicit) {
+    const n = op.actions.length;
+    return { verb: "transact", detail: `${n} action${n === 1 ? "" : "s"}, all or nothing` };
+  }
   if (op.kind === "transact") {
     const p = op.actions.find((a) => a.kind === "put");
     const a = p?.kind === "put" ? p.item.attrs : undefined;

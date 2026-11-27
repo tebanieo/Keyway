@@ -7,7 +7,103 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **A key change is now truly all-or-nothing.** If the new item's `@if` failed, the old item used to be deleted anyway; now the whole transaction is cancelled.
+- **Screen readers:** Canvas tables are an ARIA grid (each cell says whether it's editable, the edit field is named "<attribute> of <item>", and the keys are described); diff marks read as "added / removed / modified"; the change and action columns have header text; the phone view switch sits in a labelled region. axe reports no issues in the example, playback, Canvas, editing, Query and phone states, apart from one false positive on the editor's scroller.
+- **Switching Canvas → Editor no longer wipes the script's comments.** Canvas edits now write into the script itself: an edited or added item is appended as a line, a delete as `delete label`, and everything you wrote (comments, directives, layout) is kept.
+- **Phone: loading an example shows the tables** instead of a blank script tab while it plays.
+- **Line numbers stay on their lines** after expanding the script (the editor re-measures when its pane resizes).
+- **Canvas keyboard grid** arrows past removed rows instead of stopping, keeps a focused cell clear of the sticky key column, and keeps focus in the pane after a delete or a key edit that moves the row. Stepping onto the last step hands focus to Play.
+- **Accessibility:** rows dimmed during playback keep 4.5:1 contrast; Query field borders, the resting pin button, the splitter and checkbox focus reach 3:1; the phone Script/Tables switch and the footer pass contrast; rail buttons expose expanded/collapsed and include the unserved count in their name; the script tells screen readers how to leave it (Escape, then Tab).
+- **"+ item" in Canvas no longer blanks the app.** Pinning the new item tried to reveal a script line that didn't exist yet.
+- **Enter is always a newline in the editor.** The suggestion menu that opens on
+  a blank line no longer preselects its first option, so pressing Enter twice
+  to leave a blank line no longer inserts an `@ap` template, and Enter after
+  `_type=user` no longer swallows the newline. Tab still takes the top match
+  once you've typed a prefix (`item`, `@g`), and `item` now leads the menu.
+- **Closed drawers no longer hold tab stops.** Tab out of the editor used to
+  land in the hidden Query panel and drawers (35 invisible stops); they're now
+  `inert` while closed, and so is the collapsed editor.
+- **Buttons and fields use the app's fonts** (they rendered in Arial, and the
+  editor's line numbers in a generic monospace), and native controls and
+  scrollbars follow the light or dark theme.
+- **The light theme meets WCAG AA contrast.** Key attributes, errors, warnings,
+  served/unserved counts, the accent and editor line numbers measured 1.7 to
+  4.5:1 on white; they're now 4.5:1 or better on every light background, and
+  the editor's line numbers and placeholders pass in the dark theme too. The
+  editor's suggestion popup follows the theme instead of staying dark.
+- **Motion respects the system's reduced-motion setting**, and the rail's
+  attention pulse runs three times instead of forever. "1 items" reads "1 item".
+- **You can type the moment Keyway opens.** It starts in the editor with the
+  cursor at the end of the model (it used to open on the table view with
+  nothing focused, about 11 keystrokes from typing), and a shared link no
+  longer opens with the page scrolled under the toolbar.
+- **Tab and Escape in the editor are predictable.** Tab never leaves the editor
+  (on a blank line it opens suggestions), and `item`+Tab works however fast you
+  type. Escape closes the menu, then ends the snippet, then lets you out: the
+  next Tab moves on, Shift+Tab goes back, shown by a hint on the editor. It used
+  to drop focus onto nothing.
+- **Drawers work from the keyboard.** Opening one moves focus inside (the Query
+  panel's first field, the first example or tour), Escape closes it, and focus
+  returns to where you came from. The tucked rail shows itself when it has
+  keyboard focus, and the green ✓ marks only the button whose badge cleared.
+- **Share is a real modal dialog**: it opens on "Copy link", Tab stays inside
+  it, Escape closes it, and focus returns to the Share button.
+- **Screen readers get state, names and structure.** Toggles report whether
+  they're on (`aria-pressed`), the editor header whether it's expanded, icon
+  buttons have names (Play/Pause, Step back, Pin, Delete, Close), the editor is
+  labelled "Model script", panes are headings and each partition's table is
+  named. Query results and errors, narration, the "copied" toast and the
+  served count are announced, and the toolbar and rail are landmarks.
+- **Problems are visible without a mouse.** The editor header counts errors and
+  warnings and opens the problems list (also Ctrl+Shift+M; F8 jumps to the
+  next). A problem you jump to now shows its message (the editor only stays
+  quiet on a line you're in the middle of typing), and an `@ap` naming an index
+  that doesn't exist gets a warning on its line.
+- **Reset can be undone.** It used to empty the model with one keypress and no
+  way back; now a toast offers **Undo** for ten seconds, and the cursor lands
+  in the fresh editor.
+- **The Query panel runs on the first try.** Its template is pre-filled with a
+  real partition from your table (it used to start empty and fail with
+  "`:pk` is empty"), and Ctrl/Cmd+Enter runs it from any field, the JSON ones
+  included.
+
 ### Changed
+
+- **Calmer controls, one meaning each.** Panes and Diff/Compact are toggle chips (on is tinted with a filled dot), "Show all" is a link that appears only when a pane is hidden, segmented choices like Get/Query/Scan raise the chosen option instead of filling it, and Share is an outlined secondary button. Solid accent now marks only Play and Run. The script's tab reads "Script", and the empty table says how to start.
+- **Columns line up across partitions.** Every partition in a pane shares one set of columns and widths, so an attribute sits at the same place in each item collection and can be compared down the page.
+- **One interface: the script.** The Canvas/Editor switch is gone. The base table is still editable in place (double-click or Enter on a cell, delete a row, "+ item"), and every change is written into the script as a line, as if typed, so the text stays the single source of truth.
+- **The hint under the tables** is a short keyed guide while the model is empty, and a single line after that.
+- **Polish from the second review:**
+  - **Reset:** "Undo" stays for 30 s and is in the command palette ("Undo reset"). Toasts sit above the status bar.
+  - **Error count:** the editor's count no longer flashes "1 error" for the line you're still typing, and it matches the problems list.
+  - **Wording:** one name per feature, in sentence case ("Read / Query", "Access patterns", "Strongly consistent", "Run"). The theme button says which theme it switches to.
+  - **Lists:** Examples and Learn lists move with the arrow keys and Home/End.
+  - **Headings:** panel titles are headings.
+  - **Column headers:** table column headers are 11px.
+  - **Splitter:** it has a 24px hit area.
+  - **Command palette:** "No matching command" is announced.
+- **More room for the tables.** A docked panel has a fixed 360px reading width and the script gives up a share, so the tables keep the most space. Below 1100px a panel sits under the tables (at most 40% of the height) instead of covering them, so matched rows stay visible while you query. Clicking elsewhere no longer closes a panel; use its ×, Escape or its rail button.
+- **Wide tables show there's more to the right** (a shade at the edge that goes away at the end), and long values end in an ellipsis (hover for the whole value, click to copy it).
+- **High zoom works:** in a short window (400% zoom, or under 520px tall) the page scrolls instead of squeezing the tables to nothing.
+- **Phone:** a one-row toolbar, the Script/Tables switch and the rail share one bottom bar, and the footer no longer runs into itself. Rail labels no longer sit on top of the content or an open panel's header.
+- **Playback reads at your pace.** Each step is held long enough to read its note, the default speed is labelled 1× (0.5× and 2× around it), and the step banner above the tables is always there (a step without a note shows what it does), so the tables no longer jump. Screen readers hear every step (number, write, cost and note) through one live region.
+- **Examples keep the script open** beside the tables on wide screens, with the running step lit, and the keyboard lands on Play/Pause after loading an example or a tour.
+- **Step narration sits above the tables, in full.** It was cut off with an ellipsis in the status bar; now it wraps at the top of the tables, where you're looking, on every screen size including phones.
+- **Phone layout.** Below 700px wide the script and the tables take turns behind a Script | Tables switch, the rail is a row of buttons, panels open as bottom sheets, and the status bar keeps playback, the step and its cost.
+- Tables: the sort-key column and diff gutter stay in place while a wide item scrolls sideways (the partition header no longer scrolls away), pane titles stay visible while scrolling, and the pin/delete buttons are larger, faintly visible at rest, and shown on keyboard focus.
+- Panels (Query, Examples, Learn, Access Patterns) dock beside the tables on wide screens instead of covering them, and stay open while you click around; the rail is a fixed column. On narrower screens a panel opens as a bottom sheet.
+- **A workbench layout: the script and the tables side by side.** The page is a
+  fixed-height frame with no page scroll; the script sits on the left and the
+  tables on the right, each scrolling on its own. At 1440x900 you see about 9
+  table rows next to the whole script, where the stacked layout showed about 4
+  rows below an editor that took half the screen. Tours and examples fold the
+  script to a slim tab.
+- **A permanent status bar.** Playback, the current step and its narration,
+  that step's cost chips and a running WCU total for every step so far sit in
+  one strip at the bottom. It replaces the narration pill and the cost pop-up
+  that floated over the tables and vanished after 2.6 seconds.
 
 - **Expressions are written exactly as the DynamoDB API takes them**: the
   expression, plus `ExpressionAttributeNames` and typed
@@ -60,6 +156,16 @@ hand-curated summary. It follows
 
 ### Added
 
+- **Transactions: `@transact … @end`.** Group puts, deletes and `check label @if …` (a ConditionCheck) into one `TransactWriteItems`: one step, all or nothing. Every condition is checked against the table before the transaction; if any fails, it's cancelled and nothing is written (still billed). Each action costs the transactional rate (a check included). DynamoDB's rules are enforced: no two actions on one item, at most 100 actions, no nesting. The editor completes `@transact` and offers `check` inside a block.
+- **"In real DynamoDB" notes for schema changes.** Changing a key in `@table` or `@gsi` (or adding a GSI) on a model with data still rebuilds the tables instantly, and now a note says what that would be in production: a new table plus a data copy for a primary-key change, delete-and-re-create plus a backfill for a GSI's keys, and a billed backfill for a new GSI.
+- **Resize the script:** drag its right edge, or focus it and use the arrow keys (Shift for bigger steps); the width is remembered. Keys `1`–`9` show or hide the panes, and pane titles are larger.
+- **Canvas tables work from the keyboard:** each table is one tab stop, the arrow keys (and Home/End) move between cells, Enter or F2 edits a cell, and Enter/Escape bring you back to it.
+- **Command palette (Ctrl/Cmd+K)** with every action, example and tour, and **single-key shortcuts** (`q`, `e`, `l`, `a`, `p`, `[`/`]`, `t`, `i`) that act only when you're not typing. `?` shows them all, with a switch to turn the single keys off.
+- **Ctrl/Cmd+Enter on an `@ap` line runs it** in the Query panel, with the pattern's index, key condition and values filled in.
+- **Syntax highlighting** in the script: comments, directives, labels, attribute names, values, and expression placeholders each get a colour from the theme.
+- **More editor completions:** index names after `->` in an `@ap`, `all`/`keys`/attribute names after `projection=`, and existing item labels after `delete`.
+- **The script and the tables are linked.** The item line under the caret lights its row in every pane and scrolls it into view; pinning a row puts the caret on the line that wrote it.
+- **The Query panel lists what it returned**, keys first then the other attributes, so you no longer have to hunt for highlighted rows.
 - **ExtendDB as Keyway's DynamoDB engine.** `wasm/` wraps ExtendDB's
   `extenddb-core` (Apache-2.0, pinned to v1.0.0, no fork) and compiles it to
   WebAssembly, which the page loads from the site itself and runs in the tab:

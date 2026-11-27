@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fold } from "./engine";
-import { writeCost } from "./cost";
+import { totalWrites, writeCost } from "./cost";
 import type { IndexSpec, Item, Op } from "./types";
 
 const BASE: IndexSpec = { name: "base", pk: "PK", sk: "SK" };
@@ -238,5 +238,17 @@ describe("writeCost: ExtendDB's measured capacity rules", () => {
       actions: [{ kind: "put", item: { id: "u1", attrs: { PK: "U#1", SK: "P", bio: "s" } } }],
     };
     expect(writeCost(prior, tx, BASE, []).baseWrites).toBe(4); // 2 WCU × 2
+  });
+});
+
+describe("totalWrites", () => {
+  it("sums each op's cost against the state before it, up to a step", () => {
+    const ops: Op[] = [
+      put("u1", { PK: "U#1", SK: "P", GSI1PK: "G", GSI1SK: "1" }), // base 1 + GSI insert 1
+      put("u1", { PK: "U#1", SK: "P", GSI1PK: "H", GSI1SK: "1" }), // base 1 + reindex 2
+    ];
+    expect(totalWrites(ops, BASE, [GSI1], 1)).toBe(2);
+    expect(totalWrites(ops, BASE, [GSI1])).toBe(2 + 3);
+    expect(totalWrites(ops, BASE, [GSI1], 0)).toBe(0);
   });
 });

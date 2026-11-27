@@ -14,7 +14,7 @@ export function LearnDrawer({
   onPlay: (tour: Tour) => void;
 }) {
   return (
-    <Drawer open={open} title="Learn" onClose={onClose}>
+    <Drawer open={open} title="Learn" onClose={onClose} initialFocus=".ex-item">
       <div className="ex-list">
         {TOURS.map((tour) => (
           <button

@@ -120,6 +120,8 @@ export function conditionRejected(
     }
     return !conditionHolds(action.condition, existing);
   };
+  // A transaction's conditions are all checked against the state BEFORE it:
+  // one failing check cancels the whole transaction.
   return op.kind === "transact" ? op.actions.some(fails) : fails(op);
 }
 
@@ -134,6 +136,10 @@ export function applyAction(
   action: WriteAction,
   baseIndex: IndexSpec,
 ): boolean {
+  if (action.kind === "check") {
+    // a ConditionCheck writes nothing
+    return conditionHolds(action.condition, findById(state, action.id) ?? null);
+  }
   if (action.kind === "put") {
     const key = keyOf(action.item, baseIndex);
     if (key === null) return false; // incomplete base key: not a valid row
@@ -156,7 +162,9 @@ export function fold(ops: readonly Op[], baseIndex: IndexSpec): Map<string, Item
   const state = new Map<string, Item>();
   for (const op of ops) {
     if (op.kind === "transact") {
-      // atomic bundle: apply every action, then it's one logical step
+      // All or nothing (TransactWriteItems): if any condition fails against
+      // the state before it, the transaction is cancelled and nothing lands.
+      if (conditionRejected(state, op, baseIndex)) continue;
       for (const action of op.actions) applyAction(state, action, baseIndex);
     } else {
       applyAction(state, op, baseIndex);

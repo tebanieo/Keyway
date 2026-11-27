@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { qrPath, qrLogoFraction } from "../model/qr";
 import type { QrLevel } from "../model/qr";
 import { SAFE_URL_LEN } from "../model/share";
@@ -64,84 +64,98 @@ export function ShareDialog({
   onCopy: () => void;
   onClose: () => void;
 }) {
-  // Esc closes, matching the rail drawers.
+  // A native modal <dialog>: the browser traps Tab inside it, makes the page
+  // behind it inert, closes it on Escape, and gives focus back to whatever
+  // opened it (the Share button) when it closes.
+  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
+    const d = dialog.current;
+    if (!d) return;
+    if (open && !d.open) {
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", ""); // test DOMs without <dialog> support
+      // Start on what you came for (showModal would pick the first control, ×).
+      d.querySelector<HTMLElement>(".share-copy")?.focus();
+    } else if (!open && d.open) {
+      if (typeof d.close === "function") d.close();
+      else d.removeAttribute("open");
+    }
+  }, [open]);
 
   const tooBigForUrl = url.length > SAFE_URL_LEN;
-  const qr = tooBigForUrl ? null : qrPath(url);
+  const qr = open && !tooBigForUrl ? qrPath(url) : null;
 
   return (
-    <div className="share-overlay" onMouseDown={onClose}>
-      <div
-        className="share-modal"
-        role="dialog"
-        aria-label="Share this model"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="share-modal-head">
-          <span className="share-modal-title">Share this model</span>
-          <button className="share-close" onClick={onClose} aria-label="close">
-            &times;
-          </button>
-        </div>
-
-        {tooBigForUrl ? (
-          <p className="share-note">
-            This model is too large to fit in a link. Copy the DSL text from the editor and share
-            that instead.
-          </p>
-        ) : (
-          <>
-            {qr ? (
-              <>
-                <div className="qr-frame">
-                  <svg
-                    className="qr"
-                    viewBox={`0 0 ${qr.size} ${qr.size}`}
-                    role="img"
-                    aria-label="QR code linking to this model"
-                  >
-                    <defs>
-                      <linearGradient id="qr-keyway" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stopColor="#4c86ff" />
-                        <stop offset="1" stopColor="#6d4bf0" />
-                      </linearGradient>
-                    </defs>
-                    <path d={qr.d} fill="currentColor" shapeRendering="crispEdges" />
-                    <QrKeyhole size={qr.size} level={qr.level} />
-                  </svg>
-                </div>
-                <p className="share-hint">Scan to open this model on another device.</p>
-              </>
-            ) : (
-              <p className="share-note">
-                This model fits a link but is too dense for a QR code. Use the link below.
-              </p>
-            )}
-            <div className="share-link-row">
-              <input
-                className="share-url"
-                readOnly
-                value={url}
-                onFocus={(e) => e.currentTarget.select()}
-                aria-label="shareable link"
-              />
-              <button className="share-copy" onClick={onCopy}>
-                {copied ? "Copied" : "Copy link"}
+    <dialog
+      ref={dialog}
+      className="share-dialog"
+      aria-label="Share this model"
+      // Escape: let React's state close it, so it stays the one source of truth.
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+    >
+      {open && (
+        <div className="share-overlay" onMouseDown={onClose}>
+          <div className="share-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="share-modal-head">
+              <span className="share-modal-title">Share this model</span>
+              <button className="share-close" onClick={onClose} aria-label="Close share dialog">
+                &times;
               </button>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+
+            {tooBigForUrl ? (
+              <p className="share-note">
+                This model is too large to fit in a link. Copy the DSL text from the editor and
+                share that instead.
+              </p>
+            ) : (
+              <>
+                {qr ? (
+                  <>
+                    <div className="qr-frame">
+                      <svg
+                        className="qr"
+                        viewBox={`0 0 ${qr.size} ${qr.size}`}
+                        role="img"
+                        aria-label="QR code linking to this model"
+                      >
+                        <defs>
+                          <linearGradient id="qr-keyway" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stopColor="#4c86ff" />
+                            <stop offset="1" stopColor="#6d4bf0" />
+                          </linearGradient>
+                        </defs>
+                        <path d={qr.d} fill="currentColor" shapeRendering="crispEdges" />
+                        <QrKeyhole size={qr.size} level={qr.level} />
+                      </svg>
+                    </div>
+                    <p className="share-hint">Scan to open this model on another device.</p>
+                  </>
+                ) : (
+                  <p className="share-note">
+                    This model fits a link but is too dense for a QR code. Use the link below.
+                  </p>
+                )}
+                <div className="share-link-row">
+                  <input
+                    className="share-url"
+                    readOnly
+                    value={url}
+                    onFocus={(e) => e.currentTarget.select()}
+                    aria-label="shareable link"
+                  />
+                  <button className="share-copy" onClick={onCopy}>
+                    {copied ? "Copied" : "Copy link"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </dialog>
   );
 }

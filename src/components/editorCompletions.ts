@@ -29,6 +29,7 @@ function itemSnippet(base: IndexSpec) {
     label: "item",
     detail: "new base item, Tab at the end to add keys/attrs",
     type: "keyword",
+    boost: 2, // the most common thing to start a line with
   });
 }
 /** Inserts one declared GSI's key attributes to add to the current item. */
@@ -44,6 +45,12 @@ function gsiKeysSnippet(g: IndexSpec) {
 const DELETE_SNIPPET = snippetCompletion(`delete ${ph("label")}`, {
   label: "delete",
   detail: "delete an item",
+  type: "keyword",
+});
+
+const CHECK_SNIPPET = snippetCompletion(`check ${ph("label")}  @if ${ph("condition")}`, {
+  label: "check",
+  detail: "ConditionCheck: must hold for the transaction to go through",
   type: "keyword",
 });
 
@@ -63,6 +70,11 @@ const DIRECTIVES = [
       type: "keyword",
     },
   ),
+  snippetCompletion(`@transact\n${ph("writes")}\n@end`, {
+    label: "@transact",
+    detail: "TransactWriteItems: several writes, all or nothing",
+    type: "keyword",
+  }),
   snippetCompletion(`@table ${ph("Name")} pk=${ph("pk")} sk=${ph("sk")}`, {
     label: "@table",
     detail: "name the base table + its keys",
@@ -113,17 +125,67 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
     return { from: ctx.pos - dir[1].length - 1, options: DIRECTIVES };
   }
 
+  // `@ap … -> ` → the indexes the pattern can be served by.
+  const apIx = /^@ap\b.*->\s*([\w.-]*)$/.exec(before);
+  if (apIx) {
+    const parsed = parseDoc(ctx.state.doc.toString(), BASE_INDEX);
+    return {
+      from: ctx.pos - apIx[1].length,
+      options: [parsed.base, ...parsed.gsis].map((ix, i) => ({
+        label: ix.name,
+        detail: `${i === 0 ? "table" : "GSI"}: ${[...pkAttrs(ix), ...skAttrs(ix)].join(", ")}`,
+        type: "class",
+      })),
+    };
+  }
+
+  // `@gsi … projection=` → all / keys, or the attributes of an include list.
+  const proj = /^@gsi\b.*\bprojection=((?:[\w-]+,)*)([\w-]*)$/.exec(before);
+  if (proj) {
+    const { attrs } = liveModel(ctx.state.doc.toString());
+    const listed = proj[1].split(",").filter(Boolean);
+    const named = attrs
+      .filter((a) => !listed.includes(a))
+      .map((a) => ({ label: a, detail: "include this attribute", type: "property" }));
+    const modes = [
+      { label: "all", detail: "project every attribute", type: "keyword" },
+      { label: "keys", detail: "only the table and index keys", type: "keyword" },
+    ];
+    return {
+      from: ctx.pos - proj[2].length,
+      options: listed.length ? named : [...modes, ...named],
+    };
+  }
+
+  // `delete ` → the labels of items that exist.
+  const del = /^\s*delete\s+([^\s]*)$/.exec(before);
+  if (del) {
+    const parsed = parseDoc(ctx.state.doc.toString(), BASE_INDEX);
+    const items = [...fold(parsed.ops, parsed.base).values()];
+    return {
+      from: ctx.pos - del[1].length,
+      options: items.map((it) => ({
+        label: it.id,
+        detail: [...pkAttrs(parsed.base), ...skAttrs(parsed.base)]
+          .map((k) => it.attrs[k])
+          .filter(Boolean)
+          .join(" / "),
+        type: "variable",
+      })),
+    };
+  }
+
   // After `_type=` → offer the entity types already defined in the model.
   const typeVal = /_type=([\w-]*)$/.exec(before);
   if (typeVal) {
     const { entities } = liveModel(ctx.state.doc.toString());
     return {
       from: ctx.pos - typeVal[1].length,
-      options: entities.map((e) => ({
-        label: e.type,
-        detail: `${e.count}×`,
-        type: "constant",
-      })),
+      // Not the value already typed: offering `user` for `_type=user` would
+      // make Enter "accept" it instead of ending the line.
+      options: entities
+        .filter((e) => e.type !== typeVal[1])
+        .map((e) => ({ label: e.type, detail: `${e.count}×`, type: "constant" })),
     };
   }
 
@@ -181,7 +243,18 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
   } else {
     // line start: everything you can begin a line with, scaffold an item
     // (blank or from an entity template), delete, or an @ directive.
-    options = [itemSnippet(base), DELETE_SNIPPET, ...DIRECTIVES, ...entities.map(entityScaffold)];
+    // inside an open @transact block, a ConditionCheck is one more thing
+    const lines = ctx.state.doc.sliceString(0, line.from).split("\n");
+    const opens = lines.filter((l) => /^\s*@transact\s*$/i.test(l)).length;
+    const closes = lines.filter((l) => /^\s*@end\s*$/i.test(l)).length;
+    const inTx = opens > closes;
+    options = [
+      itemSnippet(base),
+      DELETE_SNIPPET,
+      ...(inTx ? [CHECK_SNIPPET] : []),
+      ...DIRECTIVES,
+      ...entities.map(entityScaffold),
+    ];
   }
 
   return { from: word.from, options };

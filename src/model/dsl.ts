@@ -1,7 +1,7 @@
 import { keyOf } from "../engine/engine";
 import { parseExpression, splitClauses } from "../engine/expression";
 import type { AttributeValue } from "../engine/extenddb";
-import type { Condition, IndexSpec, Item, Op, ProjectionSpec } from "../engine/types";
+import type { Condition, IndexSpec, Item, Op, ProjectionSpec, WriteAction } from "../engine/types";
 
 /**
  * A tiny, readable text format for a DynamoDB data model. One line = one op =
@@ -43,6 +43,8 @@ export interface AccessPattern {
    * - get: the Key, as `attr=value` pairs (`PK=USER#1 SK=PROFILE`).
    */
   keyText?: string;
+  /** 0-based source line, so the editor can run the pattern under its caret. */
+  line?: number;
 }
 
 /** `@ap … -> <Index> [get|query|scan] [key]`: split the tail after the arrow. */
@@ -117,6 +119,12 @@ function parseProjection(v: string | undefined): ProjectionSpec | undefined {
 
 const LABEL = /^([A-Za-z0-9_]+)\s*:\s*(.*)$/;
 const DELETE = /^(?:delete|del|-)\s*([A-Za-z0-9_]+)\s*$/;
+const CHECK = /^check\s+([A-Za-z0-9_]+)\s*$/;
+/** `@transact` opens a TransactWriteItems block, `@end` closes it. */
+const TX_OPEN = /^@transact\s*$/i;
+const TX_END = /^@end\s*$/i;
+/** DynamoDB's limit on actions in one TransactWriteItems. */
+const TX_MAX = 100;
 // A key=value pair whose value runs until the next ` key=` or end of line, so
 // values may contain spaces (name=Ada Lovelace) without needing quotes.
 const PAIR = /(\w+)=(.*?)(?=\s+\w+=|\s*$)/g;
@@ -151,8 +159,26 @@ function itemLine(item: Item, baseIndex: IndexSpec): string {
  */
 export function serializeOps(ops: readonly Op[], baseIndex: IndexSpec): string {
   const guard = (c: Condition | undefined) => (c ? `${SP}${SP}@if${SP}${c.text}` : "");
+  const action = (a: WriteAction): string =>
+    a.kind === "check"
+      ? `check${SP}${a.id}${guard(a.condition)}`
+      : a.kind === "delete"
+        ? `delete${SP}${a.id}${guard(a.condition)}`
+        : itemLine(a.item, baseIndex) + guard(a.condition);
   const lines = ops.map((op) => {
     if (op.kind === "delete") return `delete${SP}${op.id}${guard(op.condition)}`;
+    if (op.kind === "transact" && op.explicit) {
+      // a key change inside the block is its put line (the delete is implied)
+      const body = op.actions.filter(
+        (a, i) =>
+          !(
+            a.kind === "delete" &&
+            op.actions[i + 1]?.kind === "put" &&
+            (op.actions[i + 1] as { item: Item }).item.id === a.id
+          ),
+      );
+      return ["@transact", ...body.map(action), "@end"].join("\n");
+    }
     if (op.kind === "transact") {
       const put = op.actions.find((a) => a.kind === "put");
       return put && put.kind === "put" ? itemLine(put.item, baseIndex) + guard(put.condition) : "";
@@ -204,9 +230,11 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   let base: IndexSpec = { name: "base", pk: baseIndex.pk, sk: baseIndex.sk };
   const gsis: IndexSpec[] = [];
   const aps: AccessPattern[] = [];
+  const apLines: number[] = []; // source line of each @ap, for diagnostics
   lines.forEach((raw, line) => {
     const s = raw.trim();
     if (!s.startsWith("@")) return;
+    if (TX_OPEN.test(s) || TX_END.test(s)) return; // read with the writes
     const d = DIRECTIVE.exec(s);
     if (!d) {
       diagnostics.push({ line, message: "malformed directive", severity: "error" });
@@ -310,7 +338,8 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
           });
         }
       }
-      aps.push({ n: aps.length + 1, description, index, readOp, keyText });
+      aps.push({ n: aps.length + 1, description, index, readOp, keyText, line });
+      apLines.push(line);
     } else {
       diagnostics.push({ line, message: `unknown directive @${kind}`, severity: "warning" });
     }
@@ -328,8 +357,76 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     return note || undefined;
   };
 
+  // An open `@transact` block: its writes collect here, then land as ONE
+  // step when `@end` closes it (all or nothing).
+  let tx: { line: number; note?: string; actions: WriteAction[]; targets: string[] } | null = null;
+  // The item a delete/check names, by its key (a deleted label keeps its last
+  // key, so "delete x" then "check x" in one block is caught as the same item).
+  const goneKey = new Map<string, string>();
+  const keyFor = (id: string) => lastKey.get(id) ?? goneKey.get(id) ?? `id:${id}`;
+  const emit = (op: Op, line: number, target: string[]) => {
+    if (tx) {
+      tx.actions.push(...(op.kind === "transact" ? op.actions : [op]));
+      tx.targets.push(...target);
+      return;
+    }
+    ops.push(op);
+    notes.push(takeNote());
+    opLines.push(line);
+  };
+  const closeTx = () => {
+    if (!tx) return;
+    const { line, actions, targets, note } = tx;
+    tx = null;
+    if (actions.length === 0) {
+      diagnostics.push({ line, message: "@transact: empty transaction", severity: "warning" });
+      return;
+    }
+    if (actions.length > TX_MAX) {
+      diagnostics.push({
+        line,
+        message: `@transact: a transaction holds at most ${TX_MAX} actions (this one has ${actions.length})`,
+        severity: "error",
+      });
+      return;
+    }
+    const dup = targets.find((t, i) => targets.indexOf(t) !== i);
+    if (dup) {
+      diagnostics.push({
+        line,
+        message:
+          "@transact: ValidationException: Transaction request cannot include multiple operations on one item",
+        severity: "error",
+      });
+      return;
+    }
+    ops.push({ kind: "transact", actions, explicit: true });
+    notes.push(note);
+    opLines.push(line);
+  };
+
   lines.forEach((raw, line) => {
     const s = raw.trim();
+    if (TX_OPEN.test(s)) {
+      if (tx) {
+        diagnostics.push({
+          line,
+          message: "@transact: transactions don't nest; close the open one with @end first",
+          severity: "error",
+        });
+        return;
+      }
+      tx = { line, note: takeNote(), actions: [], targets: [] };
+      return;
+    }
+    if (TX_END.test(s)) {
+      if (!tx) {
+        diagnostics.push({ line, message: "@end without an open @transact", severity: "error" });
+        return;
+      }
+      closeTx();
+      return;
+    }
     if (s === "") {
       pending = [];
       return;
@@ -366,11 +463,29 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
       condition = parsed.expression;
     }
 
+    const check = CHECK.exec(core);
+    if (check) {
+      if (!tx) {
+        diagnostics.push({
+          line,
+          message: "check is a ConditionCheck: it only goes inside @transact … @end",
+          severity: "error",
+        });
+        return;
+      }
+      if (!condition) {
+        diagnostics.push({ line, message: "check needs an @if condition", severity: "error" });
+        return;
+      }
+      tx.actions.push({ kind: "check", id: check[1], condition });
+      tx.targets.push(keyFor(check[1]));
+      return;
+    }
+
     const del = DELETE.exec(core);
     if (del) {
-      ops.push({ kind: "delete", id: del[1], condition });
-      notes.push(takeNote());
-      opLines.push(line);
+      emit({ kind: "delete", id: del[1], condition }, line, [keyFor(del[1])]);
+      goneKey.set(del[1], keyFor(del[1]));
       lastKey.delete(del[1]);
       return;
     }
@@ -400,22 +515,49 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     }
 
     const prevKey = lastKey.get(label);
+    const target = newKey ?? `id:${label}`;
     if (prevKey && newKey && prevKey !== newKey) {
       // key changed -> atomic delete-old + put-new (a TransactWriteItems); the
       // guard rides the put action.
-      ops.push({
-        kind: "transact",
-        actions: [
-          { kind: "delete", id: label },
-          { kind: "put", item, condition },
-        ],
-      });
+      emit(
+        {
+          kind: "transact",
+          actions: [
+            { kind: "delete", id: label },
+            { kind: "put", item, condition },
+          ],
+        },
+        line,
+        [prevKey, target],
+      );
     } else {
-      ops.push({ kind: "put", item, condition });
+      emit({ kind: "put", item, condition }, line, [target]);
     }
-    notes.push(takeNote());
-    opLines.push(line);
     if (newKey) lastKey.set(label, newKey);
+  });
+
+  // A block still open at the end: keep what it holds (it may be mid-typing),
+  // but say it needs closing.
+  if (tx) {
+    diagnostics.push({
+      line: (tx as { line: number }).line,
+      message: "@transact needs a closing @end",
+      severity: "warning",
+    });
+    closeTx();
+  }
+
+  // An @ap naming an index that doesn't exist: say so on its line (the
+  // directives can come in any order, so this waits until all are read).
+  const indexNames = [base.name, ...gsis.map((g) => g.name)];
+  aps.forEach((ap, i) => {
+    if (ap.index && !indexNames.includes(ap.index)) {
+      diagnostics.push({
+        line: apLines[i],
+        message: `@ap: index "${ap.index}" isn't defined (indexes: ${indexNames.join(", ")})`,
+        severity: "warning",
+      });
+    }
   });
 
   return { ops, diagnostics, base, gsis, aps, notes, opLines };

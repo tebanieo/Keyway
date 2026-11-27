@@ -3,6 +3,9 @@ import type { QueryHighlight } from "../components/QueryPanel";
 
 export type DrawerName = "patterns" | "examples" | "query" | "learn";
 
+/** Wide enough that drawers dock beside the tables (matches styles.css). */
+export const DOCKED = "(min-width: 1100px)";
+
 const NO_HIGHLIGHT: QueryHighlight = { matched: new Set(), scanned: new Set() };
 
 // The right-rail drawers: only one opens at a time (they share the edge), plus
@@ -23,16 +26,9 @@ export function useDrawers(modelEmpty: boolean) {
     if (drawer !== "query") setHighlight(NO_HIGHLIGHT);
   }, [drawer]);
 
-  // Click anywhere outside the rail/drawer dismisses the open drawer.
-  useEffect(() => {
-    if (!drawer) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Element | null;
-      if (t && !t.closest(".rail") && !t.closest(".drawer")) setDrawer(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [drawer]);
+  // An open panel never covers the tables (docked beside them, or below them
+  // on a narrow screen), so clicking elsewhere leaves it open: close it with
+  // its × button, Escape, or its rail button.
 
   // Close the Query drawer if the model empties out while it's open.
   useEffect(() => {

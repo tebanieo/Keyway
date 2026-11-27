@@ -9,8 +9,7 @@ vi.mock("./analytics", () => ({ track: vi.fn(), trackItem: vi.fn() }));
 
 // A mount-and-wire smoke test for the composition shell. App.tsx isn't in the
 // coverage include (it's integration, not unit), but this guards against the
-// whole tree failing to render or the drawer/hook wiring breaking. It stays in
-// canvas mode throughout, so the CodeMirror editor is never mounted.
+// whole tree failing to render or the drawer/hook wiring breaking.
 const drawerByTitle = (title: string) =>
   screen.getByText(title, { selector: ".drawer-title" }).closest(".drawer")!;
 
@@ -36,13 +35,19 @@ describe("App (smoke)", () => {
     expect(learn).toHaveClass("open");
   });
 
-  it("dismisses the open drawer on an outside click", () => {
+  it("closes the open drawer from its × button", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Examples/ }));
     const examples = drawerByTitle("Examples");
     expect(examples).toHaveClass("open");
-
-    fireEvent.mouseDown(document.body);
+    fireEvent.click(screen.getByRole("button", { name: "Close Examples" }));
     expect(examples).not.toHaveClass("open");
+  });
+
+  it("adds an item from the tables by writing its line into the script", () => {
+    render(<App />);
+    fireEvent.click(document.querySelector(".add-item")!);
+    expect(screen.getByText(/Opinions are my own/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Model script" })).toHaveTextContent(/ITEM#/);
   });
 });

@@ -5,8 +5,6 @@ import { Toolbar } from "./Toolbar";
 
 function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
   const props = {
-    mode: "canvas" as const,
-    onMode: vi.fn(),
     theme: "dark" as const,
     onToggleTheme: vi.fn(),
     onShare: vi.fn(),
@@ -14,15 +12,6 @@ function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
     onReset: vi.fn(),
     pinnedId: null as string | null,
     onUnpin: vi.fn(),
-    curStep: 1,
-    opsLength: 3,
-    op: { verb: "PUT", detail: "u1" },
-    playing: false,
-    onTogglePlay: vi.fn(),
-    onPrev: vi.fn(),
-    onNext: vi.fn(),
-    speed: 0.5,
-    onSpeed: vi.fn(),
     ...over,
   };
   const { unmount } = render(<Toolbar {...props} />);
@@ -30,20 +19,12 @@ function setup(over: Partial<Parameters<typeof Toolbar>[0]> = {}) {
 }
 
 describe("Toolbar", () => {
-  it("renders the brand, mode toggle, and step label", () => {
-    setup();
-    expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Canvas" })).toHaveClass("active");
-    expect(screen.getByRole("button", { name: "Editor" })).not.toHaveClass("active");
-    expect(screen.getByText(/step 1\/3/)).toBeInTheDocument();
-  });
-
-  it("wires mode, theme, and share", () => {
+  it("renders the brand, and wires theme and share", () => {
     const p = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Editor" }));
-    fireEvent.click(screen.getByRole("button", { name: "toggle theme" }));
+    expect(screen.getByRole("heading", { name: /Keyway/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Canvas" })).toBeNull(); // one interface
+    fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
     fireEvent.click(screen.getByRole("button", { name: "Share" }));
-    expect(p.onMode).toHaveBeenCalledWith("editor");
     expect(p.onToggleTheme).toHaveBeenCalledOnce();
     expect(p.onShare).toHaveBeenCalledOnce();
   });
@@ -63,19 +44,5 @@ describe("Toolbar", () => {
     expect(chip).toBeInTheDocument();
     fireEvent.click(chip);
     expect(p.onUnpin).toHaveBeenCalledOnce();
-  });
-
-  it("disables prev at the start and next at the end", () => {
-    const a = setup({ curStep: 0, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "step back" })).toBeDisabled();
-    a.unmount();
-    setup({ curStep: 3, opsLength: 3 });
-    expect(screen.getByRole("button", { name: "step forward" })).toBeDisabled();
-  });
-
-  it("cycles the speed 0.5 -> 1", () => {
-    const p = setup({ speed: 0.5 });
-    fireEvent.click(screen.getByRole("button", { name: "playback speed" }));
-    expect(p.onSpeed).toHaveBeenCalledWith(1);
   });
 });

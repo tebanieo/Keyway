@@ -3,7 +3,7 @@ import { fold, project } from "../engine/engine";
 import { writeCost } from "../engine/cost";
 import type { OpCost } from "../engine/cost";
 import type { IndexSpec, Op } from "../engine/types";
-import { parseDoc, serializeModel } from "../model/dsl";
+import { parseDoc, serializeModel, serializeOps } from "../model/dsl";
 import type { AccessPattern } from "../model/dsl";
 import { nextItemLabel } from "../model/actions";
 import { apCoverage } from "../model/coverage";
@@ -46,15 +46,6 @@ export function useModel() {
   // ---- op-log producers -----------------------------------------------------
   // canvas: grid actions append ops. editor: typed text parses to ops. Both
   // funnel into the same `ops`, so the panes never know which produced them.
-  const commit = useCallback(
-    (added: Op[]) => {
-      if (added.length === 0) return;
-      setOps((prev) => [...prev.slice(0, curStep), ...added]);
-      setStep(curStep + added.length);
-    },
-    [curStep],
-  );
-
   const onDoc = useCallback((text: string) => {
     setDocText(text);
     const parsed = parseDoc(text, BASE_INDEX);
@@ -97,8 +88,21 @@ export function useModel() {
 
   // The whole model (structure + data) as DSL text.
   const serialize = (someOps: Op[]) => serializeModel(base, gsis, aps, someOps);
-  // Reflect the current ops as editor text (entering the editor from canvas).
-  const syncDoc = () => setDocText(serialize(ops));
+
+  /**
+   * Canvas edits write into the SCRIPT, not around it: the script stays the
+   * one source of truth, with its comments, directives and layout intact. The
+   * writes after the scrubber (the future a canvas edit branches away from)
+   * lose their lines; the new writes are appended as lines; everything else
+   * is kept as typed. Then the text re-parses as if typed.
+   */
+  const commit = (added: Op[]) => {
+    if (added.length === 0) return;
+    const future = new Set(opLines.slice(curStep));
+    const kept = docText.split("\n").filter((_, i) => !future.has(i));
+    while (kept.length && kept[kept.length - 1].trim() === "") kept.pop();
+    onDoc([...kept, serializeOps(added, base).trimEnd()].join("\n") + "\n");
+  };
 
   // Add a blank item at the scrubber head and reflect it in the doc; returns the
   // new item's label so the caller can pin it. Pure to the model (no mode/pin).
@@ -106,11 +110,7 @@ export function useModel() {
     const id = nextItemLabel(ops);
     const attrs: Record<string, string> = { [base.pk]: pkValue };
     if (base.sk) attrs[base.sk] = `ITEM#${id}`;
-    const put: Op = { kind: "put", item: { id, attrs } };
-    const newOps = [...ops.slice(0, curStep), put];
-    setOps(newOps);
-    setStep(newOps.length);
-    setDocText(serialize(newOps));
+    commit([{ kind: "put", item: { id, attrs } }]);
     return id;
   };
 
@@ -182,7 +182,6 @@ export function useModel() {
     load,
     reset,
     serialize,
-    syncDoc,
     addItem,
     // projections
     state,

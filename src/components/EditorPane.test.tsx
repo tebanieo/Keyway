@@ -30,7 +30,11 @@ describe("EditorPane", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText(/items/)).toBeInTheDocument();
     expect(screen.getByText(/index/)).toBeInTheDocument();
-    expect(screen.getByText(/pattern/)).toBeInTheDocument();
+    expect(screen.getByText(/pattern/, { ignore: ".sr-only" })).toBeInTheDocument();
+    // how to leave the script is part of its description, for screen readers
+    expect(screen.getByRole("textbox", { name: "Model script" })).toHaveAccessibleDescription(
+      /press Escape, then Tab/,
+    );
   });
 
   it("shows the empty hint when there are no items", () => {
@@ -41,7 +45,9 @@ describe("EditorPane", () => {
   it("reflects the collapsed state and toggles it", () => {
     const { onToggleCollapse, container } = setup({ collapsed: true });
     expect(container.querySelector(".editor-wrap")).toHaveClass("collapsed");
-    fireEvent.click(screen.getByRole("button", { name: /Editor/ }));
+    // a zero-height editor must not take focus
+    expect(container.querySelector(".editor-body")).toHaveAttribute("inert");
+    fireEvent.click(screen.getByRole("button", { name: /Script/ }));
     expect(onToggleCollapse).toHaveBeenCalledOnce();
   });
 });

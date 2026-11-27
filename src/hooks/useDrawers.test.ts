@@ -67,14 +67,13 @@ describe("useDrawers", () => {
     expect(result.current.drawer).toBe("examples");
   });
 
-  it("dismisses the open drawer on a mousedown outside the rail/drawer", () => {
+  it("stays open on a mousedown elsewhere: it never covers the tables", () => {
     const { result } = renderHook(() => useDrawers(false));
     act(() => result.current.toggle("examples"));
-
     act(() => {
       document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     });
-    expect(result.current.drawer).toBeNull();
+    expect(result.current.drawer).toBe("examples");
   });
 
   it("keeps the drawer open on a mousedown inside the rail", () => {

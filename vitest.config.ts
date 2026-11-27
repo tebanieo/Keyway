@@ -12,6 +12,9 @@ export default defineConfig({
     // files opt into jsdom with a `// @vitest-environment jsdom` docblock; the
     // engine/model tests stay in the faster default node environment.
     setupFiles: ["./src/test/setup.ts", "./src/test/extenddb.setup.mjs"],
+    // Never run the copies of the repo that agent git worktrees keep under
+    // .claude/worktrees (their own node_modules and builds).
+    exclude: ["**/node_modules/**", "**/dist/**", ".claude/**"],
     coverage: {
       provider: "v8",
       // `text` for the CI log, `lcov` for the report Codecov ingests.

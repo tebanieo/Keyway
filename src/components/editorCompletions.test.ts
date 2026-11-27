@@ -24,6 +24,39 @@ describe("completeDsl", () => {
     expect(res?.from).toBe(0);
   });
 
+  const M = `@table T pk=PK sk=SK
+@gsi ByEmail pk=email
+u1: PK=U#1  SK=A  email=a@x  name=Ada
+`;
+
+  it("offers the index names after -> in an @ap", () => {
+    expect(labels(complete(M + "@ap find -> "))).toEqual(["T", "ByEmail"]);
+    expect(complete(M + "@ap find -> By")?.from).toBe((M + "@ap find -> ").length);
+  });
+
+  it("offers all/keys, then attribute names, after projection=", () => {
+    expect(labels(complete(M + "@gsi G pk=name projection="))).toEqual(
+      expect.arrayContaining(["all", "keys", "email", "name"]),
+    );
+    const list = labels(complete(M + "@gsi G pk=name projection=email,"));
+    expect(list).not.toContain("all");
+    expect(list).not.toContain("email");
+    expect(list).toContain("name");
+  });
+
+  it("offers @transact, and check only inside an open block", () => {
+    expect(labels(complete("@t"))).toContain("@transact");
+    expect(labels(complete(M))).not.toContain("check");
+    expect(labels(complete(M + "@transact\n"))).toContain("check");
+    expect(labels(complete(M + "@transact\ndelete u1\n@end\n"))).not.toContain("check");
+  });
+
+  it("offers existing item labels after delete", () => {
+    const res = complete(M + "delete ");
+    expect(labels(res)).toEqual(["u1"]);
+    expect(res?.options[0].detail).toBe("U#1 / A");
+  });
+
   it("offers line-start options on an empty line", () => {
     const res = complete("");
     expect(labels(res)).toEqual(expect.arrayContaining(["item", "delete", "@gsi", "@table"]));
@@ -71,5 +104,15 @@ u2: PK=U2  SK=P  _type=`;
     const res = complete(doc);
     expect(labels(res)).toContain("order"); // entityScaffold for the order type
     expect(labels(res)).toContain("item");
+  });
+
+  it("doesn't offer the type already typed after _type=, so Enter ends the line", () => {
+    const doc = "u1: PK=U1  SK=P  _type=user\nu2: PK=U2  SK=P  _type=user";
+    expect(labels(complete(doc))).not.toContain("user");
+  });
+
+  it("puts item first at line start", () => {
+    const item = complete("\n")?.options.find((o) => o.label === "item");
+    expect(item?.boost).toBeGreaterThan(0);
   });
 });

@@ -157,7 +157,7 @@ describe("parseDoc", () => {
 
   it("declares access patterns via @ap, auto-numbered, with optional index", () => {
     const { aps, diagnostics } = parseDoc(
-      "@ap Get a user by id\n@ap Find user by email -> GSI1\nu1: PK=A  SK=B",
+      "@gsi GSI1 pk=G\n@ap Get a user by id\n@ap Find user by email -> GSI1\nu1: PK=A  SK=B",
       BASE,
     );
     expect(diagnostics).toEqual([]);
@@ -168,6 +168,7 @@ describe("parseDoc", () => {
         index: undefined,
         readOp: "query",
         keyText: undefined,
+        line: 1,
       },
       {
         n: 2,
@@ -175,6 +176,7 @@ describe("parseDoc", () => {
         index: "GSI1",
         readOp: "query",
         keyText: undefined,
+        line: 2,
       },
     ]);
   });
@@ -183,6 +185,7 @@ describe("parseDoc", () => {
     const query = `PK = :u AND begins_with(SK, :o)  values={":u": {"S": "USER#1"}, ":o": {"S": "ORDER#"}}`;
     const key = `key={"PK": {"S": "USER#1"}, "SK": {"S": "PROFILE"}}`;
     const src = [
+      "@table AppTable pk=PK sk=SK",
       `@ap List a user's orders -> AppTable ${query}`,
       `@ap Get a profile -> AppTable get ${key}`,
       "@ap Everything -> AppTable scan",
@@ -194,8 +197,9 @@ describe("parseDoc", () => {
       ["get", key],
       ["scan", undefined],
     ]);
-    const reparsed = parseDoc(serializeAps(aps), BASE).aps;
-    expect(reparsed).toEqual(aps);
+    // The text survives the round trip (source lines move: no @table line).
+    const text = (list: typeof aps) => list.map(({ line: _line, ...rest }) => rest);
+    expect(text(parseDoc(serializeAps(aps), BASE).aps)).toEqual(text(aps));
   });
 
   it.each([
@@ -417,5 +421,13 @@ describe("parseDoc: opLines (source line per op)", () => {
   it("stays aligned 1:1 with ops on the default doc", () => {
     const { ops, opLines } = parseDoc(DEFAULT_DOC, BASE);
     expect(opLines).toHaveLength(ops.length);
+  });
+  it("warns on an @ap that names an index that isn't defined", () => {
+    const { diagnostics } = parseDoc("@gsi GSI1 pk=G\n@ap Lost -> GSI9", BASE);
+    expect(diagnostics).toContainEqual({
+      line: 1,
+      message: '@ap: index "GSI9" isn\'t defined (indexes: base, GSI1)',
+      severity: "warning",
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useDrawerFocus } from "../hooks/useDrawerFocus";
 
 /** A right-side glass drawer shell (header + close). Content is passed in, so
  *  new rail sections just drop their body inside one of these. */
@@ -8,27 +9,57 @@ export function Drawer({
   title,
   head,
   onClose,
+  initialFocus,
   children,
 }: {
   open: boolean;
   title: string;
   head?: ReactNode;
   onClose: () => void;
+  /** Selector for what to focus on open (default: the first control). */
+  initialFocus?: string;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDrawerFocus(open, ref, onClose, initialFocus);
   return (
-    <div className={open ? "drawer open" : "drawer"} aria-hidden={!open}>
+    // inert while closed: an off-screen drawer must not hold tab stops.
+    <div
+      ref={ref}
+      className={open ? "drawer open" : "drawer"}
+      role="dialog"
+      aria-label={title}
+      aria-hidden={!open}
+      inert={!open}
+      onKeyDown={moveInList}
+    >
       <div className="drawer-head">
-        <span className="drawer-title">{title}</span>
+        <h2 className="drawer-title">{title}</h2>
         {head}
         <div className="spacer" />
-        <button className="q-close" onClick={onClose} title="close">
+        <button className="q-close" onClick={onClose} title="close" aria-label={`Close ${title}`}>
           &times;
         </button>
       </div>
       {children}
     </div>
   );
+}
+
+/** Arrow keys (and Home/End) move between a drawer's list entries. */
+function moveInList(e: KeyboardEvent<HTMLDivElement>) {
+  const items = [...e.currentTarget.querySelectorAll<HTMLElement>(".ex-item")];
+  const at = items.indexOf(e.target as HTMLElement);
+  if (at < 0) return;
+  const to: Record<string, number> = {
+    ArrowDown: Math.min(items.length - 1, at + 1),
+    ArrowUp: Math.max(0, at - 1),
+    Home: 0,
+    End: items.length - 1,
+  };
+  if (!(e.key in to)) return;
+  e.preventDefault();
+  items[to[e.key]].focus();
 }
 
 /** One entry in the right activity rail. */
@@ -38,6 +69,10 @@ export interface RailItem {
   icon: ReactNode;
   /** A count worth reacting to (e.g. uncovered patterns) → badge + attention. */
   badge?: number;
+  /** What the badge counts, for the accessible name ("1 unserved"). */
+  badgeLabel?: string;
+  /** Opens a drawer (so it exposes expanded/collapsed); false for links. */
+  drawer?: boolean;
   active: boolean;
   onClick: () => void;
 }
@@ -54,8 +89,12 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
   // rail out for a beat before it floats back to its tab: a reward for fixing it.
   const [resolved, setResolved] = useState(false);
   const prev = useRef(total);
+  // Which items had a badge, so the ✓ lands only where something was resolved.
+  const [cleared, setCleared] = useState<Set<string>>(new Set());
+  const badged = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (prev.current > 0 && total === 0) {
+      setCleared(new Set(badged.current));
       setResolved(true);
       const t = window.setTimeout(() => setResolved(false), 1600);
       prev.current = total;
@@ -63,11 +102,15 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
     }
     prev.current = total;
   }, [total]);
+  useEffect(() => {
+    badged.current = new Set(items.filter((i) => (i.badge ?? 0) > 0).map((i) => i.id));
+  });
 
   if (items.length === 0) return null;
   const signal = total > 0 || resolved || reveal || items.some((i) => i.active);
   return (
-    <div
+    <nav
+      aria-label="Tools"
       className={`rail${signal ? " revealed" : ""}${resolved ? " resolved" : ""}${reveal ? " hint" : ""}`}
     >
       {items.map((it) => {
@@ -75,18 +118,23 @@ export function RightRail({ items, reveal }: { items: RailItem[]; reveal?: boole
         return (
           <button
             key={it.id}
-            className={`rail-btn${it.active ? " active" : ""}${badge > 0 ? " warn" : ""}${resolved ? " ok" : ""}`}
+            className={`rail-btn${it.active ? " active" : ""}${badge > 0 ? " warn" : ""}${resolved && cleared.has(it.id) ? " ok" : ""}`}
             onClick={it.onClick}
             title={it.label}
-            aria-label={it.label}
+            aria-label={
+              badge > 0 ? `${it.label}, ${badge} ${it.badgeLabel ?? ""}`.trim() : it.label
+            }
+            aria-expanded={it.drawer ? it.active : undefined}
           >
             {it.icon}
             {badge > 0 && <span className="rail-badge">{badge}</span>}
-            {resolved && badge === 0 && <span className="rail-badge ok">✓</span>}
+            {resolved && badge === 0 && cleared.has(it.id) && (
+              <span className="rail-badge ok">✓</span>
+            )}
             <span className="rail-label">{it.label}</span>
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

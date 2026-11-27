@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useDrawerFocus } from "../hooks/useDrawerFocus";
 import { pkAttrs, skAttrs } from "../engine/engine";
 import { runQuery } from "../engine/query";
-import { compileExpression } from "../engine/expression";
+import { compileExpression, splitClauses } from "../engine/expression";
 import type { AttributeValue } from "../engine/extenddb";
 import {
   SORT_KEY_OPS,
@@ -14,6 +15,7 @@ import {
 import type { SortKeyOp } from "../engine/keyhelp";
 import type { Expression, IndexSpec, Item } from "../engine/types";
 import { parseGetKey } from "../model/dsl";
+import type { AccessPattern } from "../model/dsl";
 import { cliCommand, pick, refsIn, unusedAcross } from "../model/request";
 
 const schemaOf = (index: IndexSpec) => ({ hash: pkAttrs(index), range: skAttrs(index) });
@@ -64,7 +66,10 @@ export function QueryPanel({
   state,
   onHighlight,
   onClose,
+  request,
 }: {
+  /** A pattern to load and run (Ctrl/Cmd+Enter on an `@ap` line). */
+  request?: { seq: number; ap: AccessPattern } | null;
   open: boolean;
   base: IndexSpec;
   gsis: IndexSpec[];
@@ -72,6 +77,14 @@ export function QueryPanel({
   onHighlight: (h: QueryHighlight) => void;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Opening focuses the request's first field; Escape closes; focus goes back.
+  useDrawerFocus(
+    open,
+    panelRef,
+    onClose,
+    'textarea[aria-label="Key"], input[aria-label="KeyConditionExpression"], input[aria-label="FilterExpression"]',
+  );
   const indexes = [base, ...gsis];
   const [op, setOp] = useState<"get" | "query" | "scan">("query");
   const [indexName, setIndexName] = useState(base.name);
@@ -80,8 +93,22 @@ export function QueryPanel({
   const schema = schemaOf(index);
   const types = useMemo(() => attributeTypes(state.values()), [state]);
 
+  /** The partition-key values of a real item in `ix`, typed, so a fresh
+   *  template runs as-is the first time (`{":pk": {"S": "USER#1"}}`). */
+  const sampleKey = (ix: IndexSpec): Record<string, AttributeValue> => {
+    const hash = pkAttrs(ix);
+    const item = [...state.values()].find((it) => hash.every((a) => it.attrs[a]));
+    if (!item) return {};
+    return Object.fromEntries(
+      hash.map((a, i) => {
+        const v = item.attrs[a];
+        const ref = hash.length > 1 ? `:pk${i + 1}` : ":pk";
+        return [ref, types.get(a) === "N" ? { N: v } : { S: v }];
+      }),
+    );
+  };
   const fresh = (ix: IndexSpec, sortOp: SortKeyOp | null = null) => {
-    const req = keyConditionRequest(schemaOf(ix), sortOp, types);
+    const req = keyConditionRequest(schemaOf(ix), sortOp, types, sampleKey(ix));
     return {
       key: req.expression,
       names: Object.keys(req.names).length ? pretty(req.names) : "",
@@ -105,6 +132,8 @@ export function QueryPanel({
     rcu: number;
     error: string | null;
     warnings?: string[];
+    items?: Item[];
+    index?: IndexSpec;
   } | null>(null);
 
   const reset = (ix: IndexSpec) => {
@@ -116,6 +145,15 @@ export function QueryPanel({
     setSortOp(null);
   };
 
+  // Opening the panel with an untouched, empty template (it mounted before the
+  // model had data): pre-fill it from the table now.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    const untouched = valuesText === pretty(keyConditionRequest(schema, null, types).values);
+    if (open && untouched && Object.keys(sampleKey(index)).length) reset(index);
+  }
+
   // When the queried index's keys change under the panel (the document's
   // @table or @gsi was edited, or the selected GSI was removed), start over
   // from a fresh template rather than keep one written for the old keys.
@@ -124,6 +162,38 @@ export function QueryPanel({
   if (templateSig !== schemaSig) {
     setTemplateSig(schemaSig);
     reset(index);
+  }
+
+  // An @ap sent from the editor: write it into the request and run it. After
+  // the pre-fill and key-change resets above, so the pattern wins.
+  const [loadedSeq, setLoadedSeq] = useState(0);
+  const [runSeq, setRunSeq] = useState(0);
+  if (request && request.seq !== loadedSeq) {
+    setLoadedSeq(request.seq);
+    const { ap } = request;
+    const ix = indexes.find((i) => i.name === ap.index) ?? base;
+    const readOp = ap.readOp ?? "query";
+    const text = ap.keyText ?? "";
+    setIndexName(ix.name);
+    setOp(readOp);
+    setTemplateSig(JSON.stringify([ix.name, schemaOf(ix)]));
+    setSortOp(null);
+    setFilterText("");
+    if (readOp === "get") {
+      const k = parseGetKey(text);
+      setGetKeyText(typeof k === "string" ? text : pretty(k));
+    } else if (readOp === "query") {
+      const split = splitClauses(text, ["names", "values"]);
+      if ("error" in split) {
+        setKeyText(text);
+      } else {
+        const { names, values } = split.clauses as Record<string, Record<string, unknown>>;
+        setKeyText(split.expression);
+        setNamesText(names && Object.keys(names).length ? pretty(names) : "");
+        setValuesText(pretty(values ?? {}));
+      }
+    }
+    setRunSeq(request.seq);
   }
 
   /** A sort-key button: rewrite the key condition for `sortOp`, keeping the
@@ -221,6 +291,8 @@ export function QueryPanel({
       rcu: r.rcu,
       error: r.error,
       warnings,
+      items: r.items,
+      index,
     });
     if (r.error) {
       onHighlight({ matched: new Set(), scanned: new Set() });
@@ -233,6 +305,12 @@ export function QueryPanel({
       scanned: new Set(read.items.map((i) => i.id)),
     });
   };
+
+  useEffect(() => {
+    if (runSeq) run();
+    // Only when a new pattern arrives; `run` reads the fields just written.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runSeq]);
 
   const clear = () => {
     setResult(null);
@@ -273,9 +351,23 @@ export function QueryPanel({
   };
 
   return (
-    <div className={open ? "query-panel drawer open" : "query-panel drawer"} aria-hidden={!open}>
+    <div
+      ref={panelRef}
+      // Ctrl/Cmd+Enter runs the request from any field, the JSON ones included.
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          run();
+        }
+      }}
+      className={open ? "query-panel drawer open" : "query-panel drawer"}
+      role="dialog"
+      aria-label="Read / Query"
+      aria-hidden={!open}
+      inert={!open} // closed: off-screen, so no tab stops
+    >
       <div className="query-head">
-        <span className="q-title">Read</span>
+        <h2 className="q-title">Read / Query</h2>
         <div className="seg">
           {(["get", "query", "scan"] as const).map((o) => {
             const disabled = o === "get" && !isBase;
@@ -283,6 +375,7 @@ export function QueryPanel({
               <button
                 key={o}
                 className={o === op ? "active" : ""}
+                aria-pressed={o === op}
                 disabled={disabled}
                 title={
                   disabled ? "GetItem is base-table only - GSIs support query/scan" : undefined
@@ -318,16 +411,16 @@ export function QueryPanel({
             checked={consistent}
             onChange={(e) => setConsistent(e.target.checked)}
           />
-          strong
+          Strongly consistent
         </label>
         <div className="spacer" />
-        <button className="q-run" onClick={run}>
-          run
+        <button className="q-run" onClick={run} title="Run (Ctrl/⌘ Enter)">
+          Run
         </button>
         <button className="q-clear" onClick={clear}>
-          clear
+          Clear
         </button>
-        <button className="q-close" onClick={onClose} title="close">
+        <button className="q-close" onClick={onClose} title="close" aria-label="Close Read / Query">
           &times;
         </button>
       </div>
@@ -368,6 +461,7 @@ export function QueryPanel({
               </span>
               <button
                 className={sortOp === null ? "active" : ""}
+                aria-pressed={sortOp === null}
                 title="partition key only: read the whole partition"
                 onClick={() => applySortOp(null)}
               >
@@ -378,6 +472,7 @@ export function QueryPanel({
                   <button
                     key={o}
                     className={sortOp === o ? "active" : ""}
+                    aria-pressed={sortOp === o}
                     title={SORT_KEY_OP_HELP[o]}
                     onClick={() => applySortOp(o)}
                   >
@@ -431,7 +526,11 @@ export function QueryPanel({
       </div>
 
       {result && (
-        <div className={result.error ? "query-result err" : "query-result"}>
+        // Announced: an error as an alert, a result as a polite status.
+        <div
+          className={result.error ? "query-result err" : "query-result"}
+          role={result.error ? "alert" : "status"}
+        >
           {result.error ? (
             <span className="q-err">⚠ {result.error}</span>
           ) : (
@@ -464,15 +563,43 @@ export function QueryPanel({
         </div>
       )}
 
+      {result && !result.error && result.items && result.index && (
+        <ReturnedItems items={result.items} index={result.index} />
+      )}
+
       <div className="q-cli">
         <div className="q-cli-head">
           <span className="q-pname">AWS CLI</span>
           <button className="q-clear" onClick={copy}>
-            {copied ? "copied" : "copy"}
+            {copied ? "Copied" : "Copy"}
           </button>
         </div>
         <pre aria-label="AWS CLI command">{cli}</pre>
       </div>
     </div>
+  );
+}
+
+const SHOWN = 50;
+
+/** What the request returned, as DynamoDB would hand it back: keys first. */
+function ReturnedItems({ items, index }: { items: Item[]; index: IndexSpec }) {
+  if (items.length === 0) return <div className="q-items empty">no items returned</div>;
+  const keys = [...pkAttrs(index), ...skAttrs(index)];
+  return (
+    <ol className="q-items" aria-label="Returned items">
+      {items.slice(0, SHOWN).map((it) => {
+        const rest = Object.entries(it.attrs).filter(([k]) => !keys.includes(k));
+        return (
+          <li key={it.id}>
+            <span className="q-item-key">{keys.map((k) => it.attrs[k] ?? "·").join(" / ")}</span>
+            {rest.length > 0 && (
+              <span className="q-item-rest">{rest.map(([k, v]) => `${k}=${v}`).join("  ")}</span>
+            )}
+          </li>
+        );
+      })}
+      {items.length > SHOWN && <li className="q-more">+{items.length - SHOWN} more</li>}
+    </ol>
   );
 }
