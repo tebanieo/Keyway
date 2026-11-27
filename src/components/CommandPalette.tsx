@@ -29,6 +29,9 @@ export function Modal({
     if (open && !d.open) {
       if (typeof d.showModal === "function") d.showModal();
       else d.setAttribute("open", "");
+      // showModal focuses the first focusable (often a close button); a field
+      // marked data-autofocus is where typing should start.
+      d.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!open && d.open) {
       if (typeof d.close === "function") d.close();
       else d.removeAttribute("open");

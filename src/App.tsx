@@ -44,6 +44,8 @@ import {
 import { CommandPalette } from "./components/CommandPalette";
 import type { Command } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
+import { AddDialog } from "./components/AddDialog";
+import type { AddKind } from "./components/AddDialog";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { Splitter } from "./components/Splitter";
 import { useScriptWidth } from "./hooks/useScriptWidth";
@@ -383,6 +385,34 @@ export function App() {
   // common also have a single key, listed in the `?` cheatsheet.
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
+  // Guided Add (a form that writes script lines): which form is open.
+  const [addKind, setAddKind] = useState<AddKind | null>(null);
+  const freeLabel = (type: string) => {
+    const stem = type.replace(/[^A-Za-z0-9_]/g, "") || "item";
+    const used = new Set(ops.map((_, i) => opIdAt(i)));
+    let n = 1;
+    while (used.has(`${stem}${n}`)) n++;
+    return `${stem}${n}`;
+  };
+  // Directives go under the schema lines (@table / @gsi / @key); items at
+  // the end, where the script's writes are.
+  const addLines = (lines: string[]) => {
+    const dirs = lines.filter((l) => l.startsWith("@"));
+    const items = lines.filter((l) => !l.startsWith("@"));
+    setEditorCollapsed(false);
+    setNarrowView("script");
+    requestAnimationFrame(() => {
+      if (dirs.length) {
+        const doc = docText.split("\n");
+        let at = -1;
+        doc.forEach((l, i) => {
+          if (/^\s*@(table|gsi|key)\b/.test(l)) at = i;
+        });
+        editorRef.current?.insertLines(at + 1, dirs.join("\n"));
+      }
+      if (items.length) editorRef.current?.insertLines(Number.MAX_SAFE_INTEGER, items.join("\n"));
+    });
+  };
   const goToScript = () => {
     setEditorCollapsed(false);
     setNarrowView("script");
@@ -434,6 +464,8 @@ export function App() {
       label: compact ? "Comfortable rows" : "Compact rows",
       run: () => setCompact(!compact),
     },
+    { id: "add-index", label: "Add an index (form)", run: () => setAddKind("index") },
+    { id: "add-entity", label: "Add an entity type (form)", run: () => setAddKind("entity") },
     { id: "share", label: "Share a link to this model", run: () => openShare(currentDoc()) },
     ...(dirty ? [{ id: "reset", label: "Reset to an empty model", run: reset }] : []),
     ...(undoReset !== null
@@ -565,6 +597,7 @@ export function App() {
             onToggleDiff={() => setDiffOn((v) => !v)}
             compact={compact}
             onToggleCompact={() => setCompact((v) => !v)}
+            onAdd={setAddKind}
           />
 
           <PanesGrid
@@ -642,6 +675,17 @@ export function App() {
         open={paletteOpen}
         commands={commands}
         onClose={() => setPaletteOpen(false)}
+      />
+
+      <AddDialog
+        open={addKind !== null}
+        kind={addKind ?? "index"}
+        onKind={setAddKind}
+        base={base}
+        gsis={gsis}
+        nextLabel={freeLabel}
+        onAdd={addLines}
+        onClose={() => setAddKind(null)}
       />
 
       <ShortcutsDialog

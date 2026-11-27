@@ -73,6 +73,14 @@ defaults:
   panel: its index, operation, key condition and values are written into the
   request, and the result (with the returned items) shows right away.
 
+## Adding with a form
+
+Prefer a form to start? **+ Index** and **+ Entity** on the pane bar (or
+"Add an index" / "Add an entity type" in the command palette) open a short
+form. It shows the exact script lines it will add as you fill it in, and puts
+them in the script: an index under the schema lines, an entity as its `@key`
+template plus a first item. From there it's ordinary text to edit.
+
 ## Keyboard across the app
 
 - **Ctrl/Cmd+K** opens the command palette from anywhere (the editor

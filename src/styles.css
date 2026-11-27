@@ -2994,3 +2994,60 @@ h2.q-title {
 .schema-note .ghost {
   flex-shrink: 0;
 }
+
+/* Guided Add: a short form, and the exact script lines it will write. */
+.add-card {
+  padding: 4px 16px 16px;
+  gap: 12px;
+  max-height: 86vh;
+  overflow: auto;
+}
+.add-kind {
+  align-self: flex-start;
+}
+.add-fields {
+  display: grid;
+  gap: 10px;
+}
+.add-fields label {
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.add-fields input,
+.add-fields select {
+  font-variant-ligatures: none;
+  padding: 6px 9px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.add-fields small,
+.add-tip {
+  color: var(--muted);
+  font-size: 11px;
+}
+.add-preview pre {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--fill-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-variant-ligatures: none;
+}
+.add-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.add-buttons {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}

@@ -11,7 +11,10 @@ export function PanesBar({
   onToggleDiff,
   compact,
   onToggleCompact,
+  onAdd,
 }: {
+  /** Open the guided Add form (a new index or entity type). */
+  onAdd?: (kind: "index" | "entity") => void;
   paneNames: string[];
   visible: Set<string>;
   onTogglePane: (name: string) => void;
@@ -55,6 +58,16 @@ export function PanesBar({
           Compact
         </button>
       </div>
+      {onAdd && (
+        <div className="add-buttons" role="group" aria-label="Add with a form">
+          <button className="chip-link" onClick={() => onAdd("index")}>
+            + Index
+          </button>
+          <button className="chip-link" onClick={() => onAdd("entity")}>
+            + Entity
+          </button>
+        </div>
+      )}
     </div>
   );
 }
