@@ -10,6 +10,7 @@ hand-curated summary. It follows
 ### Changed
 
 - **Reference docs brought up to date:** the home page and Quick start match the app as it is (an empty script to start, `@key`, `@gen`, the ✓ on `@ap` lines, the Query panel's returned items); the editor page covers the new completions, Tab on `@gen`, the design-slip and template warnings, and the script/tables linking; the cost page covers `@transact` blocks, `check` and cancelled transactions; source links point at the real files.
+- **A new demo recording**, at a human typing pace, with captions (the current word highlighted) and key badges for Enter and Tab, in Compact mode. The scripts that make it (`scripts/record-demo.cjs`, `scripts/make-gif.py`) are in the repo, so it can be re-recorded when the UI changes.
 
 ### Added
 
