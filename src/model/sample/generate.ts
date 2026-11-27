@@ -401,7 +401,9 @@ export function expandGen(doc: string, lineIdx: number): { lines: string[] } | {
     return `${prefix}${n}`;
   };
 
-  const usedKeys = new Set(items.map((it) => `${it.attrs[basePk]}\u0000${it.attrs[baseSk] ?? ""}`));
+  const usedKeys = new Set(
+    items.map((it) => `${it.attrs[basePk] ?? ""}\u0000${baseSk ? (it.attrs[baseSk] ?? "") : ""}`),
+  );
   // Seeded by the line and the model's items (not comments or spacing), so the
   // same request on the same data gives the same rows.
   const r = rng(hash(`${lines[lineIdx].trim()}\u0000${items.map((it) => it.id).join(",")}`));
@@ -480,16 +482,39 @@ export function expandGen(doc: string, lineIdx: number): { lines: string[] } | {
         keys[k] = built.value;
         if (built.made && (k === basePk || k === baseSk)) named ??= k;
       }
-      // a row needs its own base key
-      if (basePk && !template[basePk]) {
-        let guard = 0;
-        while (usedKeys.has(`${keys[basePk]}\u0000${keys[baseSk] ?? ""}`) && guard++ < 50) {
-          // change the part made from the name, never a fixed one like SK=META
-          const k = named ?? (baseSk && keys[baseSk] !== undefined ? baseSk : basePk);
-          keys[k] = `${keys[k]}-${r.int(2, 99)}`;
+      // A row needs its own base key. The full key includes what a @key
+      // template will make, so a clash is seen even when the SK is templated.
+      const fullKey = () =>
+        [basePk, baseSk]
+          .map((k) => {
+            if (!k) return "";
+            if (template[k]) {
+              const f = fill(template[k], row.attrs);
+              return "value" in f ? f.value : "";
+            }
+            return keys[k] ?? "";
+          })
+          .join("\u0000");
+      const fromParent = (k: string) => !!parent && k === basePk;
+      let guard = 0;
+      while (usedKeys.has(fullKey()) && guard++ < 50) {
+        const templated = [baseSk, basePk].find((k) => k && template[k]);
+        if (templated) {
+          // re-roll the attributes the template reads (a new date, a new id)
+          for (const a of placeholders(template[templated])) {
+            const existing = same.map((it) => it.attrs[a]).filter((v): v is string => !!v);
+            row.attrs[a] = valueFor(a, row, spec.hints[a], existing, r, emailDomain);
+          }
+          if (guard < 20) continue;
         }
-        usedKeys.add(`${keys[basePk]}\u0000${keys[baseSk] ?? ""}`);
+        // else change the part made from the name; never a fixed one like
+        // SK=META, and never the parent's partition key
+        const k =
+          named ?? [baseSk, basePk].find((x) => x && keys[x] !== undefined && !fromParent(x));
+        if (!k) break;
+        keys[k] = `${keys[k]}-${r.int(2, 99)}`;
       }
+      usedKeys.add(fullKey());
 
       const lead = [basePk, baseSk].filter((k): k is string => !!k && keys[k] !== undefined);
       const gsiKeys = keyAttrs.filter((k) => !lead.includes(k) && keys[k] !== undefined);

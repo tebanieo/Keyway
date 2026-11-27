@@ -3051,3 +3051,11 @@ h2.q-title {
   gap: 2px;
   margin-left: auto;
 }
+
+/* Screen-reader-only labels are absolutely positioned: give them a
+   positioned container inside the scrolling areas, or they reach past the
+   frame and make the whole page scroll. */
+.ptable-scroll,
+.wb-tables {
+  position: relative;
+}

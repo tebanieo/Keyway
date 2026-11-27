@@ -85,6 +85,21 @@ describe("@gen sample rows", () => {
     }
   });
 
+  it("keeps rows in the parent's partition when a @key template makes the SK", () => {
+    const { items } = gen(`@table Shop pk=PK sk=SK
+@key order  SK=ORDER#{date}
+c1: PK=CUSTOMER#ada  SK=PROFILE  name=Ada  _type=customer
+c2: PK=CUSTOMER#bob  SK=PROFILE  name=Bob  _type=customer
+o1: PK=CUSTOMER#ada  date=2024-03-01  total=42.00  _type=order
+@gen order 3 per customer
+`);
+    const orders = ofType(items, "order");
+    expect(orders).toHaveLength(7);
+    for (const o of orders) expect(["CUSTOMER#ada", "CUSTOMER#bob"]).toContain(o.attrs.PK);
+    const keys = orders.map((o) => `${o.attrs.PK}|${o.attrs.SK}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it("gives every row its own key, and the same line the same rows", () => {
     const doc = `${saas}\n@gen tenant 5\n`;
     const a = gen(doc);
