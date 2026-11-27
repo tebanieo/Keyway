@@ -3,7 +3,7 @@
 <img src="public/favicon.svg" alt="" height="76" />
 <h1>Keyway</h1>
 
-**A NoSQL data modeling tool** ·
+**Learn AWS DynamoDB data modelling by typing it** ·
 [Try it live](https://tebanieo.github.io/Keyway/) ·
 [Reference docs](https://tebanieo.github.io/Keyway/docs/)
 
@@ -15,12 +15,12 @@
 
 </div>
 
-An interactive, **100% client-side** tool for designing and _teaching_ how to
-model your data into a NoSQL database, initially with DynamoDB as the
-destination. Write your model as plain text, watch it project into the base
-table and its indexes, step through writes, see the estimated cost of each one, and
-query it all in the browser. The data is yours! Your model is never sent to a
-server and is stored nowhere but your browser tab (see [Privacy](#privacy)).
+Write your model as a short script and watch tables, GSIs, write costs and
+access-pattern coverage update live as you type, checked against real DynamoDB
+expression rules. Step through the writes, see what each one costs, and query
+it all in the browser. **100% client-side** and private: your model is never
+sent to a server and is stored nowhere but your browser tab (see
+[Privacy](#privacy)).
 
 > Most people learn DynamoDB data modeling from
 > static blog diagrams. Here you load a model and _watch it work_: the GSI
