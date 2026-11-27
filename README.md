@@ -11,7 +11,7 @@
 [![codecov](https://codecov.io/gh/tebanieo/Keyway/graph/badge.svg)](https://codecov.io/gh/tebanieo/Keyway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-<img src="docs/public/demo.gif" alt="Keyway in action: typing a DynamoDB model as text and watching it project into the base table and indexes, with per-write cost" width="900" />
+<img src="docs/public/demo.gif" alt="Keyway in action: typing a DynamoDB model with a key template, generating sample orders per customer with @gen, and stepping through the writes as the tables, GSI and per-write cost update" width="900" />
 
 </div>
 
@@ -32,17 +32,27 @@ sent to a server and is stored nowhere but your browser tab (see
 - **The text is the model.** A tiny, readable DSL, diffable in a PR, editable in
   vim, pasteable in Slack. The format _is_ the sharing mechanism.
 - **Define your access patterns up-front.** Declare what your design must serve
-  with `@ap`, and the app runs each one against the model, so you see at a glance
-  which patterns are covered and which are still gaps.
+  with `@ap`, and the app runs each one against the model: every `@ap` line gets
+  a ✓ when it's served, or the reason it isn't, right in the script.
+- **Fast to fill, easy to change.** Say how an entity's keys are built once
+  (`@key order  SK=ORDER#{date}#{id}`) and every order gets them; change the
+  template and they all re-key. Ask for sample rows with one line
+  (`@gen project 3 per tenant`, then Tab) and they're written in, shaped like
+  yours.
+- **Keyboard-first, live.** Tables, indexes and costs update as you type;
+  completions, a command palette (Ctrl/Cmd+K) and shortcuts keep your hands on
+  the keyboard. Editing a cell in the tables writes into the script, so the text
+  stays the one source of truth.
 - **It teaches core datamodelling techniques:** GSI overloading, sparse indexes,
-  the reindex cost of a key change, transactional (2×) writes, projection modes,
+  the reindex cost of a key change, transactions (`@transact`, all or nothing,
+  2× writes), projection modes,
   native multi-key GSIs, conditional writes (`@if`) and what a failed condition
   still costs you, and why a filter doesn't reduce a query's read cost.
 - **Guided tours built in!** Most of the DynamoDB examples are plain text, and
   even if there is nothing wrong with that, I always believed it is easier to see
   it in a step-by-step movie. The **Learn** menu plays short narrated scenarios,
-  from "how the editor works" to GSI overloading, sparse indexes, atomic key
-  changes, and conditional writes.
+  from "how the editor works" and sample data to GSI overloading, sparse
+  indexes, atomic key changes, and conditional writes.
 
 ## Not a replacement for NoSQL Workbench
 
@@ -137,7 +147,8 @@ publishes to <https://tebanieo.github.io/Keyway/>.
 - **In the app:** the **Learn** menu plays guided, narrated tours (start with
   "Getting Started" and "How to Model"), and the **Docs** link opens the reference.
 - **Reference manual:** a VitePress site under `docs/` (the DSL grammar, the
-  editor, filters, the cost model, access patterns, sharing) that publishes at
+  editor, key templates, sample data, transactions, filters, the cost model,
+  access patterns, sharing) that publishes at
   <https://tebanieo.github.io/Keyway/docs/>. Run it locally with `npm run docs:dev`.
 
 ## Contributing
@@ -187,6 +198,8 @@ changing `wasm/` itself. Coding agents follow [`AGENTS.md`](AGENTS.md).
 @ap List a user's orders -> AppTable PK = :u AND begins_with(SK, :o)  values={":u": {"S": "USER#1"}, ":o": {"S": "ORDER#"}}
 @ap Look up a user by email -> GSI1 GSI1PK = :e  values={":e": {"S": "EMAIL#ada@x.io"}}
 
+@key order  SK=ORDER#{date}#{id}                  # keys built from each order's attributes
+
 u1: PK=USER#1  SK=PROFILE  name=Ada  _type=user   # label: attrs (label = stable id)
 u1: PK=USER#1  SK=PROFILE  name=Ada Lovelace      # same label = update
 o1: PK=USER#2  SK=PROFILE                          # a new PK = atomic key change
@@ -194,7 +207,14 @@ u2: PK=USER#3  SK=PROFILE  @if attribute_not_exists(PK)   # conditional write (c
 delete o1                                          # remove an item
 
 # a real ConditionExpression, with the API's names= and values=
-o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
+o2: PK=USER#1  date=2024-01  id=1  status=shipped  _type=order  @if #s = :p  names={"#s": "status"}  values={":p": {"S": "pending"}}
+
+@transact                                          # TransactWriteItems: all or nothing
+o3: PK=USER#1  date=2024-02  id=3  _type=order  @if attribute_not_exists(PK)
+check u1  @if attribute_exists(PK)                 # a ConditionCheck
+@end
+
+@gen order 3 per user  status=new|shipped           # Tab → three sample orders per user
 ```
 
 - **`@ap`** declares an access pattern (a requirement) with the index and the
@@ -207,6 +227,12 @@ o2: PK=USER#1  SK=ORDER#1  status=shipped  @if #s = :p  names={"#s": "status"}  
   [ExtendDB](https://github.com/ExtendDB/extenddb)'s expression engine, compiled
   to WebAssembly and running in your browser, so reserved words, syntax, and
   unused placeholders fail exactly as DynamoDB would report them.
+- **`@key`** builds an entity's keys from its own attributes (`{date}`), so a
+  key redesign is one edit.
+- **`@transact … @end`** groups writes (and `check` lines) into one
+  all-or-nothing `TransactWriteItems`.
+- **`@gen`** turns into sample rows when you press Tab: `per <type>` puts them
+  in each parent's partition, `attr=a|b|c` and `attr=10..500` steer values.
 - **`_type`** groups items into entities the editor can scaffold and backfill.
 - Comments (`#`) are free text; a comment directly above a line narrates that step.
 
