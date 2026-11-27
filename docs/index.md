@@ -3,11 +3,11 @@ layout: home
 
 hero:
   name: Keyway
-  text: A NoSQL data modeling tool
-  tagline: Design and learn DynamoDB data modeling as plain text, then watch it work, all in your browser.
+  text: Learn AWS DynamoDB data modelling by typing it
+  tagline: Write your model as a short script and watch tables, GSIs, write costs and access-pattern coverage update live as you type. 100% client-side and private.
   image:
     src: /demo.gif
-    alt: Keyway in action - typing a DynamoDB model as text and watching it project into the base table and indexes, with per-write cost
+    alt: Keyway in action - typing a model with a key template, generating sample customers and orders with @gen, then replaying every write with its cost
   actions:
     - theme: brand
       text: Open the app
@@ -27,9 +27,13 @@ features:
   - title: See the cost
     details: Each write shows its estimated capacity, so a reindex visibly costs more than a plain update.
   - title: Check your access patterns
-    details: Declare what your design must serve, and Keyway runs each query to grade what is covered.
+    details: Declare what your design must serve with @ap, and Keyway runs each query; every @ap line shows ✓ when it's served, or why not.
+  - title: Fast to fill, easy to change
+    details: Build an entity's keys from its attributes once with @key, and ask for sample rows with @gen project 3 per tenant, then Tab.
+  - title: Keyboard-first
+    details: Completions, a command palette (Ctrl/Cmd+K) and shortcuts; editing a cell in the tables writes into the script.
   - title: Learn by watching
-    details: Guided, narrated tours step through real models, from the editor basics to conditional writes.
+    details: Guided, narrated tours step through real models, from the editor basics and sample data to conditional writes.
   - title: Private by default
     details: Everything runs client-side. Your model never leaves the browser tab.
 ---

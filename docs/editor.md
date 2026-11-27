@@ -3,7 +3,7 @@
 The editor is a CodeMirror surface wired to the same pure parser the rest of the
 app uses. It offers context-aware completions, scaffolds whole rows, and flags
 problems inline as you type. This page describes what
-[`src/Editor.tsx`](https://github.com/) actually does.
+[`src/components/Editor.tsx`](https://github.com/tebanieo/Keyway/blob/main/src/components/Editor.tsx) actually does.
 
 ## The empty-line completion menu
 
@@ -17,13 +17,21 @@ begin a line with, `item` first:
 - **`item`**: scaffold a whole new row using the base table's keys (the
   possibly-custom `pk`/`sk`), leaving `${label}` and each key value as tab stops.
 - **`delete`**: a `delete ${label}` snippet.
-- **`@` directives**: `@gsi`, `@gsi multi-key` (the comma-list form, up to 4
-  pk / 4 sk), `@table`, and `@ap`.
+- **`@` directives**: `@table`, `@gsi`, `@gsi multi-key` (the comma-list
+  form, up to 4 pk / 4 sk), `@key` (a key template), `@ap`, `@gen` (sample
+  rows) and `@transact` (a transaction block).
+- **`check`**: inside an open `@transact` block, a ConditionCheck.
 - **Entity scaffolds**: one entry per `_type` already in the model. Picking
   `order` drops a whole row prefilled with that entity's usual attributes and
   `_type=order`. The detail shows how many items of that type exist (`3×`).
 
-Typing `@` on a line filters straight to the directive templates.
+Typing `@` on a line filters straight to the directive templates. On a
+`@` line, suggestions follow what you're writing:
+
+- after `->` in an `@ap`: the index names, with their keys;
+- after `projection=` in a `@gsi`: `all`, `keys`, then attribute names;
+- after `delete `: the labels of items that exist;
+- after `@gen `: the entity types, then `per <type>`.
 
 ## Mid-item completions
 
@@ -37,6 +45,8 @@ current item:
   one.
 - **Any known attribute name**: every attribute seen anywhere in the model,
   offered as `attr=${value}`.
+- **What a `@key` template needs**: on a line tagged with a templated type
+  (`_type=order`), the attributes its template reads come first.
 
 The completer is careful about where the cursor sits: if you're typing a
 **value** (the current segment already contains an `=`), it stays quiet so it
@@ -69,6 +79,8 @@ defaults:
   ends the snippet you're filling in, then gets the editor ready to let you
   out: the very next **Tab** moves on to the tables, **Shift+Tab** back to the
   toolbar. Any other key keeps you typing.
+- **Tab on a `@gen` line** replaces it with the sample rows it asks for
+  (Ctrl/Cmd+Z brings the line back).
 - **Ctrl/Cmd+Enter** on an `@ap` line runs that access pattern in the Query
   panel: its index, operation, key condition and values are written into the
   request, and the result (with the returned items) shows right away.
@@ -101,15 +113,37 @@ diagnostics inline, with a lint gutter. Errors and warnings you'll see include:
 - the multi-key comma-list warning (repeated `pk=` kept only the last),
 - more than 4 pk / 4 sk attributes,
 - an item missing its base key ("it won't appear"),
-- a line that isn't a valid `label: key=value …` or `delete label`.
+- a line that isn't a valid `label: key=value …` or `delete label`,
+- `@if` and `@transact` problems, with DynamoDB's own wording,
+- design slips that parse fine but change the picture: a key attribute name
+  one typo off a declared key (`GS1PK` vs `GSI1PK`), an item with only part of
+  an index's key (so it's not in that index), and two pairs run together in one
+  value (`_type=username=Ada`),
+- `@key` problems: an item missing an attribute its template needs, or an
+  explicit key that doesn't match the template.
+
+The gutter also carries good news and suggestions, which aren't counted as
+problems:
+
+- every `@ap` line gets a green ✓ when the pattern is served, or a warning with
+  the reason it isn't;
+- when a type's keys already follow a pattern, a hint offers the matching
+  `@key` line as a **one-click fix** (and flags an item that alone breaks the
+  pattern);
+- a `@gen` line says how many rows Tab will make, or what's missing first.
 
 One deliberate nicety: the linter **never nags the line your cursor is on**, so a
 half-typed `o5: PK=` stays quiet until you move off it. When you change lines,
 linting is re-run so the line you just left is re-checked.
 
-## The collapse-to-focus editor header
+## The script and the tables, linked
 
-The editor lives under a header that lets you collapse the surrounding panes to
-focus on the text: the text is the single artifact, so the editor is designed to
-be usable full-attention. (The header/collapse control is part of the app shell
-around `Editor`.)
+- **The caret lights its row**: put the cursor on an item line and its row is
+  highlighted in every pane (and scrolled into view); pin a row and the caret
+  jumps to the line that wrote it.
+- **Tables write into the script**: double-click a cell (or Enter on it) to
+  edit; the change is written to the item's line. Delete a row or "+ item" and
+  the matching line is added. The script stays the single source of truth.
+- **Collapse and resize**: the Script header folds the pane to a slim tab; drag
+  its right edge (or focus it and use the arrow keys) to give it more or less
+  room. On a phone, a Script | Tables switch flips between the two.

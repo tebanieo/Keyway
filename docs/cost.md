@@ -90,9 +90,12 @@ that bites people: flipping `GSI1PK=STATUS#pending` to `STATUS#shipped` is a
 
 ## Transactional writes bill base at 2×
 
-A repeated label with a **new base key** becomes an atomic
-`TransactWriteItems` (a delete-old + put-new, see [the DSL](/dsl#repeated-label-with-a-new-base-key-an-atomic-transact)).
-For a transact:
+A `TransactWriteItems` happens two ways: a block you write with
+`@transact … @end` (puts, deletes and `check` lines, see
+[the DSL](/dsl#transact-end-several-writes-all-or-nothing)), and a repeated
+label with a **new base key**, which Keyway turns into an atomic delete-old +
+put-new (see [the DSL](/dsl#repeated-label-with-a-new-base-key-an-atomic-transact)).
+For a transaction:
 
 - **Base writes are billed at 2×** (the transactional rate). So an atomic key
   rename is `2 × (delete + put)` = **4 base WCU**: the price of doing it safely
@@ -100,6 +103,11 @@ For a transact:
 - **GSI maintenance is billed at the standard rate even inside a transaction**,
   because index propagation is asynchronous and outside the transaction's
   guarantee.
+- **A `check` (ConditionCheck) writes nothing but is billed** like a
+  transactional write of the item's size.
+- **All or nothing**: every condition is checked against the table before the
+  transaction. If one fails, the transaction is cancelled, nothing is written,
+  and the attempt is still billed (Keyway shows a flat 2 WCU).
 
 ## Multi-key GSI query rules
 
