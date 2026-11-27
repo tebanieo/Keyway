@@ -49,6 +49,8 @@ function readJson(label: string, text: string): Record<string, unknown> | string
 export interface QueryHighlight {
   matched: Set<string>; // returned items
   scanned: Set<string>; // items read (charged), incl. filtered-out
+  /** The index the read ran on: only its pane shows what was read. */
+  index?: string;
 }
 
 /**
@@ -303,6 +305,7 @@ export function QueryPanel({
     onHighlight({
       matched: new Set(r.items.map((i) => i.id)),
       scanned: new Set(read.items.map((i) => i.id)),
+      index: index.name,
     });
   };
 
@@ -547,12 +550,23 @@ export function QueryPanel({
               <span className="q-stat rcu">
                 <b>{result.rcu}</b> RCU
               </span>
-              {result.scanned > result.returned && (
-                <span className="q-note">
-                  you paid to read {result.scanned} but a filter kept {result.returned} - filters
-                  don't save RCU
+              {/* the same colours as the rows in the table: what came back vs
+                  what was read and thrown away by the filter (still paid for) */}
+              <span className="q-legend" aria-label="What the colours in the table mean">
+                <span className="q-key returned">
+                  <i aria-hidden="true" /> {result.returned} returned
                 </span>
-              )}
+                {result.scanned > result.returned && (
+                  <span className="q-key filtered">
+                    <i aria-hidden="true" /> {result.scanned - result.returned} read, filtered out
+                  </span>
+                )}
+                <span className="q-pay">
+                  {result.scanned > result.returned
+                    ? `you pay for all ${result.scanned} read: a filter runs after the read, so it trims what comes back, not the cost`
+                    : `you pay for the ${result.scanned} read`}
+                </span>
+              </span>
               {result.warnings?.map((w) => (
                 <span key={w} className="q-note">
                   ⚠ {w}

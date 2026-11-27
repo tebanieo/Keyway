@@ -7,6 +7,10 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+### Added
+
+- **Read vs returned, at a glance.** After a Query or Scan, the index you read shows returned rows in teal, rows read but dropped by the filter in amber stripes (you paid for them), and rows not read muted. A legend in the Query panel uses the same colours ("2 returned · 3 read, filtered out · you pay for all 5 read"), and each row says it to screen readers too. Other indexes no longer light up for a read they weren't part of.
+
 ### Changed
 
 - **Reference docs brought up to date:** the home page and Quick start match the app as it is (an empty script to start, `@key`, `@gen`, the ✓ on `@ap` lines, the Query panel's returned items); the editor page covers the new completions, Tab on `@gen`, the design-slip and template warnings, and the script/tables linking; the cost page covers `@transact` blocks, `check` and cancelled transactions; source links point at the real files.

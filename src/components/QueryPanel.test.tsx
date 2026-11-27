@@ -67,6 +67,19 @@ describe("QueryPanel", () => {
     expect(last.matched.size).toBe(2); // both items returned
   });
 
+  it("tells returned from read-but-filtered, and that you pay for every read", () => {
+    const p = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Scan" }));
+    type("FilterExpression", "GSI1SK = :u");
+    type("ExpressionAttributeValues", '{":u": {"S": "U1"}}');
+    run();
+    const legend = document.querySelector(".q-legend")!;
+    expect(legend).toHaveTextContent("1 returned");
+    expect(legend).toHaveTextContent("1 read, filtered out");
+    expect(legend).toHaveTextContent("you pay for all 2 read");
+    expect(p.onHighlight.mock.calls.at(-1)![0].index).toBe("T");
+  });
+
   it("lists the returned items in the panel, keys first", () => {
     setup();
     type("ExpressionAttributeValues", '{":pk": {"S": "U#1"}}');
