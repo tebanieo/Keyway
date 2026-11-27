@@ -152,4 +152,33 @@ describe("Panel", () => {
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(document.activeElement).toHaveTextContent("Ada");
   });
+
+  it("shows a read's result on the index it ran on: returned, read but filtered, not read", () => {
+    const { view } = viewOf(TWO + "\nu3: PK=U#2  SK=A  name=Grace");
+    const query = {
+      matched: new Set(["u1"]),
+      scanned: new Set(["u1", "u2"]),
+      index: view.index.name,
+    };
+    const { rerender } = render(
+      <Panel view={view} prev={view} diffOn={false} link={link()} query={query} />,
+    );
+    const row = (id: string) => document.querySelector(`tr[data-item="${id}"]`)!;
+    expect(row("u1")).toHaveClass("q-matched");
+    expect(row("u2")).toHaveClass("q-read");
+    expect(row("u3")).toHaveClass("q-skip");
+    // said in words too, not only in colour
+    expect(row("u2")).toHaveTextContent("read, filtered out");
+    // a read on another index leaves this pane alone
+    rerender(
+      <Panel
+        view={view}
+        prev={view}
+        diffOn={false}
+        link={link()}
+        query={{ ...query, index: "GSI9" }}
+      />,
+    );
+    expect(row("u1").className).not.toMatch(/q-/);
+  });
 });

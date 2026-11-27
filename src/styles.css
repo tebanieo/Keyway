@@ -1018,6 +1018,7 @@ body {
 }
 .query-result {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s4);
   padding: var(--s3) var(--s4);
@@ -1087,8 +1088,60 @@ body {
     inset 0 0 0 9999px rgba(45, 212, 191, 0.18),
     inset 3px 0 0 #2dd4bf;
 }
+/* Read but filtered out: you paid to read it, it never came back. Amber
+   stripes and quieter text, so it reads as "touched, then dropped". */
 .ptable tr.q-read td {
-  box-shadow: inset 0 0 0 9999px rgba(255, 176, 32, 0.1);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 176, 32, 0.22) 0 6px,
+    rgba(255, 176, 32, 0.06) 6px 12px
+  );
+  color: var(--muted);
+}
+.ptable tr.q-read td:first-child {
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+/* Not read at all by the query: recede, so the read range stands out. */
+.ptable tr.q-skip td,
+.ptable tr.q-skip td.iskey {
+  color: var(--muted);
+}
+
+/* The legend under a read's numbers, in the rows' own colours. */
+.q-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  flex-basis: 100%;
+  font-size: var(--fs-sm);
+}
+.q-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.q-key i {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.q-key.returned i {
+  background: rgba(45, 212, 191, 0.35);
+  box-shadow: inset 3px 0 0 #2dd4bf;
+}
+.q-key.filtered i {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 176, 32, 0.55) 0 3px,
+    rgba(255, 176, 32, 0.15) 3px 6px
+  );
+  box-shadow: inset 3px 0 0 var(--warn);
+}
+.q-pay {
+  flex-basis: 100%;
+  color: var(--muted);
 }
 
 /* The editor is the hero: an unbounded surface (no boxed card), collapsible by

@@ -198,6 +198,7 @@ function GridRows({
   const lead = cols.filter((k) => isKeyAttr(k, index));
   const stick = lead[lead.length - 1];
   const stickCls = (k: string) => (k === stick ? " stick" : "");
+  const queried = !!query && query.scanned.size > 0 && (!query.index || query.index === index.name);
   // In a grid every cell is a gridcell; the ones you can't type into say so.
   const readOnly = edit ? { role: "gridcell", "aria-readonly": true } : {};
   return (
@@ -244,11 +245,15 @@ function GridRows({
             const it: Item = r.item;
             const pinned = it.id === link.pinnedId ? " pinned" : "";
             const hovered = it.id === link.hoveredId ? " hovered" : "";
-            const q = query?.matched.has(it.id)
-              ? " q-matched"
-              : query?.scanned.has(it.id)
-                ? " q-read"
-                : "";
+            // A read's result, on the index it ran on: returned, read but
+            // filtered out (paid for, never returned), or not read at all.
+            const q = !queried
+              ? ""
+              : query!.matched.has(it.id)
+                ? " q-matched"
+                : query!.scanned.has(it.id)
+                  ? " q-read"
+                  : " q-skip";
             const dim = focusId && it.id !== focusId ? " dimmed" : "";
             const removed = r.status === "removed";
             return (
@@ -298,6 +303,11 @@ function GridRows({
                   );
                 })}
                 <td className="actions" {...readOnly}>
+                  {queried && (q === " q-matched" || q === " q-read") && (
+                    <span className="sr-only">
+                      {q === " q-matched" ? "returned by the read" : "read, filtered out"}
+                    </span>
+                  )}
                   <button
                     className={link.pinnedId === it.id ? "pin-btn on" : "pin-btn"}
                     title="pin / follow this item"
