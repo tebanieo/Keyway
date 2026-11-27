@@ -50,6 +50,7 @@ import { useScriptWidth } from "./hooks/useScriptWidth";
 import type { Shortcut } from "./hooks/useShortcuts";
 import { EXAMPLES } from "./model/examples";
 import { schemaChanges } from "./model/schemaChange";
+import type { KeyTemplates } from "./model/keyTemplates";
 import type { IndexSpec } from "./engine/types";
 import { TOURS } from "./model/tours";
 
@@ -192,8 +193,9 @@ export function App() {
   // editor's own list holds those back too, so the two agree.
   const [caretLine, setCaretLine] = useState<number | null>(null);
   const problems = useMemo(() => {
+    // hints are suggestions (e.g. "make this a @key template"), not problems
     const diagnostics = parseDoc(docText, BASE_INDEX).diagnostics.filter(
-      (d) => d.line !== caretLine,
+      (d) => d.line !== caretLine && d.severity !== "hint",
     );
     const errors = diagnostics.filter((d) => d.severity === "error").length;
     return { errors, warnings: diagnostics.length - errors };
@@ -256,22 +258,30 @@ export function App() {
   // it's a migration or a backfill. Compare against the schema the model had
   // when it was loaded (or when you last dismissed the note), so a half-typed
   // key doesn't pile up notes, and say what the real operation would be.
+  const keyTemplates = useMemo(() => parseDoc(docText, BASE_INDEX).keys, [docText]);
   const [schemaBase, setSchemaBase] = useState<{
     base: IndexSpec;
     gsis: IndexSpec[];
+    keys: KeyTemplates;
     version: number;
     hadData: boolean;
-  }>({ base, gsis, version: docVersion, hadData: false });
+  }>({ base, gsis, keys: keyTemplates, version: docVersion, hadData: false });
   const hasData = fullState.size > 0;
   if (
     schemaBase.version !== docVersion ||
-    (!schemaBase.hadData && (hasData || schemaBase.base !== base || schemaBase.gsis !== gsis))
+    (!schemaBase.hadData &&
+      (hasData ||
+        schemaBase.base !== base ||
+        schemaBase.gsis !== gsis ||
+        schemaBase.keys !== keyTemplates))
   ) {
-    setSchemaBase({ base, gsis, version: docVersion, hadData: hasData });
+    setSchemaBase({ base, gsis, keys: keyTemplates, version: docVersion, hadData: hasData });
   }
-  const schemaNotes = schemaBase.hadData ? schemaChanges(schemaBase, { base, gsis }) : [];
+  const schemaNotes = schemaBase.hadData
+    ? schemaChanges(schemaBase, { base, gsis, keys: keyTemplates })
+    : [];
   const dismissSchemaNotes = () =>
-    setSchemaBase({ base, gsis, version: docVersion, hadData: hasData });
+    setSchemaBase({ base, gsis, keys: keyTemplates, version: docVersion, hadData: hasData });
 
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;

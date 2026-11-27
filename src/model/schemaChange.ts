@@ -1,5 +1,6 @@
 import { pkAttrs, skAttrs } from "../engine/engine";
 import type { IndexSpec } from "../engine/types";
+import type { KeyTemplates } from "./keyTemplates";
 
 /**
  * What a schema edit would mean in real DynamoDB. In Keyway, changing a key
@@ -7,7 +8,7 @@ import type { IndexSpec } from "../engine/types";
  * place, so the app says what the real-world operation is.
  */
 export interface SchemaChange {
-  kind: "table-keys" | "gsi-keys" | "gsi-added";
+  kind: "table-keys" | "gsi-keys" | "gsi-added" | "key-template";
   index: string;
   message: string;
 }
@@ -21,10 +22,25 @@ const show = (ix: IndexSpec) =>
 /** The changes from `prev` to `next` worth explaining, for a table that holds
  *  data (an empty table has nothing to migrate or backfill). */
 export function schemaChanges(
-  prev: { base: IndexSpec; gsis: IndexSpec[] },
-  next: { base: IndexSpec; gsis: IndexSpec[] },
+  prev: { base: IndexSpec; gsis: IndexSpec[]; keys?: KeyTemplates },
+  next: { base: IndexSpec; gsis: IndexSpec[]; keys?: KeyTemplates },
 ): SchemaChange[] {
   const out: SchemaChange[] = [];
+  for (const [type, t] of next.keys ?? []) {
+    const before = prev.keys?.get(type);
+    if (!before) continue;
+    const changed = Object.keys(t).filter((a) => before[a] !== undefined && before[a] !== t[a]);
+    if (changed.length) {
+      out.push({
+        kind: "key-template",
+        index: type,
+        message:
+          `Changing @key ${type} (${changed.map((a) => `${a}=${t[a]}`).join(", ")}) re-keys every ` +
+          `${type} item at once. In DynamoDB a key can't be updated in place: each item is ` +
+          `written again under its new key and the old one deleted, a migration billed as writes.`,
+      });
+    }
+  }
   if (keysOf(prev.base) !== keysOf(next.base)) {
     out.push({
       kind: "table-keys",

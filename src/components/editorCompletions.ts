@@ -5,6 +5,8 @@ import { parseDoc } from "../model/dsl";
 import { BASE_INDEX } from "../model/seed";
 import { allAttrNames, deriveEntities, TYPE_ATTR } from "../model/entities";
 import type { EntityTemplate } from "../model/entities";
+import { placeholders } from "../model/keyTemplates";
+import type { KeyTemplate } from "../model/keyTemplates";
 import type { IndexSpec } from "../engine/types";
 
 // The editor's completion engine, kept separate from the CodeMirror wiring in
@@ -70,6 +72,11 @@ const DIRECTIVES = [
       type: "keyword",
     },
   ),
+  snippetCompletion(`@key ${ph("type")}  ${ph("SK")}=${ph("PREFIX")}#{${ph("attribute")}}`, {
+    label: "@key",
+    detail: "key template for an entity type: SK=ORDER#{date}#{id}",
+    type: "keyword",
+  }),
   snippetCompletion(`@transact\n${ph("writes")}\n@end`, {
     label: "@transact",
     detail: "TransactWriteItems: several writes, all or nothing",
@@ -101,12 +108,18 @@ function liveModel(doc: string) {
     entities: deriveEntities(items, lead),
     attrs: allAttrNames(items),
     gsis: parsed.gsis,
+    keys: parsed.keys,
   };
 }
 
-/** A whole-row scaffold prefilled with an entity's attributes, tagged _type. */
-function entityScaffold(e: EntityTemplate) {
-  const body = e.attrs.map((a) => `${a}=${ph(a)}`).join(SP2);
+/** A whole-row scaffold prefilled with an entity's attributes, tagged _type.
+ *  With a `@key` template the keys fill themselves in, so the scaffold asks
+ *  for the attributes the template reads instead of the keys. */
+function entityScaffold(e: EntityTemplate, t?: KeyTemplate) {
+  const derived = new Set(Object.keys(t ?? {}));
+  const needs = Object.values(t ?? {}).flatMap(placeholders);
+  const fields = [...new Set([...e.attrs.filter((a) => !derived.has(a)), ...needs])];
+  const body = fields.map((a) => `${a}=${ph(a)}`).join(SP2);
   const template = `${ph("label")}: ${body}${SP2}${TYPE_ATTR}=${e.type}`;
   return snippetCompletion(template, {
     label: e.type,
@@ -202,7 +215,7 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
   const segment = /(\S*)$/.exec(before)?.[1] ?? "";
   if (segment.includes("=")) return null;
 
-  const { base, entities, attrs, gsis } = liveModel(ctx.state.doc.toString());
+  const { base, entities, attrs, gsis, keys } = liveModel(ctx.state.doc.toString());
   const started = /^\s*[\w-]+\s*:/.test(before); // line already has `label:`
 
   let options;
@@ -229,7 +242,24 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
         type: "enum",
       }),
     ];
+    // An item tagged with a templated type: offer what its @key template
+    // still needs, first (the keys then fill themselves in).
+    const type = /(?:^|\s)_type=([\w-]+)/.exec(line.text)?.[1];
+    const t = type ? keys.get(type) : undefined;
+    const needed = t
+      ? [...new Set(Object.values(t).flatMap(placeholders))].filter(
+          (a) => !new RegExp(`(^|\\s)${a}=`).test(line.text),
+        )
+      : [];
     options = [
+      ...needed.map((a) =>
+        snippetCompletion(`${a}=${ph(a)}`, {
+          label: a,
+          detail: `needed by @key ${type}`,
+          type: "property",
+          boost: 3,
+        }),
+      ),
       ...gsis.map(gsiKeysSnippet),
       ...typeOpts,
       ...[...names].map((a) =>
@@ -253,7 +283,7 @@ export function completeDsl(ctx: CompletionContext): CompletionResult | null {
       DELETE_SNIPPET,
       ...(inTx ? [CHECK_SNIPPET] : []),
       ...DIRECTIVES,
-      ...entities.map(entityScaffold),
+      ...entities.map((e) => entityScaffold(e, keys.get(e.type))),
     ];
   }
 
