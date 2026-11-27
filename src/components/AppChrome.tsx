@@ -1,6 +1,7 @@
 // Small static chrome pieces around the app: the contextual hint line, the
 // footer, and the transient "copied <value>" toast. Grouped here so App reads
 // as a composition rather than carrying leaf markup.
+import type { SchemaChange } from "../model/schemaChange";
 
 /**
  * The current step's narration, in full, above the tables: it's what the step
@@ -34,6 +35,24 @@ export function StepNote({
  * How to drive the app. In full while the model is empty (the moment it's
  * needed); once there's something on screen, one line of where to look.
  */
+/** What a key change in `@table` / `@gsi` would be in real DynamoDB. */
+export function SchemaNote({ notes, onDismiss }: { notes: SchemaChange[]; onDismiss: () => void }) {
+  if (notes.length === 0) return null;
+  return (
+    <div className="schema-note" role="note" aria-label="In real DynamoDB">
+      <div className="schema-note-body">
+        <b>In real DynamoDB</b>
+        {notes.map((n) => (
+          <p key={`${n.kind}:${n.index}`}>{n.message}</p>
+        ))}
+      </div>
+      <button className="ghost" onClick={onDismiss}>
+        Got it
+      </button>
+    </div>
+  );
+}
+
 export function AppHint({ empty }: { empty: boolean }) {
   if (!empty) {
     return (

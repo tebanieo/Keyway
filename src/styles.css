@@ -1260,7 +1260,8 @@ body {
   transform: scale(0.97);
 }
 
-.backfill .ghost {
+.backfill .ghost,
+.schema-note .ghost {
   padding: 6px 12px;
   border: 1px solid var(--glass-line);
   border-radius: var(--r-sm);
@@ -1273,7 +1274,8 @@ body {
     color var(--tf);
 }
 
-.backfill .ghost:hover {
+.backfill .ghost:hover,
+.schema-note .ghost:hover {
   color: var(--text);
   background: var(--fill-3);
 }
@@ -2964,4 +2966,31 @@ h2.q-title {
   margin-left: 10px;
   padding-left: 12px;
   border-left: 1px solid var(--line);
+}
+
+/* "In real DynamoDB": what a key change here would be in production. */
+.schema-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--warn);
+  border-left-width: 3px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--warn) 8%, var(--panel));
+  font-size: 13px;
+  line-height: 1.5;
+}
+.schema-note-body {
+  flex: 1;
+}
+.schema-note-body b {
+  color: var(--warn);
+}
+.schema-note-body p {
+  margin: 4px 0 0;
+}
+.schema-note .ghost {
+  flex-shrink: 0;
 }

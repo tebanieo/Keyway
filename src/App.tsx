@@ -33,7 +33,14 @@ import { totalWrites } from "./engine/cost";
 import { PanesBar } from "./components/PanesBar";
 import { PanesGrid } from "./components/PanesGrid";
 import type { ShownPane } from "./components/PanesGrid";
-import { AppHint, AppFooter, CopiedToast, ResetToast, StepNote } from "./components/AppChrome";
+import {
+  AppHint,
+  AppFooter,
+  CopiedToast,
+  ResetToast,
+  SchemaNote,
+  StepNote,
+} from "./components/AppChrome";
 import { CommandPalette } from "./components/CommandPalette";
 import type { Command } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
@@ -42,6 +49,8 @@ import { Splitter } from "./components/Splitter";
 import { useScriptWidth } from "./hooks/useScriptWidth";
 import type { Shortcut } from "./hooks/useShortcuts";
 import { EXAMPLES } from "./model/examples";
+import { schemaChanges } from "./model/schemaChange";
+import type { IndexSpec } from "./engine/types";
 import { TOURS } from "./model/tours";
 
 export function App() {
@@ -229,6 +238,27 @@ export function App() {
 
   // The model as text: the script is the one source.
   const currentDoc = () => docText;
+
+  // Changing a key in @table / @gsi just rebuilds the tables here; in DynamoDB
+  // it's a migration or a backfill. Compare against the schema the model had
+  // when it was loaded (or when you last dismissed the note), so a half-typed
+  // key doesn't pile up notes, and say what the real operation would be.
+  const [schemaBase, setSchemaBase] = useState<{
+    base: IndexSpec;
+    gsis: IndexSpec[];
+    version: number;
+    hadData: boolean;
+  }>({ base, gsis, version: docVersion, hadData: false });
+  const hasData = fullState.size > 0;
+  if (
+    schemaBase.version !== docVersion ||
+    (!schemaBase.hadData && (hasData || schemaBase.base !== base || schemaBase.gsis !== gsis))
+  ) {
+    setSchemaBase({ base, gsis, version: docVersion, hadData: hasData });
+  }
+  const schemaNotes = schemaBase.hadData ? schemaChanges(schemaBase, { base, gsis }) : [];
+  const dismissSchemaNotes = () =>
+    setSchemaBase({ base, gsis, version: docVersion, hadData: hasData });
 
   const backfillSig = backfill ? `${backfill.type}.${backfill.attr}` : null;
   const showBackfill = backfill && backfillSig !== dismissedBackfill;
@@ -492,6 +522,7 @@ export function App() {
               }
             />
           )}
+          <SchemaNote notes={schemaNotes} onDismiss={dismissSchemaNotes} />
           {showBackfill && backfill && (
             <BackfillBanner
               backfill={backfill}

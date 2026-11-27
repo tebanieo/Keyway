@@ -155,6 +155,7 @@ hand-curated summary. It follows
 
 ### Added
 
+- **"In real DynamoDB" notes for schema changes.** Changing a key in `@table` or `@gsi` (or adding a GSI) on a model with data still rebuilds the tables instantly, and now a note says what that would be in production: a new table plus a data copy for a primary-key change, delete-and-re-create plus a backfill for a GSI's keys, and a billed backfill for a new GSI.
 - **Resize the script:** drag its right edge, or focus it and use the arrow keys (Shift for bigger steps); the width is remembered. Keys `1`–`9` show or hide the panes, and pane titles are larger.
 - **Canvas tables work from the keyboard:** each table is one tab stop, the arrow keys (and Home/End) move between cells, Enter or F2 edits a cell, and Enter/Escape bring you back to it.
 - **Command palette (Ctrl/Cmd+K)** with every action, example and tour, and **single-key shortcuts** (`q`, `e`, `l`, `a`, `p`, `[`/`]`, `t`, `i`) that act only when you're not typing. `?` shows them all, with a switch to turn the single keys off.
