@@ -94,6 +94,32 @@ o1: PK=USER#1  date=2024-01  id=7  status=pending  _type=order
 - On a `_type=order` line, suggestions offer the attributes the template still
   needs, first.
 
+## `@gen`: sample rows
+
+Ask for sample data with one line, then press **Tab** (or click **Generate**
+in the gutter): the line becomes ordinary item lines you can edit.
+
+```text
+@gen tenant 2
+@gen project 3 per tenant  status=new|active|pending|complete  budget=1000..50000
+```
+
+- `@gen <type> <count>` makes rows of an entity type (up to 50 at a time).
+- `per <type>` makes that many **for each** item of the other type, in its
+  partition (sharing its partition key), so item collections fill in:
+  3 projects under every tenant.
+- `attr=a|b|c` picks one of those values; `attr=10..500` a number in that
+  range (`10.00..99.99` keeps two decimals); `attr=x` sets it.
+- The rows look like the ones you have: the same attributes, the few values a
+  status-like field already uses, dates and numbers in the same format, emails
+  on the same domain. Names, emails, cities, prices, dates … get plausible
+  values from the attribute's name.
+- Keys follow the pattern of your existing rows of that type
+  (`GSI1PK=STATUS#{status}`, `SK=PROJECT#<name>`, a key that repeats another),
+  or the type's `@key` template.
+- The same line on the same model gives the same rows; **Ctrl/Cmd+Z** brings
+  the `@gen` line back.
+
 ## `@ap`: a declared access pattern
 
 An access pattern is the **spec**: what your design must be able to serve. They

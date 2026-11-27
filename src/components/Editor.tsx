@@ -30,6 +30,7 @@ import { forceLinting, linter, lintGutter, openLintPanel } from "@codemirror/lin
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "../model/dsl";
 import { apLineNotes } from "../model/coverage";
+import { expandGen, GEN_LINE } from "../model/sample/generate";
 import { BASE_INDEX } from "../model/seed";
 import { completeDsl } from "./editorCompletions";
 import { dslHighlighting } from "./dslLanguage";
@@ -135,6 +136,25 @@ function completeNow(view: EditorView, typed: string): boolean {
 // Tab never leaves the editor (a keyboard user leaves with Escape, then Tab):
 // advance a snippet field, else accept a completion, else jump to the next
 // value; on a blank line it opens the suggestions; anywhere else it's a no-op.
+// Tab on an `@gen` line: replace it with the sample rows it describes (one
+// undo brings the line back). A line that can't expand yet says why, inline.
+const replaceWithRows = (view: EditorView, lineNo: number, rows: string[]) => {
+  const l = view.state.doc.line(lineNo);
+  const text = rows.join("\n");
+  view.dispatch({
+    changes: { from: l.from, to: l.to, insert: text },
+    selection: EditorSelection.cursor(l.from + text.length),
+    scrollIntoView: true,
+  });
+};
+const genExpand: Command = (view) => {
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+  if (!GEN_LINE.test(line.text)) return false;
+  const r = expandGen(view.state.doc.toString(), line.number - 1);
+  if ("lines" in r) replaceWithRows(view, line.number, r.lines);
+  return true;
+};
+
 const tabElsewhere: Command = (view) => {
   const line = view.state.doc.lineAt(view.state.selection.main.head);
   if (line.text.trim() === "") startCompletion(view);
@@ -186,6 +206,7 @@ const authoringKeys = Prec.highest(
         return (
           (hasNextSnippetField(v.state) && nextSnippetField(v)) ||
           acceptTop(v) ||
+          genExpand(v) ||
           tabForward(v) ||
           tabElsewhere(v)
         );
@@ -216,7 +237,34 @@ const dslLinter = linter((view): CmDiagnostic[] => {
   const parsed = parseDoc(view.state.doc.toString(), BASE_INDEX);
   // Problems, plus each access pattern's coverage on its own @ap line (served
   // or why not), so you see it without opening the Access patterns panel.
-  return [...parsed.diagnostics, ...apLineNotes(parsed)]
+  const genNotes: CmDiagnostic[] = [];
+  const doc = view.state.doc;
+  for (let n = 1; n <= doc.lines; n++) {
+    const l = doc.line(n);
+    if (!GEN_LINE.test(l.text)) continue;
+    const r = expandGen(doc.toString(), n - 1);
+    genNotes.push(
+      "lines" in r
+        ? {
+            from: l.from,
+            to: l.to,
+            severity: "hint",
+            message: `Tab (or Generate) turns this into ${r.lines.length} sample row${r.lines.length === 1 ? "" : "s"}`,
+            actions: [
+              {
+                name: "Generate",
+                apply: (v) => {
+                  const line = v.state.doc.lineAt(l.from);
+                  const again = expandGen(v.state.doc.toString(), line.number - 1);
+                  if ("lines" in again) replaceWithRows(v, line.number, again.lines);
+                },
+              },
+            ],
+          }
+        : { from: l.from, to: l.to, severity: "warning", message: r.error },
+    );
+  }
+  const notes = [...parsed.diagnostics, ...apLineNotes(parsed)]
     .filter((d) => d.line + 1 !== quiet)
     .map((d): CmDiagnostic => {
       const l = view.state.doc.line(d.line + 1);
@@ -245,6 +293,7 @@ const dslLinter = linter((view): CmDiagnostic[] => {
           : undefined,
       };
     });
+  return [...notes, ...genNotes.filter((d) => doc.lineAt(d.from).number !== quiet)];
 });
 
 // The `dark` flag picks CodeMirror's built-in colours for its own widgets (the
@@ -284,7 +333,7 @@ const themeFor = (dark: boolean) =>
         fontSize: "12px",
         lineHeight: "1",
       },
-      ".cm-lintRange-info": { backgroundImage: "none" },
+      ".cm-lintRange-info, .cm-lintRange-hint": { backgroundImage: "none" },
       "&.cm-focused": { outline: "none" },
       ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
     },
