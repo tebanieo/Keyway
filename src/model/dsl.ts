@@ -1,4 +1,6 @@
 import { keyOf, pkAttrs, skAttrs } from "../engine/engine";
+import { applyTemplates, keyLine, suggestTemplates } from "./keyTemplates";
+import type { KeyTemplates } from "./keyTemplates";
 import { parseExpression, splitClauses } from "../engine/expression";
 import type { AttributeValue } from "../engine/extenddb";
 import type { Condition, IndexSpec, Item, Op, ProjectionSpec, WriteAction } from "../engine/types";
@@ -24,7 +26,10 @@ export interface Diagnostic {
   /** 0-based line index. */
   line: number;
   message: string;
-  severity: "error" | "warning";
+  /** "hint" is a suggestion, not a problem (it isn't counted as one). */
+  severity: "error" | "warning" | "hint";
+  /** A one-click fix: insert `text` as a new line before 0-based `line`. */
+  fix?: { label: string; line: number; text: string };
 }
 
 /** A declared access pattern (the SPEC): what a query needs to serve. */
@@ -103,6 +108,8 @@ export interface ParseResult {
   /** 0-based source line each op came from, aligned with `ops`. Drives the
    *  editor's step highlight (which line the current step is running). */
   opLines: number[];
+  /** Key templates declared with `@key <type> attr=…{attr}…`. */
+  keys: KeyTemplates;
 }
 
 /** Parse a `projection=` value: `all` | `keys`/`keys_only` | comma list. */
@@ -311,6 +318,8 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
   const gsis: IndexSpec[] = [];
   const aps: AccessPattern[] = [];
   const apLines: number[] = []; // source line of each @ap, for diagnostics
+  const keys: KeyTemplates = new Map();
+  let lastSchemaLine = -1; // where a suggested @key line goes (after these)
   lines.forEach((raw, line) => {
     const s = raw.trim();
     if (!s.startsWith("@")) return;
@@ -363,6 +372,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
           severity: "warning",
         });
       }
+      lastSchemaLine = Math.max(lastSchemaLine, line);
       gsis.push({
         name: nm[1],
         pk: pkList[0],
@@ -371,6 +381,21 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         sks: skList.length > 1 ? skList : undefined,
         projection: parseProjection(attrs.projection),
       });
+    } else if (kind === "key") {
+      // @key <type>  attr=TEMPLATE#{attr} …
+      const nm = GSI_NAME.exec(rest);
+      const pairs = nm ? parseAttrs(nm[2]) : {};
+      if (!nm || Object.keys(pairs).length === 0) {
+        diagnostics.push({
+          line,
+          message:
+            "@key needs an entity type and a template, e.g. `@key order  SK=ORDER#{date}#{id}`",
+          severity: "error",
+        });
+        return;
+      }
+      keys.set(nm[1], { ...(keys.get(nm[1]) ?? {}), ...pairs });
+      lastSchemaLine = Math.max(lastSchemaLine, line);
     } else if (kind === "table") {
       // @table [Name] pk=.. sk=..: a leading bareword (no "=") names the table
       const first = /^(\S+)(?:\s+([\s\S]*))?$/.exec(rest);
@@ -391,6 +416,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
         return;
       }
       base = { name, pk: attrs.pk, sk: attrs.sk }; // sk absent -> PK-only
+      lastSchemaLine = Math.max(lastSchemaLine, line);
     } else if (kind === "ap") {
       // @ap <description>  [-> <Index> [get|query|scan] [key conditions]]
       const arrow = rest.indexOf("->");
@@ -436,6 +462,10 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     pending = [];
     return note || undefined;
   };
+
+  // Each label's last line, as typed (before templates fill keys in): what
+  // template suggestions are inferred from.
+  const written = new Map<string, { attrs: Record<string, string>; line: number }>();
 
   // An open `@transact` block: its writes collect here, then land as ONE
   // step when `@end` closes it (all or nothing).
@@ -582,6 +612,11 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
 
     const [, label, body] = m;
     const attrs = parseAttrs(body);
+    written.set(label, { attrs: { ...attrs }, line });
+    // keys from the entity's @key template (attributes can come in any order)
+    for (const message of applyTemplates(label, attrs, keys)) {
+      diagnostics.push({ line, message, severity: "warning" });
+    }
     const item: Item = { id: label, attrs };
     const newKey = keyOf(item, base);
 
@@ -631,6 +666,30 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     closeTx();
   }
 
+  // Keys that already follow a pattern: offer it as a @key template, and flag
+  // an item that alone breaks the pattern its siblings share.
+  const keyAttrs = [...new Set([base, ...gsis].flatMap((ix) => [...pkAttrs(ix), ...skAttrs(ix)]))];
+  const typed = [...written].map(([label, w]) => ({ label, attrs: w.attrs }));
+  for (const hint of suggestTemplates(typed, keyAttrs, keys)) {
+    const first = [...written].find(([, w]) => w.attrs._type === hint.type);
+    const text = keyLine(hint.type, hint.template);
+    if (first) {
+      diagnostics.push({
+        line: first[1].line,
+        message: `${hint.type} keys follow a pattern: \`${text}\` would fill them in from each item's attributes`,
+        severity: "hint",
+        fix: { label: `Add @key ${hint.type}`, line: lastSchemaLine + 1, text },
+      });
+    }
+    for (const d of hint.deviants) {
+      diagnostics.push({
+        line: written.get(d.label)!.line,
+        message: `${d.label}'s ${d.attr} breaks the pattern the other ${hint.type} items follow (expected ${d.expected})`,
+        severity: "warning",
+      });
+    }
+  }
+
   // An @ap naming an index that doesn't exist: say so on its line (the
   // directives can come in any order, so this waits until all are read).
   const indexNames = [base.name, ...gsis.map((g) => g.name)];
@@ -644,7 +703,7 @@ export function parseDoc(text: string, baseIndex: IndexSpec): ParseResult {
     }
   });
 
-  return { ops, diagnostics, base, gsis, aps, notes, opLines };
+  return { ops, diagnostics, base, gsis, aps, notes, opLines, keys };
 }
 
 /** Serialize access patterns back to `@ap` directive lines. */

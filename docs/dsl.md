@@ -66,6 +66,34 @@ warning: _"multi-key GSI: use a comma list (`pk=a,b`), not repeated `pk=`."_
 More than 4 pk or 4 sk attributes is also warned.
 :::
 
+## `@key`: key templates for an entity type
+
+In single-table design a key is built from the item's own attributes:
+`ORDER#<date>#<id>`. Say how once per entity type, and every item tagged with
+that `_type` gets its keys filled in:
+
+```text
+@key order  SK=ORDER#{date}#{id}  GSI1PK=STATUS#{status}  GSI1SK={date}
+
+o1: PK=USER#1  date=2024-01  id=7  status=pending  _type=order
+# -> SK=ORDER#2024-01#7  GSI1PK=STATUS#pending  GSI1SK=2024-01
+```
+
+- `{name}` reads that attribute from the same item. The keys are worked out
+  after the whole line is read, so the attributes can come in any order.
+- Change the template and every item of the type is re-keyed at once. (In
+  DynamoDB that's a migration: each item written again under its new key; a
+  note says so.)
+- An item missing an attribute the template needs is flagged
+  (``o1 needs `date` for SK``). An item that writes the key itself keeps its
+  value, with a warning if it doesn't match the template.
+- **Already have keys like that?** When the items of a type share a pattern
+  (every order's SK is `ORDER#` + its `date` + its `id`), the editor offers
+  the template as a one-click fix on the first of them, and flags an item that
+  alone breaks the pattern.
+- On a `_type=order` line, suggestions offer the attributes the template still
+  needs, first.
+
 ## `@ap`: a declared access pattern
 
 An access pattern is the **spec**: what your design must be able to serve. They

@@ -218,9 +218,32 @@ const dslLinter = linter((view): CmDiagnostic[] => {
   // or why not), so you see it without opening the Access patterns panel.
   return [...parsed.diagnostics, ...apLineNotes(parsed)]
     .filter((d) => d.line + 1 !== quiet)
-    .map((d) => {
+    .map((d): CmDiagnostic => {
       const l = view.state.doc.line(d.line + 1);
-      return { from: l.from, to: l.to, severity: d.severity, message: d.message };
+      const fix = "fix" in d ? d.fix : undefined;
+      return {
+        from: l.from,
+        to: l.to,
+        severity: d.severity,
+        message: d.message,
+        // a one-click fix (e.g. add the suggested @key line)
+        actions: fix
+          ? [
+              {
+                name: fix.label,
+                apply: (v) => {
+                  const at = Math.min(fix.line, v.state.doc.lines);
+                  const pos =
+                    fix.line >= v.state.doc.lines
+                      ? v.state.doc.length
+                      : v.state.doc.line(at + 1).from;
+                  const insert = fix.line >= v.state.doc.lines ? `\n${fix.text}` : `${fix.text}\n`;
+                  v.dispatch({ changes: { from: pos, insert } });
+                },
+              },
+            ]
+          : undefined,
+      };
     });
 });
 
@@ -233,6 +256,8 @@ const themeFor = (dark: boolean) =>
       "&": { backgroundColor: "var(--editor-bg)", color: "var(--editor-fg)", fontSize: "13px" },
       ".cm-content": {
         fontFamily: "var(--font-mono)",
+        // characters as typed: no ligatures turning `#{` or `->` into glyphs
+        fontVariantLigatures: "none",
         caretColor: "var(--accent)",
       },
       ".cm-gutters": {
