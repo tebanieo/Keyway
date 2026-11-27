@@ -187,6 +187,11 @@ come from ExtendDB through `src/engine/extenddb.ts`; the compiled bindings in
 `wasm/pkg/` are committed, so you only need Rust (and `npm run wasm:build`) when
 changing `wasm/` itself. Coding agents follow [`AGENTS.md`](AGENTS.md).
 
+The demo GIF is recorded, not hand-made: with a preview server running,
+`node scripts/record-demo.cjs <dir>` types the model at a human pace with
+captions and key badges, and `python3 scripts/make-gif.py <dir>` builds
+`docs/public/demo.gif`. Re-run them when the UI changes.
+
 ## The DSL, briefly
 
 ```
