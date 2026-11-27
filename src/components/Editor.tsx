@@ -29,6 +29,7 @@ import {
 import { forceLinting, linter, lintGutter, openLintPanel } from "@codemirror/lint";
 import type { Diagnostic as CmDiagnostic } from "@codemirror/lint";
 import { parseDoc } from "../model/dsl";
+import { apLineNotes } from "../model/coverage";
 import { BASE_INDEX } from "../model/seed";
 import { completeDsl } from "./editorCompletions";
 import { dslHighlighting } from "./dslLanguage";
@@ -212,8 +213,10 @@ const dslLinter = linter((view): CmDiagnostic[] => {
   const activeLine = view.state.doc.lineAt(view.state.selection.main.head).number;
   const typing = editing.get(view);
   const quiet = typing && typing.line === activeLine && typing.edited ? activeLine : -1;
-  const { diagnostics } = parseDoc(view.state.doc.toString(), BASE_INDEX);
-  return diagnostics
+  const parsed = parseDoc(view.state.doc.toString(), BASE_INDEX);
+  // Problems, plus each access pattern's coverage on its own @ap line (served
+  // or why not), so you see it without opening the Access patterns panel.
+  return [...parsed.diagnostics, ...apLineNotes(parsed)]
     .filter((d) => d.line + 1 !== quiet)
     .map((d) => {
       const l = view.state.doc.line(d.line + 1);
@@ -241,6 +244,22 @@ const themeFor = (dark: boolean) =>
       ".cm-activeLine": { backgroundColor: "var(--fill-1)" },
       ".cm-activeLineGutter": { backgroundColor: "var(--fill-1)" },
       ".cm-step-line": { backgroundColor: "var(--editor-step)" },
+      // A served access pattern: a green check in the gutter, no underline
+      // (it's good news, not a problem to fix).
+      ".cm-lint-marker-info": {
+        content: "none",
+        backgroundImage: "none",
+        display: "inline-grid",
+        placeItems: "center",
+      },
+      ".cm-lint-marker-info::before": {
+        content: '"✓"',
+        color: "var(--enter)",
+        fontWeight: "700",
+        fontSize: "12px",
+        lineHeight: "1",
+      },
+      ".cm-lintRange-info": { backgroundImage: "none" },
       "&.cm-focused": { outline: "none" },
       ".cm-selectionBackground, ::selection": { backgroundColor: "var(--editor-sel)" },
     },
