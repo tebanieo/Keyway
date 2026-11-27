@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { parseDoc, serializeOps } from "./model/dsl";
+import { parseDoc, serializeOps, setAttrInLine } from "./model/dsl";
 import { BASE_INDEX } from "./model/seed";
 import { itemSize } from "./engine/itemsize";
 import { Toolbar } from "./components/Toolbar";
@@ -206,8 +206,21 @@ export function App() {
     if (added.length) editorRef.current?.appendLines(serializeOps(added, base));
   };
   const edit: EditProps = {
+    // A cell edit changes the line that wrote the item (as of the step you're
+    // on), so a correction stays a correction rather than a new step. A row
+    // written inside a @transact block gets a new line instead.
     onEdit: (item, key, value) => {
       if ((item.attrs[key] ?? "") === value) return;
+      for (let i = Math.min(curStep, ops.length) - 1; i >= 0; i--) {
+        if (opIdAt(i) !== item.id) continue;
+        const line = opLines[i];
+        const text = docText.split("\n")[line] ?? "";
+        if (new RegExp(`^\\s*${item.id}\\s*:`).test(text)) {
+          editorRef.current?.replaceLine(line, setAttrInLine(text, key, value));
+          return;
+        }
+        break;
+      }
       writeLines(editToOps(item, key, value, base));
     },
     onDelete: (id) => writeLines([{ kind: "delete", id }]),
