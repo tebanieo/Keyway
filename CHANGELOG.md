@@ -7,6 +7,17 @@ hand-curated summary. It follows
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2026-11-27
+
+First beta. Keyway becomes a one-interface, type-it-and-watch tool for learning
+DynamoDB data modelling: write the model as a short script and the tables,
+indexes, costs and access-pattern coverage update as you type. Highlights:
+ExtendDB's DynamoDB expression engine (compiled to WebAssembly) for real
+condition, key-condition and filter rules; API-style requests in the Query
+panel; key templates (`@key`); transactions (`@transact … @end`); a workbench
+layout with docked panels; a command palette and keyboard shortcuts; and an
+accessibility pass against WCAG 2.2 AA.
+
 ### Fixed
 
 - Tab at the end of a `@gsi` or other directive line no longer adds two spaces and opens the line-start menu (that's for item lines).
